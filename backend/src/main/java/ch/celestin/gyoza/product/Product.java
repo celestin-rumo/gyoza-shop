@@ -68,4 +68,12 @@ public class Product {
 
         stockQuantity -= quantity;
     }
+
+    public void activate() {
+        this.active = true;
+    }
+
+    public void deactivate() {
+        this.active = false;
+    }
 }

@@ -1,0 +1,57 @@
+@if (editing()) {
+  <div class="admin-pack-row admin-pack-row--editing">
+    <label class="admin-pack-row__field">
+      Quantité
+      <input
+        type="number"
+        min="1"
+        class="admin-pack-row__input"
+        [value]="size()"
+        (input)="size.set($any($event.target).valueAsNumber || 0)"
+      />
+    </label>
+
+    <label class="admin-pack-row__field">
+      Prix (CHF)
+      <input
+        type="number"
+        min="0.01"
+        step="0.01"
+        class="admin-pack-row__input"
+        [value]="price()"
+        (input)="price.set($any($event.target).valueAsNumber || 0)"
+      />
+    </label>
+
+    <div class="admin-pack-row__actions">
+      <ds-button variant="primary" size="sm" [disabled]="!canSave() || saving()" (pressed)="save()">
+        {{ saving() ? 'Enregistrement…' : 'Enregistrer' }}
+      </ds-button>
+      <ds-button variant="ghost" size="sm" [disabled]="saving()" (pressed)="cancelEditing()">
+        Annuler
+      </ds-button>
+    </div>
+
+    @if (error()) {
+      <p class="admin-pack-row__error" role="alert">{{ error() }}</p>
+    }
+  </div>
+} @else {
+  <div class="admin-pack-row">
+    <span class="admin-pack-row__label">Pack de {{ pack().size }}</span>
+    <span class="admin-pack-row__price">{{ pack().price | dsPrice }}</span>
+
+    <div class="admin-pack-row__actions">
+      <ds-button variant="outline" size="sm" [disabled]="deleting()" (pressed)="startEditing()">
+        Modifier
+      </ds-button>
+      <ds-button variant="ghost" size="sm" [disabled]="deleting()" (pressed)="delete()">
+        {{ deleting() ? 'Suppression…' : 'Supprimer' }}
+      </ds-button>
+    </div>
+
+    @if (error()) {
+      <p class="admin-pack-row__error" role="alert">{{ error() }}</p>
+    }
+  </div>
+}

@@ -13,6 +13,17 @@ interface Presentation {
   description: string;
 }
 
+/** Image neutre pour un produit fraîchement créé côté admin, tant qu'aucune photo n'a été choisie. */
+const PLACEHOLDER_IMAGE_URL =
+  'data:image/svg+xml,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640">' +
+      '<rect width="960" height="640" fill="#161513"/>' +
+      '<circle cx="480" cy="320" r="120" fill="none" stroke="#a9a6a0" stroke-width="4"/>' +
+      '<path d="M420 320a60 60 0 1 1 120 0" fill="none" stroke="#a9a6a0" stroke-width="4"/>' +
+      '</svg>',
+  );
+
 const PRESENTATION_BY_PRODUCT_NAME: Record<string, Presentation> = {
   chicken: {
     name: 'Poulet',
@@ -67,20 +78,31 @@ export class CatalogService {
 
   load(): Promise<void> {
     if (!this.loadPromise) {
-      this.loadPromise = firstValueFrom(this.productService.getProducts())
-        .then((products) => {
-          this._products.set(products);
-        })
-        .catch((error) => {
-          console.error('Erreur GET products', error);
-          this._error.set('Impossible de charger le catalogue.');
-        })
-        .finally(() => {
-          this._loading.set(false);
-        });
+      this.loadPromise = this.fetch();
     }
 
     return this.loadPromise;
+  }
+
+  /** Recharge le catalogue depuis l'API : à appeler après une modification faite depuis l'admin. */
+  refresh(): Promise<void> {
+    this.loadPromise = this.fetch();
+    return this.loadPromise;
+  }
+
+  private fetch(): Promise<void> {
+    return firstValueFrom(this.productService.getProducts())
+      .then((products) => {
+        this._products.set(products);
+        this._error.set(null);
+      })
+      .catch((error) => {
+        console.error('Erreur GET products', error);
+        this._error.set('Impossible de charger le catalogue.');
+      })
+      .finally(() => {
+        this._loading.set(false);
+      });
   }
 
   private toDsProduct(product: Product): DsProduct {
@@ -89,7 +111,7 @@ export class CatalogService {
     return {
       id: product.id,
       tagTone: presentation?.tagTone ?? 'neutral',
-      imageUrl: presentation?.imageUrl ?? '',
+      imageUrl: presentation?.imageUrl ?? PLACEHOLDER_IMAGE_URL,
       imageAlt: presentation?.imageAlt ?? product.name,
       name: presentation?.name ?? product.name,
       description: presentation?.description ?? '',

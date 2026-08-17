@@ -1,0 +1,74 @@
+<main class="admin-stocks">
+  <header class="admin-stocks__header">
+    <ds-section-header
+      title="Gestion des stocks"
+      subtitle="Produits, packs, prix et niveaux de stock."
+      align="left"
+    ></ds-section-header>
+
+    <div class="admin-stocks__header-actions">
+      <a class="admin-stocks__back-link" routerLink="/admin">← Retour</a>
+      <ds-button variant="outline" size="sm" (pressed)="logout()">Se déconnecter</ds-button>
+    </div>
+  </header>
+
+  <section class="admin-stocks__new-product">
+    <h2 class="admin-stocks__section-title">Ajouter un produit</h2>
+
+    <form [formRoot]="newProductForm" class="admin-stocks__new-product-form">
+      <div class="admin-stocks__field">
+        <label for="productName">Nom</label>
+        <input
+          id="productName"
+          type="text"
+          placeholder="Porc"
+          [formField]="newProductForm.name"
+        />
+        @if (newProductForm.name().touched() && newProductForm.name().invalid()) {
+          <p class="admin-stocks__field-error">{{ newProductForm.name().errors()[0]?.message }}</p>
+        }
+      </div>
+
+      <div class="admin-stocks__field">
+        <label for="productStock">Stock initial</label>
+        <input
+          id="productStock"
+          type="number"
+          [formField]="newProductForm.initialStock"
+        />
+        @if (newProductForm.initialStock().touched() && newProductForm.initialStock().invalid()) {
+          <p class="admin-stocks__field-error">
+            {{ newProductForm.initialStock().errors()[0]?.message }}
+          </p>
+        }
+      </div>
+
+      @if (createProductError()) {
+        <p class="admin-stocks__submit-error" role="alert">{{ createProductError() }}</p>
+      }
+
+      <ds-button type="submit" variant="primary" size="md" [disabled]="creatingProduct()">
+        {{ creatingProduct() ? 'Création…' : 'Ajouter le produit' }}
+      </ds-button>
+    </form>
+  </section>
+
+  <section class="admin-stocks__products">
+    <h2 class="admin-stocks__section-title">Produits</h2>
+
+    @if (loading()) {
+      <p class="admin-stocks__hint">Chargement…</p>
+    } @else if (loadError()) {
+      <p class="admin-stocks__submit-error" role="alert">{{ loadError() }}</p>
+    } @else {
+      <div class="admin-stocks__product-list">
+        @for (product of products(); track product.id) {
+          <app-admin-product-row
+            [product]="product"
+            (productUpdated)="onProductUpdated($event)"
+          ></app-admin-product-row>
+        }
+      </div>
+    }
+  </section>
+</main>

@@ -13,7 +13,8 @@
     <p class="ds-product-card__description">{{ product.description }}</p>
     <span class="ds-product-card__price">Dès {{ fromPrice | dsPrice }}</span>
 
-    <a class="ds-product-card__details-link" [routerLink]="['/nos-gyozas']" [fragment]="product.id.toString()">
+    <a class="ds-product-card__details-link" [routerLink]="['/nos-gyozas']" [fragment]="product.id.toString()
+    ">
       Voir la recette et la composition →
     </a>
 

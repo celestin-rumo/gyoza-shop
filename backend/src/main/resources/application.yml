@@ -12,3 +12,9 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+app:
+  admin:
+    username: ${ADMIN_USERNAME:admin}
+    password: ${ADMIN_PASSWORD:changeme}
+    token-ttl-hours: ${ADMIN_TOKEN_TTL_HOURS:8}

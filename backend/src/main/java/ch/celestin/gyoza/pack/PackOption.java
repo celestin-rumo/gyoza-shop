@@ -64,4 +64,15 @@ public class PackOption {
 
         this.price = newPrice;
     }
+
+    public void changeSize(int newSize) {
+
+        if (newSize <= 0) {
+            throw new IllegalArgumentException(
+                    "Size must be greater than 0"
+            );
+        }
+
+        this.size = newSize;
+    }
 }

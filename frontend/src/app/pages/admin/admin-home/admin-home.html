@@ -1,0 +1,25 @@
+<main class="admin-home">
+  <header class="admin-home__header">
+    <ds-section-header
+      title="Panneau admin"
+      subtitle="Choisissez une section à gérer."
+      align="left"
+    ></ds-section-header>
+
+    <ds-button variant="outline" size="sm" (pressed)="logout()">Se déconnecter</ds-button>
+  </header>
+
+  <div class="admin-home__cards">
+    <a class="admin-home__card" routerLink="/admin/stocks">
+      <h2 class="admin-home__card-title">Gestion des stocks</h2>
+      <p class="admin-home__card-description">
+        Produits, packs, prix et niveaux de stock.
+      </p>
+    </a>
+
+    <div class="admin-home__card admin-home__card--disabled">
+      <h2 class="admin-home__card-title">Gestion des commandes</h2>
+      <p class="admin-home__card-description">Bientôt disponible.</p>
+    </div>
+  </div>
+</main>

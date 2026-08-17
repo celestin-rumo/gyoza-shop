@@ -1,0 +1,45 @@
+<main class="admin-login">
+  <ds-section-header
+    title="Espace admin"
+    subtitle="Connectez-vous pour gérer le catalogue."
+    align="left"
+  ></ds-section-header>
+
+  <form [formRoot]="loginForm" class="admin-login-form">
+    <div class="admin-login-form__field">
+      <label class="admin-login-form__label" for="username">Nom d’utilisateur</label>
+      <input
+        id="username"
+        class="admin-login-form__input"
+        type="text"
+        autocomplete="username"
+        [formField]="loginForm.username"
+      />
+      @if (loginForm.username().touched() && loginForm.username().invalid()) {
+        <p class="admin-login-form__error">{{ loginForm.username().errors()[0]?.message }}</p>
+      }
+    </div>
+
+    <div class="admin-login-form__field">
+      <label class="admin-login-form__label" for="password">Mot de passe</label>
+      <input
+        id="password"
+        class="admin-login-form__input"
+        type="password"
+        autocomplete="current-password"
+        [formField]="loginForm.password"
+      />
+      @if (loginForm.password().touched() && loginForm.password().invalid()) {
+        <p class="admin-login-form__error">{{ loginForm.password().errors()[0]?.message }}</p>
+      }
+    </div>
+
+    @if (loginError()) {
+      <p class="admin-login-form__submit-error" role="alert">{{ loginError() }}</p>
+    }
+
+    <ds-button type="submit" variant="primary" size="md" [fullWidth]="true" [disabled]="submitting()">
+      {{ submitting() ? 'Connexion en cours…' : 'Se connecter' }}
+    </ds-button>
+  </form>
+</main>
