@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { DsPackPickerComponent, DsPackSelection, DsProductPack } from '../ds-pack-picker/ds-pack-picker.component';
+import { DsPricePipe } from '../../pipes/ds-price.pipe';
 
 export type DsProductTagTone = 'accent' | 'neutral' | 'sage';
 
@@ -35,7 +36,7 @@ export interface DsCartRemoveEvent {
 @Component({
   selector: 'ds-product-card',
   standalone: true,
-  imports: [CommonModule, RouterLink, DsPackPickerComponent],
+  imports: [CommonModule, RouterLink, DsPackPickerComponent, DsPricePipe],
   templateUrl: './ds-product-card.component.html',
   styleUrls: ['./ds-product-card.component.scss'],
 })
@@ -57,9 +58,5 @@ export class DsProductCardComponent {
 
   get fromPrice(): number {
     return Math.min(...this.product.packs.map((pack) => pack.price));
-  }
-
-  formatPrice(value: number, currency = '€'): string {
-    return `${value.toFixed(2).replace('.', ',')} ${currency}`;
   }
 }

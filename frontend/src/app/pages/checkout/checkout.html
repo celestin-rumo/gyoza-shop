@@ -47,7 +47,7 @@
 
         <div class="checkout__subtotal">
           <span>Sous-total</span>
-          <strong>{{ formatPrice(cart.subtotal()) }}</strong>
+          <strong>{{ cart.subtotal() | dsPrice }}</strong>
         </div>
       </section>
 

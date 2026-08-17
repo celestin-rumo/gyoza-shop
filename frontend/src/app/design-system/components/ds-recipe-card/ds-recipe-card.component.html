@@ -12,7 +12,7 @@
   <div class="ds-recipe-card__body">
     <div class="ds-recipe-card__heading">
       <h3 class="ds-recipe-card__name">{{ product().name }}</h3>
-      <span class="ds-recipe-card__price">Dès {{ formatPrice(fromPrice()) }}</span>
+      <span class="ds-recipe-card__price">Dès {{ fromPrice() | dsPrice }}</span>
     </div>
 
     <p class="ds-recipe-card__description">{{ product().description }}</p>

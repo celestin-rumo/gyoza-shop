@@ -2,6 +2,7 @@ import { Component, computed, input, output } from '@angular/core';
 import { DsCartAddEvent } from '../ds-product-card/ds-product-card.component';
 import { DsCartItemComponent } from '../ds-cart-item/ds-cart-item.component';
 import { DsButtonComponent } from '../ds-button/ds-button.component';
+import { DsPricePipe } from '../../pipes/ds-price.pipe';
 
 export interface DsCartQuantityChangeEvent {
   line: DsCartAddEvent;
@@ -23,7 +24,7 @@ export interface DsCartQuantityChangeEvent {
  */
 @Component({
   selector: 'ds-cart-panel',
-  imports: [DsCartItemComponent, DsButtonComponent],
+  imports: [DsCartItemComponent, DsButtonComponent, DsPricePipe],
   templateUrl: './ds-cart-panel.component.html',
   styleUrl: './ds-cart-panel.component.scss',
   host: {
@@ -67,9 +68,5 @@ export class DsCartPanelComponent {
     if (this.open()) {
       this.closed.emit();
     }
-  }
-
-  protected formatPrice(value: number, currency = '€'): string {
-    return `${value.toFixed(2).replace('.', ',')} ${currency}`;
   }
 }

@@ -1,5 +1,6 @@
 import { Component, computed, input, output } from '@angular/core';
 import { DsCartAddEvent } from '../ds-product-card/ds-product-card.component';
+import { DsPricePipe } from '../../pipes/ds-price.pipe';
 
 /**
  * <ds-cart-item [line]="line" (quantityChange)="onQuantityChange($event)" (remove)="onRemove()"></ds-cart-item>
@@ -8,6 +9,7 @@ import { DsCartAddEvent } from '../ds-product-card/ds-product-card.component';
  */
 @Component({
   selector: 'ds-cart-item',
+  imports: [DsPricePipe],
   templateUrl: './ds-cart-item.component.html',
   styleUrl: './ds-cart-item.component.scss',
 })
@@ -32,9 +34,5 @@ export class DsCartItemComponent {
 
   protected onRemove(): void {
     this.remove.emit();
-  }
-
-  protected formatPrice(value: number, currency = '€'): string {
-    return `${value.toFixed(2).replace('.', ',')} ${currency}`;
   }
 }

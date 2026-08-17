@@ -1,12 +1,12 @@
 import { Component, computed, input, output, signal } from '@angular/core';
 import { DsButtonComponent } from '../ds-button/ds-button.component';
+import { DsPricePipe } from '../../pipes/ds-price.pipe';
 
 export interface DsProductPack {
   id: string;
   label: string;
   count: number;
   price: number;
-  currency?: string;
 }
 
 export interface DsPackSelection {
@@ -23,7 +23,7 @@ export interface DsPackSelection {
  */
 @Component({
   selector: 'ds-pack-picker',
-  imports: [DsButtonComponent],
+  imports: [DsButtonComponent, DsPricePipe],
   templateUrl: './ds-pack-picker.component.html',
   styleUrl: './ds-pack-picker.component.scss',
 })
@@ -78,9 +78,5 @@ export class DsPackPickerComponent {
       return;
     }
     this.remove.emit(pack);
-  }
-
-  protected formatPrice(value: number, currency = '€'): string {
-    return `${value.toFixed(2).replace('.', ',')} ${currency}`;
   }
 }

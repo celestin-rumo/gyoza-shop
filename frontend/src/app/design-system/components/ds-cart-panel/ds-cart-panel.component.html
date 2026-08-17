@@ -27,7 +27,7 @@
       <footer class="ds-cart-panel__footer">
         <div class="ds-cart-panel__subtotal">
           <span>Sous-total</span>
-          <strong>{{ formatPrice(subtotal()) }}</strong>
+          <strong>{{ subtotal() | dsPrice }}</strong>
         </div>
 
         <ds-button variant="primary" size="md" [fullWidth]="true" (pressed)="onConfirm()">

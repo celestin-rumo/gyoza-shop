@@ -2,6 +2,7 @@ import { Component, computed, input, output } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
 import { DsPackPickerComponent, DsPackSelection, DsProductPack } from '../ds-pack-picker/ds-pack-picker.component';
 import { DsCartAddEvent, DsCartRemoveEvent, DsProduct } from '../ds-product-card/ds-product-card.component';
+import { DsPricePipe } from '../../pipes/ds-price.pipe';
 
 export type DsRecipeImagePosition = 'left' | 'right';
 
@@ -24,7 +25,7 @@ export interface DsRecipeIngredient {
  */
 @Component({
   selector: 'ds-recipe-card',
-  imports: [NgOptimizedImage, DsPackPickerComponent],
+  imports: [NgOptimizedImage, DsPackPickerComponent, DsPricePipe],
   templateUrl: './ds-recipe-card.component.html',
   styleUrl: './ds-recipe-card.component.scss',
 })
@@ -49,9 +50,5 @@ export class DsRecipeCardComponent {
 
   protected onPackRemove(pack: DsProductPack): void {
     this.remove.emit({ product: this.product(), pack });
-  }
-
-  protected formatPrice(value: number, currency = '€'): string {
-    return `${value.toFixed(2).replace('.', ',')} ${currency}`;
   }
 }

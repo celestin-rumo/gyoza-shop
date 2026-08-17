@@ -11,6 +11,7 @@ import {
   DsFooterComponent,
   DsNavbarComponent,
   DsNavLink,
+  DsPricePipe,
   DsSectionHeaderComponent,
 } from '../../design-system';
 
@@ -22,6 +23,7 @@ import {
     DsCartItemComponent,
     DsButtonComponent,
     DsFooterComponent,
+    DsPricePipe,
     FormField,
     FormRoot,
   ],
@@ -100,9 +102,5 @@ export class Checkout {
 
   protected goHome(): void {
     this.router.navigateByUrl('/');
-  }
-
-  protected formatPrice(value: number, currency = '€'): string {
-    return `${value.toFixed(2).replace('.', ',')} ${currency}`;
   }
 }

@@ -14,7 +14,7 @@
           <span class="ds-pack-picker__option-badge" aria-hidden="true">{{ qtyInCart }}</span>
         }
         <span class="ds-pack-picker__option-count">{{ pack.label }}</span>
-        <span class="ds-pack-picker__option-price">{{ formatPrice(pack.price, pack.currency) }}</span>
+        <span class="ds-pack-picker__option-price">{{ pack.price | dsPrice }}</span>
       </button>
     }
   </div>

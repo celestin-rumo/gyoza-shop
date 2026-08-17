@@ -2,7 +2,7 @@
   <div class="ds-cart-item__info">
     <h3 class="ds-cart-item__title">{{ line().product.name }}</h3>
     <p class="ds-cart-item__pack">{{ line().pack.label }}</p>
-    <p class="ds-cart-item__unit-price">{{ formatPrice(line().pack.price, line().pack.currency) }} / paquet</p>
+    <p class="ds-cart-item__unit-price">{{ line().pack.price | dsPrice }} / paquet</p>
   </div>
 
   <div class="ds-cart-item__controls">
@@ -22,7 +22,7 @@
       </button>
     </div>
 
-    <p class="ds-cart-item__total">{{ formatPrice(lineTotal(), line().pack.currency) }}</p>
+    <p class="ds-cart-item__total">{{ lineTotal() | dsPrice }}</p>
 
     <button type="button" class="ds-cart-item__remove" (click)="onRemove()" aria-label="Retirer {{ line().product.name }} ({{ line().pack.label }}) du panier">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">

@@ -1,3 +1,5 @@
+export * from './currency.service';
+export * from './pipes/ds-price.pipe';
 export * from './components/ds-badge/ds-badge.component';
 export * from './components/ds-button/ds-button.component';
 export * from './components/ds-cart-item/ds-cart-item.component';
