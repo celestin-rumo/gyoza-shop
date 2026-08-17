@@ -8,8 +8,11 @@ import { DsCartAddEvent } from './design-system';
 @Injectable({ providedIn: 'root' })
 export class CartService {
   private readonly _lines = signal<DsCartAddEvent[]>([]);
+  private readonly _isOpen = signal(false);
 
   readonly lines = this._lines.asReadonly();
+  /** Le panneau panier (ds-cart-panel) est-il ouvert ? Piloté depuis le header ou le bouton flottant. */
+  readonly isOpen = this._isOpen.asReadonly();
 
   readonly count = computed(() => this.lines().reduce((total, line) => total + line.quantity, 0));
 
@@ -55,6 +58,14 @@ export class CartService {
 
   clear(): void {
     this._lines.set([]);
+  }
+
+  open(): void {
+    this._isOpen.set(true);
+  }
+
+  close(): void {
+    this._isOpen.set(false);
   }
 
   /** Quantité déjà présente dans le panier pour un produit donné, par id de pack. */

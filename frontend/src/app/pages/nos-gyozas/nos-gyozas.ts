@@ -1,17 +1,9 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
-import { Router } from '@angular/router';
 import { CartService } from '../../cart.service';
 import {
-  DsBottomNavComponent,
   DsCartAddEvent,
-  DsCartFabComponent,
-  DsCartPanelComponent,
-  DsCartQuantityChangeEvent,
   DsCartRemoveEvent,
-  DsFooterComponent,
-  DsNavbarComponent,
-  DsNavLink,
   DsOriginCardComponent,
   DsProduct,
   DsRecipeCardComponent,
@@ -32,31 +24,12 @@ interface CookingStep {
 
 @Component({
   selector: 'app-nos-gyozas',
-  imports: [
-    NgOptimizedImage,
-    DsNavbarComponent,
-    DsSectionHeaderComponent,
-    DsOriginCardComponent,
-    DsRecipeCardComponent,
-    DsCartPanelComponent,
-    DsBottomNavComponent,
-    DsCartFabComponent,
-    DsFooterComponent,
-  ],
+  imports: [NgOptimizedImage, DsSectionHeaderComponent, DsOriginCardComponent, DsRecipeCardComponent],
   templateUrl: './nos-gyozas.html',
   styleUrl: './nos-gyozas.scss',
 })
 export class NosGyozas {
-  private readonly router = inject(Router);
   protected readonly cart = inject(CartService);
-  protected readonly cartOpen = signal(false);
-
-  protected readonly navLinks: DsNavLink[] = [
-    { label: 'Accueil', href: '/', icon: 'home' },
-    { label: 'Nos gyozas', href: '/nos-gyozas', active: true, icon: 'gyozas' },
-    { label: 'À propos', href: '/a-propos', icon: 'about' },
-    { label: 'Contact', href: '/contact', icon: 'contact' },
-  ];
 
   // TODO: remplacer par les vraies URLs des fournisseurs.
   protected readonly flourSupplierUrl = '#';
@@ -158,18 +131,5 @@ export class NosGyozas {
 
   protected onRemoveFromCart(event: DsCartRemoveEvent): void {
     this.cart.remove(event.product.id, event.pack.id);
-  }
-
-  protected onCartQuantityChange(event: DsCartQuantityChangeEvent): void {
-    this.cart.setQuantity(event.line.product.id, event.line.pack.id, event.quantity);
-  }
-
-  protected onCartLineRemove(line: DsCartAddEvent): void {
-    this.cart.remove(line.product.id, line.pack.id);
-  }
-
-  protected onConfirmOrder(): void {
-    this.cartOpen.set(false);
-    this.router.navigateByUrl('/checkout');
   }
 }

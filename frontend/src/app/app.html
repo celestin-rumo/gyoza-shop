@@ -1,1 +1,23 @@
+<ds-navbar
+  brand="GYOZA"
+  brandSuffix="MAISON"
+  [links]="navLinks()"
+  [cartCount]="cart.count()"
+  (cartClick)="cart.open()"
+></ds-navbar>
+
+<ds-cart-panel
+  [lines]="cart.lines()"
+  [open]="cart.isOpen()"
+  (quantityChange)="onCartQuantityChange($event)"
+  (remove)="onCartLineRemove($event)"
+  (confirm)="onConfirmOrder()"
+  (closed)="cart.close()"
+></ds-cart-panel>
+
+<ds-cart-fab [count]="cart.count()" (pressed)="cart.open()"></ds-cart-fab>
+<ds-bottom-nav [links]="navLinks()"></ds-bottom-nav>
+
 <router-outlet />
+
+<ds-footer></ds-footer>

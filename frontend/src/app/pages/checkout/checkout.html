@@ -1,12 +1,3 @@
-<ds-navbar
-  brand="GYOZA"
-  brandSuffix="MAISON"
-  [links]="navLinks"
-  [cartCount]="cart.count()"
-></ds-navbar>
-
-<ds-bottom-nav [links]="navLinks"></ds-bottom-nav>
-
 <main class="checkout">
   @if (orderPlaced()) {
     <section class="checkout__success">
@@ -125,5 +116,3 @@
     </div>
   }
 </main>
-
-<ds-footer></ds-footer>

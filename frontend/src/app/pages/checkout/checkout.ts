@@ -5,30 +5,16 @@ import { firstValueFrom } from 'rxjs';
 import { CartService } from '../../cart.service';
 import { OrderCustomer, OrderService } from '../../order.service';
 import {
-  DsBottomNavComponent,
   DsButtonComponent,
   DsCartAddEvent,
   DsCartItemComponent,
-  DsFooterComponent,
-  DsNavbarComponent,
-  DsNavLink,
   DsPricePipe,
   DsSectionHeaderComponent,
 } from '../../design-system';
 
 @Component({
   selector: 'app-checkout',
-  imports: [
-    DsNavbarComponent,
-    DsSectionHeaderComponent,
-    DsCartItemComponent,
-    DsButtonComponent,
-    DsBottomNavComponent,
-    DsFooterComponent,
-    DsPricePipe,
-    FormField,
-    FormRoot,
-  ],
+  imports: [DsSectionHeaderComponent, DsCartItemComponent, DsButtonComponent, DsPricePipe, FormField, FormRoot],
   templateUrl: './checkout.html',
   styleUrl: './checkout.scss',
 })
@@ -36,13 +22,6 @@ export class Checkout {
   private readonly router = inject(Router);
   private readonly orderService = inject(OrderService);
   protected readonly cart = inject(CartService);
-
-  protected readonly navLinks: DsNavLink[] = [
-    { label: 'Accueil', href: '/', icon: 'home' },
-    { label: 'Nos gyozas', href: '/nos-gyozas', icon: 'gyozas' },
-    { label: 'À propos', href: '/a-propos', icon: 'about' },
-    { label: 'Contact', href: '/contact', icon: 'contact' },
-  ];
 
   protected readonly submitting = signal(false);
   protected readonly submitError = signal<string | null>(null);

@@ -1,19 +1,12 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { CartService } from '../../cart.service';
 import {
   DsBadgeComponent,
-  DsBottomNavComponent,
   DsButtonComponent,
   DsCartAddEvent,
-  DsCartFabComponent,
-  DsCartPanelComponent,
-  DsCartQuantityChangeEvent,
   DsCartRemoveEvent,
   DsFeatureItemComponent,
-  DsFooterComponent,
-  DsNavbarComponent,
-  DsNavLink,
   DsProduct,
   DsProductCardComponent,
   DsSectionHeaderComponent,
@@ -22,16 +15,11 @@ import {
 @Component({
   selector: 'app-home',
   imports: [
-    DsNavbarComponent,
     DsButtonComponent,
     DsFeatureItemComponent,
     DsBadgeComponent,
     DsSectionHeaderComponent,
     DsProductCardComponent,
-    DsCartPanelComponent,
-    DsBottomNavComponent,
-    DsCartFabComponent,
-    DsFooterComponent,
   ],
   templateUrl: './home.html',
   styleUrl: './home.scss',
@@ -39,14 +27,6 @@ import {
 export class Home {
   private readonly router = inject(Router);
   protected readonly cart = inject(CartService);
-  protected readonly cartOpen = signal(false);
-
-  protected readonly navLinks: DsNavLink[] = [
-    { label: 'Accueil', href: '#', active: true, icon: 'home' },
-    { label: 'Nos gyozas', href: '/nos-gyozas', icon: 'gyozas' },
-    { label: 'À propos', href: '/a-propos', icon: 'about' },
-    { label: 'Contact', href: '/contact', icon: 'contact' },
-  ];
 
   protected readonly products: DsProduct[] = [
     {
@@ -85,19 +65,6 @@ export class Home {
 
   protected onRemoveFromCart(event: DsCartRemoveEvent): void {
     this.cart.remove(event.product.id, event.pack.id);
-  }
-
-  protected onCartQuantityChange(event: DsCartQuantityChangeEvent): void {
-    this.cart.setQuantity(event.line.product.id, event.line.pack.id, event.quantity);
-  }
-
-  protected onCartLineRemove(line: DsCartAddEvent): void {
-    this.cart.remove(line.product.id, line.pack.id);
-  }
-
-  protected onConfirmOrder(): void {
-    this.cartOpen.set(false);
-    this.router.navigateByUrl('/checkout');
   }
 
   protected onDiscoverGyozas(): void {
