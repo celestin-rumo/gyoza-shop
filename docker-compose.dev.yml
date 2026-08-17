@@ -20,8 +20,37 @@ services:
       sh -c "npm ci &&
              npm start -- --host 0.0.0.0"
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+
+    container_name: gyoza-backend
+
+    ports:
+      - "8080:8080"
+
+    environment:
+      DB_URL: jdbc:postgresql://database:5432/gyoza
+      DB_USERNAME: gyoza
+      DB_PASSWORD: gyoza
+
+    depends_on:
+      database:
+        condition: service_healthy
+
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./backend/src
+          target: /app/src
+
+        - action: rebuild
+          path: ./backend/pom.xml
+
   database:
     image: postgres:17
+
     container_name: gyoza-database
 
     environment:
@@ -35,6 +64,12 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gyoza -d gyoza"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 volumes:
-  frontend_node_modules:
   postgres_data:
+  frontend_node_modules:
