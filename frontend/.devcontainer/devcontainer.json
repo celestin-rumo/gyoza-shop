@@ -1,0 +1,22 @@
+{
+  "name": "Gyoza Angular Dev",
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "context": ".."
+  },
+
+  "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind",
+  "workspaceFolder": "/app",
+
+  "forwardPorts": [4200],
+
+  "mounts": [
+    "source=${localEnv:HOME}/.claude,target=/root/.claude,type=bind",
+    "source=${localEnv:HOME}/.claude.json,target=/root/.claude.json,type=bind"
+  ],
+  "containerEnv": {
+    "NG_ALLOWED_HOSTS": "localhost,127.0.0.1"
+  },
+
+  "postCreateCommand": "npm install"
+}

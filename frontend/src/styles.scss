@@ -1,0 +1,14 @@
+@use './app/design-system/tokens/design-tokens';
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--gz-bg);
+  color: var(--gz-text-primary);
+  font-family: var(--gz-font-family);
+}
