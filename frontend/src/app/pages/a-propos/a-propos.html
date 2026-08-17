@@ -1,0 +1,87 @@
+<ds-navbar
+  brand="GYOZA"
+  brandSuffix="MAISON"
+  [links]="navLinks"
+  [cartCount]="cart.count()"
+  (cartClick)="cartOpen.set(true)"
+></ds-navbar>
+
+<ds-cart-panel
+  [lines]="cart.lines()"
+  [open]="cartOpen()"
+  (quantityChange)="onCartQuantityChange($event)"
+  (remove)="onCartLineRemove($event)"
+  (confirm)="onConfirmOrder()"
+  (closed)="cartOpen.set(false)"
+></ds-cart-panel>
+
+<main class="a-propos">
+  <section class="intro">
+    <div class="intro__content">
+      <h1 class="intro__title">Célestin &amp; Délia</h1>
+      <p class="intro__subtitle">Un couple, une envie : cuisiner de bonnes choses avec des produits d’ici.</p>
+    </div>
+
+    <div class="intro__media">
+      <img
+        class="intro__image"
+        ngSrc="/images/about/celestin-et-delia-1.jpg"
+        alt="Célestin et Délia en voyage, au bord de l’eau"
+        width="720"
+        height="480"
+        priority
+      />
+    </div>
+  </section>
+
+  <section class="story">
+    <div class="story__media">
+      <img
+        class="story__image"
+        ngSrc="/images/about/celestin-et-delia-2.jpg"
+        alt="Célestin et Délia se promenant main dans la main"
+        width="480"
+        height="693"
+      />
+    </div>
+
+    <div class="story__content">
+      <ds-section-header title="Notre histoire" align="left"></ds-section-header>
+      <p class="story__text">
+        Tout est parti d’une envie toute simple : cuisiner ensemble. On aime ça, et on aime tout autant utiliser
+        des produits locaux. Alors on s’est dit qu’au lieu de préparer quelques gyozas pour nous deux, autant
+        utiliser un peu plus de matière première, faire de plus grosses quantités, et permettre à d’autres
+        personnes de profiter de produits locaux plutôt que d’aller les chercher en grande surface.
+      </p>
+    </div>
+  </section>
+
+  <section class="team">
+    <ds-section-header
+      title="Qui sommes-nous"
+      subtitle="Gyoza Maison, c’est notre échappatoire à nous : faire quelque chose de différent, sortir un peu du quotidien, et amener quelque chose de bon dans les assiettes. Fait avec amour, comme une petite activité sympa entre nous — un petit projet à deux, dans la bonne humeur."
+    ></ds-section-header>
+
+    <div class="team__grid">
+      @for (member of team; track member.name) {
+        <div class="team__card">
+          <strong class="team__name">{{ member.name }}</strong>
+          <span class="team__role">{{ member.role }}</span>
+          <p class="team__bio">{{ member.bio }}</p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="philosophy">
+    <ds-section-header title="Notre philosophie"></ds-section-header>
+    <p class="philosophy__text">
+      Redonner de la valeur aux produits d’ici : la farine de nos pâtes vient d’un paysan d’Ependes, le poulet
+      fermier de la Ferme d’Arrenay, et nos légumes de producteurs de la région. Une manière simple de manger
+      bon, sans passer par la grande surface.
+    </p>
+    <ds-button variant="primary" size="md" (pressed)="onDiscoverGyozas()">Découvrir nos gyozas</ds-button>
+  </section>
+</main>
+
+<ds-footer></ds-footer>
