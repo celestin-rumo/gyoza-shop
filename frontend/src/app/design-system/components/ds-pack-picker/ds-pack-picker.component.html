@@ -1,0 +1,54 @@
+<div class="ds-pack-picker">
+  <div class="ds-pack-picker__options" role="radiogroup" aria-label="Choisir un pack">
+    @for (pack of packs(); track pack.id) {
+      @let qtyInCart = quantityInCart(pack.id);
+      <button
+        type="button"
+        class="ds-pack-picker__option"
+        [class.ds-pack-picker__option--active]="pack.id === selectedPack()?.id"
+        role="radio"
+        [attr.aria-checked]="pack.id === selectedPack()?.id"
+        (click)="selectPack(pack.id)"
+      >
+        @if (qtyInCart > 0) {
+          <span class="ds-pack-picker__option-badge" aria-hidden="true">{{ qtyInCart }}</span>
+        }
+        <span class="ds-pack-picker__option-count">{{ pack.label }}</span>
+        <span class="ds-pack-picker__option-price">{{ formatPrice(pack.price, pack.currency) }}</span>
+      </button>
+    }
+  </div>
+
+  @if (selectedPackQuantityInCart() > 0) {
+    <p class="ds-pack-picker__in-cart">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" />
+        <path d="m8.5 12.5 2.3 2.3 4.7-4.7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span class="ds-pack-picker__in-cart-text">
+        Déjà {{ selectedPackQuantityInCart() }} × {{ selectedPack()?.label }} dans votre panier
+      </span>
+      <button type="button" class="ds-pack-picker__remove" (click)="onRemove()">Retirer</button>
+    </p>
+  }
+
+  <div class="ds-pack-picker__footer">
+    <div class="ds-pack-picker__stepper">
+      <button
+        type="button"
+        class="ds-pack-picker__step"
+        (click)="decrement()"
+        [disabled]="quantity() <= 1"
+        aria-label="Diminuer la quantité"
+      >
+        −
+      </button>
+      <span class="ds-pack-picker__quantity" aria-live="polite">{{ quantity() }}</span>
+      <button type="button" class="ds-pack-picker__step" (click)="increment()" aria-label="Augmenter la quantité">
+        +
+      </button>
+    </div>
+
+    <ds-button variant="primary" size="sm" (pressed)="onAdd()">Ajouter</ds-button>
+  </div>
+</div>

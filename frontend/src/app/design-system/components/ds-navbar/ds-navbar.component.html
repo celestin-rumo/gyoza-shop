@@ -17,7 +17,8 @@
       *ngFor="let link of links"
       class="ds-navbar__link"
       [class.ds-navbar__link--active]="link.active"
-      [href]="link.href"
+      [routerLink]="isRouterLink(link.href) ? link.href : null"
+      [attr.href]="isRouterLink(link.href) ? null : link.href"
       (click)="linkClick.emit(link)"
     >
       {{ link.label }}

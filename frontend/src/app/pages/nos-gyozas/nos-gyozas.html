@@ -1,0 +1,140 @@
+<ds-navbar
+  brand="GYOZA"
+  brandSuffix="MAISON"
+  [links]="navLinks"
+  [cartCount]="cart.count()"
+></ds-navbar>
+
+<main class="nos-gyozas">
+  <ds-section-header
+    title="Nos gyozas"
+    subtitle="Deux recettes pliées à la main, avec des ingrédients qui viennent d’ici."
+  ></ds-section-header>
+
+  <section class="provenance">
+    <p class="provenance__intro">
+      La farine de nos pâtes vient d’un paysan d’Ependes, notre poulet fermier de la Ferme d’Arrenay,
+      également à Ependes, et nos légumes sont eux aussi cultivés par des producteurs de la région.
+      Des gyozas pliés à la main, à quelques kilomètres de chez vous.
+    </p>
+
+    <div class="provenance__grid">
+      <ds-origin-card title="Farine" description="Cultivée et moulue par un paysan d’Ependes" [href]="flourSupplierUrl">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 4v16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          <path
+            d="M12 6c-2 0-3 1.2-3 2.4S11 10 12 10M12 6c2 0 3 1.2 3 2.4S13 10 12 10"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M12 10c-2 0-3 1.2-3 2.4S11 14 12 14M12 10c2 0 3 1.2 3 2.4S13 14 12 14"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M12 14c-2 0-3 1.2-3 2.4S11 18 12 18M12 14c2 0 3 1.2 3 2.4S13 18 12 18"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </ds-origin-card>
+
+      <ds-origin-card
+        title="Poulet fermier"
+        description="Élevé à la Ferme d’Arrenay, Ependes"
+        [href]="chickenSupplierUrl"
+      >
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M7 19c0-4.4 2.7-8 6-8s6 3.6 6 8"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          />
+          <circle cx="15.5" cy="7.5" r="2.5" stroke="currentColor" stroke-width="1.6" />
+          <path d="M13.2 6.2c-1-1.4-2.7-1.7-3.9-.7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          <path d="M18 7l2-1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+        </svg>
+      </ds-origin-card>
+
+      <ds-origin-card
+        title="Légumes de saison"
+        description="Cultivés par des producteurs de la région"
+        [href]="vegetablesSupplierUrl"
+      >
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 20c0-6 3-10 7-11-1 6-3 10-7 11Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+          <path d="M12 20c0-6-3-10-7-11 1 6 3 10 7 11Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+          <path d="M12 20V9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+        </svg>
+      </ds-origin-card>
+    </div>
+  </section>
+
+  <section class="recipes">
+    <ds-recipe-card
+      [product]="gyozaPoulet"
+      [ingredients]="pouletIngredients"
+      [packQuantitiesInCart]="cart.packQuantitiesInCart(gyozaPoulet.id)"
+      imagePosition="left"
+      (add)="onAddToCart($event)"
+      (remove)="onRemoveFromCart($event)"
+    ></ds-recipe-card>
+
+    <ds-recipe-card
+      [product]="gyozaLegumes"
+      [ingredients]="legumesIngredients"
+      [packQuantitiesInCart]="cart.packQuantitiesInCart(gyozaLegumes.id)"
+      imagePosition="right"
+      (add)="onAddToCart($event)"
+      (remove)="onRemoveFromCart($event)"
+    ></ds-recipe-card>
+  </section>
+
+  <section class="cooking">
+    <ds-section-header
+      title="Comment les cuire"
+      subtitle="Le même geste pour les deux recettes : poêlés puis vapeur, pour un fond doré et croustillant."
+    ></ds-section-header>
+
+    <ol class="cooking__steps">
+      @for (step of cookingSteps; track step.title; let i = $index) {
+        <li class="cooking__step">
+          <span class="cooking__number">{{ i + 1 }}</span>
+          <h3 class="cooking__title">{{ step.title }}</h3>
+          <p class="cooking__text">{{ step.text }}</p>
+        </li>
+      }
+    </ol>
+
+    <p class="cooking__note">
+      Gyozas congelés ? Pas besoin de les décongeler : cuisez-les directement en ajoutant 1 à 2 minutes de vapeur.
+    </p>
+  </section>
+
+  <section class="gallery">
+    <ds-section-header
+      title="Notre savoir-faire"
+      subtitle="De la pâte à l’assiette, tout est fait maison."
+      align="left"
+    ></ds-section-header>
+
+    <div class="gallery__grid">
+      @for (image of galleryImages; track image.url) {
+        <figure class="gallery__item">
+          <img class="gallery__image" [ngSrc]="image.url" [alt]="image.alt" width="480" height="360" />
+          <figcaption class="gallery__caption">{{ image.caption }}</figcaption>
+        </figure>
+      }
+    </div>
+  </section>
+</main>
+
+<ds-footer></ds-footer>

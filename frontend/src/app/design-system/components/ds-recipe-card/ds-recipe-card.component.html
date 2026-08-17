@@ -1,0 +1,60 @@
+<article class="ds-recipe-card" [class.ds-recipe-card--right]="imagePosition() === 'right'">
+  <div class="ds-recipe-card__media">
+    <img
+      class="ds-recipe-card__image"
+      [ngSrc]="product().imageUrl"
+      [alt]="product().imageAlt"
+      width="640"
+      height="480"
+    />
+  </div>
+
+  <div class="ds-recipe-card__body">
+    <div class="ds-recipe-card__heading">
+      <h3 class="ds-recipe-card__name">{{ product().name }}</h3>
+      <span class="ds-recipe-card__price">Dès {{ formatPrice(fromPrice()) }}</span>
+    </div>
+
+    <p class="ds-recipe-card__description">{{ product().description }}</p>
+
+    <div class="ds-recipe-card__section">
+      <h4 class="ds-recipe-card__subtitle">Ingrédients</h4>
+
+      <ul class="ds-recipe-card__featured">
+        @for (ingredient of featuredIngredients(); track ingredient.label) {
+          <li class="ds-recipe-card__featured-item">
+            <span class="ds-recipe-card__featured-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M12 21s7-6.1 7-11.5A7 7 0 0 0 5 9.5C5 14.9 12 21 12 21Z"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linejoin="round"
+                />
+                <circle cx="12" cy="9.5" r="2.4" stroke="currentColor" stroke-width="1.6" />
+              </svg>
+            </span>
+            <span class="ds-recipe-card__featured-text">
+              <strong class="ds-recipe-card__featured-label">{{ ingredient.label }}</strong>
+              <span class="ds-recipe-card__featured-origin">{{ ingredient.origin }}</span>
+            </span>
+          </li>
+        }
+      </ul>
+
+      <ul class="ds-recipe-card__tags">
+        @for (ingredient of otherIngredients(); track ingredient.label) {
+          <li class="ds-recipe-card__tag">{{ ingredient.label }}</li>
+        }
+      </ul>
+    </div>
+
+    <ds-pack-picker
+      class="ds-recipe-card__pack-picker"
+      [packs]="product().packs"
+      [quantitiesInCart]="packQuantitiesInCart()"
+      (add)="onPackAdd($event)"
+      (remove)="onPackRemove($event)"
+    ></ds-pack-picker>
+  </div>
+</article>

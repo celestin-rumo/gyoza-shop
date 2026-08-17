@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DsIconButtonComponent, DsIconButtonVariant } from '../ds-icon-button/ds-icon-button.component';
+import { DsPackPickerComponent, DsPackSelection, DsProductPack } from '../ds-pack-picker/ds-pack-picker.component';
 
 export type DsProductTagTone = 'accent' | 'neutral' | 'sage';
 
@@ -11,34 +11,51 @@ export interface DsProduct {
   imageAlt: string;
   name: string;
   description: string;
-  price: number;
-  currency?: string;
+  packs: DsProductPack[];
+}
+
+export interface DsCartAddEvent {
+  product: DsProduct;
+  pack: DsProductPack;
+  quantity: number;
+}
+
+export interface DsCartRemoveEvent {
+  product: DsProduct;
+  pack: DsProductPack;
 }
 
 /**
  * <ds-product-card [product]="gyozaPoulet" (add)="onAdd($event)"></ds-product-card>
  *
- * Utilisé pour : les 4 cartes de la grille "Nos gyozas",
- * réutilisable sur la page "Nos gyozas" complète, les suggestions, etc.
+ * Utilisé pour : les cartes de la grille "Nos gyozas", avec choix du pack (6/10/20) et de la quantité
+ * avant ajout au panier.
  */
 @Component({
   selector: 'ds-product-card',
   standalone: true,
-  imports: [CommonModule, DsIconButtonComponent],
+  imports: [CommonModule, DsPackPickerComponent],
   templateUrl: './ds-product-card.component.html',
   styleUrls: ['./ds-product-card.component.scss'],
 })
 export class DsProductCardComponent {
   @Input({ required: true }) product!: DsProduct;
+  /** Quantité déjà présente dans le panier pour ce produit, par id de pack. */
+  @Input() packQuantitiesInCart: Record<string, number> = {};
 
-  @Output() add = new EventEmitter<DsProduct>();
+  @Output() add = new EventEmitter<DsCartAddEvent>();
+  @Output() remove = new EventEmitter<DsCartRemoveEvent>();
 
-  onAdd(): void {
-    this.add.emit(this.product);
+  onPackAdd(selection: DsPackSelection): void {
+    this.add.emit({ product: this.product, pack: selection.pack, quantity: selection.quantity });
   }
 
-  get addButtonVariant(): DsIconButtonVariant {
-    return this.product.tagTone === 'accent' ? 'accent' : 'sage';
+  onPackRemove(pack: DsProductPack): void {
+    this.remove.emit({ product: this.product, pack });
+  }
+
+  get fromPrice(): number {
+    return Math.min(...this.product.packs.map((pack) => pack.price));
   }
 
   formatPrice(value: number, currency = '€'): string {

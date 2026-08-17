@@ -1,0 +1,169 @@
+.ds-recipe-card {
+  display: grid;
+  grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+  gap: var(--gz-space-8);
+  align-items: start;
+  padding: var(--gz-space-6);
+  background: var(--gz-surface);
+  border: 1px solid var(--gz-border-soft);
+  border-radius: var(--gz-radius-lg);
+  font-family: var(--gz-font-family);
+
+  &--right {
+    .ds-recipe-card__media {
+      order: 2;
+    }
+
+    .ds-recipe-card__body {
+      order: 1;
+    }
+  }
+}
+
+.ds-recipe-card__media {
+  position: relative;
+}
+
+.ds-recipe-card__image {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--gz-radius-md);
+}
+
+.ds-recipe-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gz-space-4);
+}
+
+.ds-recipe-card__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gz-space-3);
+}
+
+.ds-recipe-card__name {
+  margin: 0;
+  color: var(--gz-text-primary);
+  font-size: var(--gz-fs-xl);
+  font-weight: var(--gz-fw-semibold);
+}
+
+.ds-recipe-card__price {
+  flex-shrink: 0;
+  color: var(--gz-accent-500);
+  font-size: var(--gz-fs-lg);
+  font-weight: var(--gz-fw-semibold);
+}
+
+.ds-recipe-card__description {
+  margin: 0;
+  color: var(--gz-text-secondary);
+  font-size: var(--gz-fs-base);
+  line-height: var(--gz-lh-normal);
+}
+
+.ds-recipe-card__subtitle {
+  margin: 0 0 var(--gz-space-2);
+  color: var(--gz-text-primary);
+  font-size: var(--gz-fs-sm);
+  font-weight: var(--gz-fw-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ds-recipe-card__featured {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gz-space-2);
+  margin: 0 0 var(--gz-space-3);
+  padding: 0;
+  list-style: none;
+}
+
+.ds-recipe-card__featured-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gz-space-3);
+  padding: var(--gz-space-3) var(--gz-space-4);
+  background: rgba(230, 166, 140, 0.08);
+  border: 1px solid var(--gz-border-soft);
+  border-left: 3px solid var(--gz-accent-400);
+  border-radius: var(--gz-radius-md);
+}
+
+.ds-recipe-card__featured-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  color: var(--gz-accent-400);
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.ds-recipe-card__featured-text {
+  display: flex;
+  flex-direction: column;
+  line-height: var(--gz-lh-tight);
+}
+
+.ds-recipe-card__featured-label {
+  color: var(--gz-text-primary);
+  font-size: var(--gz-fs-sm);
+  font-weight: var(--gz-fw-semibold);
+}
+
+.ds-recipe-card__featured-origin {
+  color: var(--gz-accent-500);
+  font-size: var(--gz-fs-xs);
+}
+
+.ds-recipe-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gz-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ds-recipe-card__tag {
+  padding: var(--gz-space-1) var(--gz-space-3);
+  background: var(--gz-bg-elevated);
+  border: 1px solid var(--gz-border-soft);
+  border-radius: var(--gz-radius-pill);
+  color: var(--gz-text-secondary);
+  font-size: var(--gz-fs-xs);
+}
+
+.ds-recipe-card__pack-picker {
+  margin-top: var(--gz-space-2);
+  padding-top: var(--gz-space-4);
+  border-top: 1px solid var(--gz-border-soft);
+}
+
+@media (max-width: 860px) {
+  .ds-recipe-card {
+    grid-template-columns: 1fr;
+
+    &--right {
+      .ds-recipe-card__media {
+        order: 0;
+      }
+
+      .ds-recipe-card__body {
+        order: 0;
+      }
+    }
+  }
+}

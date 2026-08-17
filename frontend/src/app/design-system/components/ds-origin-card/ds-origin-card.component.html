@@ -1,0 +1,23 @@
+<a
+  class="ds-origin-card"
+  [href]="href()"
+  target="_blank"
+  rel="noopener"
+  [attr.aria-label]="title() + ' : ' + description() + ' — ' + ctaLabel()"
+>
+  <span class="ds-origin-card__icon" aria-hidden="true">
+    <ng-content></ng-content>
+  </span>
+
+  <span class="ds-origin-card__text">
+    <strong class="ds-origin-card__title">{{ title() }}</strong>
+    <span class="ds-origin-card__description">{{ description() }}</span>
+  </span>
+
+  <span class="ds-origin-card__cta" aria-hidden="true">
+    {{ ctaLabel() }}
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M7 17 17 7M9 7h8v8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  </span>
+</a>

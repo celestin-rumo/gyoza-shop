@@ -15,7 +15,7 @@ import {
 export class Contact {
   protected readonly navLinks: DsNavLink[] = [
     { label: 'Accueil', href: '/' },
-    { label: 'Nos gyozas', href: '/#gyozas' },
+    { label: 'Nos gyozas', href: '/nos-gyozas' },
     { label: 'À propos', href: '/#a-propos' },
     { label: 'Contact', href: '/contact', active: true },
   ];

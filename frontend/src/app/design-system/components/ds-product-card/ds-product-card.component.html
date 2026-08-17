@@ -11,18 +11,13 @@
   <div class="ds-product-card__body">
     <h3 class="ds-product-card__name">{{ product.name }}</h3>
     <p class="ds-product-card__description">{{ product.description }}</p>
+    <span class="ds-product-card__price">Dès {{ formatPrice(fromPrice) }}</span>
 
-    <div class="ds-product-card__footer">
-      <span class="ds-product-card__price">{{ formatPrice(product.price, product.currency) }}</span>
-      <ds-icon-button
-        [variant]="addButtonVariant"
-        ariaLabel="Ajouter {{ product.name }} au panier"
-        (pressed)="onAdd()"
-      >
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
-        </svg>
-      </ds-icon-button>
-    </div>
+    <ds-pack-picker
+      [packs]="product.packs"
+      [quantitiesInCart]="packQuantitiesInCart"
+      (add)="onPackAdd($event)"
+      (remove)="onPackRemove($event)"
+    ></ds-pack-picker>
   </div>
 </article>

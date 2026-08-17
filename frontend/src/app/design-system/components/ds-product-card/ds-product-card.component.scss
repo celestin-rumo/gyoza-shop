@@ -53,13 +53,6 @@
   min-height: 2.7em;
 }
 
-.ds-product-card__footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: var(--gz-space-3);
-}
-
 .ds-product-card__price {
   color: var(--gz-accent-500);
   font-size: var(--gz-fs-lg);

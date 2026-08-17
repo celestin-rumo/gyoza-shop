@@ -2,7 +2,7 @@
   brand="GYOZA"
   brandSuffix="MAISON"
   [links]="navLinks"
-  [cartCount]="cartCount()"
+  [cartCount]="cart.count()"
 ></ds-navbar>
 
 <main class="home">
@@ -21,7 +21,7 @@
 
       <div class="hero__actions">
         <ds-button variant="primary" size="md">Commander</ds-button>
-        <ds-button variant="outline" size="md">Découvrir nos gyozas</ds-button>
+        <ds-button variant="outline" size="md" (pressed)="onDiscoverGyozas()">Découvrir nos gyozas</ds-button>
       </div>
 
       <div class="hero__features">
@@ -75,7 +75,7 @@
     <div class="hero__media">
       <img
         class="hero__image"
-        src="https://placehold.co/720x560/141310/2a2926?text=Gyozas"
+        src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/12_gyozas_%40_Gyoza_no_ho_%40_Gen%C3%A8ve_%2852727245414%29.jpg/960px-12_gyozas_%40_Gyoza_no_ho_%40_Gen%C3%A8ve_%2852727245414%29.jpg"
         alt="Assiette de gyozas grillés servie avec une sauce et des baguettes"
       />
       <ds-badge class="hero__stamp" shape="stamp" tone="accent">
@@ -93,7 +93,12 @@
 
     <div class="products__grid">
       @for (product of products; track product.id) {
-        <ds-product-card [product]="product" (add)="onAddToCart($event)"></ds-product-card>
+        <ds-product-card
+          [product]="product"
+          [packQuantitiesInCart]="cart.packQuantitiesInCart(product.id)"
+          (add)="onAddToCart($event)"
+          (remove)="onRemoveFromCart($event)"
+        ></ds-product-card>
       }
     </div>
   </section>
