@@ -177,3 +177,10 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 640px) {
+  .nos-gyozas {
+    padding-left: var(--gz-space-4);
+    padding-right: var(--gz-space-4);
+  }
+}

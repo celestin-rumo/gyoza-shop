@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { CartService } from '../../cart.service';
 import { OrderCustomer, OrderService } from '../../order.service';
 import {
+  DsBottomNavComponent,
   DsButtonComponent,
   DsCartAddEvent,
   DsCartItemComponent,
@@ -22,6 +23,7 @@ import {
     DsSectionHeaderComponent,
     DsCartItemComponent,
     DsButtonComponent,
+    DsBottomNavComponent,
     DsFooterComponent,
     DsPricePipe,
     FormField,
@@ -36,10 +38,10 @@ export class Checkout {
   protected readonly cart = inject(CartService);
 
   protected readonly navLinks: DsNavLink[] = [
-    { label: 'Accueil', href: '/' },
-    { label: 'Nos gyozas', href: '/nos-gyozas' },
-    { label: 'À propos', href: '/a-propos' },
-    { label: 'Contact', href: '/contact' },
+    { label: 'Accueil', href: '/', icon: 'home' },
+    { label: 'Nos gyozas', href: '/nos-gyozas', icon: 'gyozas' },
+    { label: 'À propos', href: '/a-propos', icon: 'about' },
+    { label: 'Contact', href: '/contact', icon: 'contact' },
   ];
 
   protected readonly submitting = signal(false);

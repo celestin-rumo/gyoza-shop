@@ -5,6 +5,8 @@
   [cartCount]="cart.count()"
 ></ds-navbar>
 
+<ds-bottom-nav [links]="navLinks"></ds-bottom-nav>
+
 <main class="checkout">
   @if (orderPlaced()) {
     <section class="checkout__success">

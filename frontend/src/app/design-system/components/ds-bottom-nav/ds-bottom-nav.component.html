@@ -1,0 +1,43 @@
+<nav class="ds-bottom-nav" aria-label="Navigation principale">
+  @for (link of links(); track link.href) {
+    <a
+      class="ds-bottom-nav__link"
+      [class.ds-bottom-nav__link--active]="link.active"
+      [routerLink]="isRouterLink(link.href) ? link.href : null"
+      [attr.href]="isRouterLink(link.href) ? null : link.href"
+      (click)="linkClick.emit(link)"
+    >
+      <span class="ds-bottom-nav__icon" aria-hidden="true">
+        @switch (link.icon) {
+          @case ('home') {
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 11.5 12 4l8 7.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M6 10v9h12v-9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M10 19v-5h4v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          }
+          @case ('gyozas') {
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 13c0 4.4 3.6 7 8 7s8-2.6 8-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+              <ellipse cx="12" cy="13" rx="8" ry="3" stroke="currentColor" stroke-width="1.6" />
+              <path d="M9 12.2c.6-.7 1.8-1.1 3-1.1s2.4.4 3 1.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
+          }
+          @case ('about') {
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.6" />
+              <path d="M4.5 20c1.7-3.5 5-5 7.5-5s5.8 1.5 7.5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
+          }
+          @case ('contact') {
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="3.5" y="5.5" width="17" height="13" rx="2" stroke="currentColor" stroke-width="1.6" />
+              <path d="m4.5 7 7.5 6 7.5-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          }
+        }
+      </span>
+      <span class="ds-bottom-nav__label">{{ link.label }}</span>
+    </a>
+  }
+</nav>

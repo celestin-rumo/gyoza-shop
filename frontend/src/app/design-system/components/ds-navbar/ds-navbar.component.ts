@@ -3,10 +3,14 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { DsButtonComponent } from '../ds-button/ds-button.component';
 
+export type DsNavLinkIcon = 'home' | 'gyozas' | 'about' | 'contact';
+
 export interface DsNavLink {
   label: string;
   href: string;
   active?: boolean;
+  /** Icône utilisée par la navigation mobile en bas d'écran (ds-bottom-nav). */
+  icon?: DsNavLinkIcon;
 }
 
 /**

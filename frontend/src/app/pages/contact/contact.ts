@@ -2,7 +2,9 @@ import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { CartService } from '../../cart.service';
 import {
+  DsBottomNavComponent,
   DsCartAddEvent,
+  DsCartFabComponent,
   DsCartPanelComponent,
   DsCartQuantityChangeEvent,
   DsFooterComponent,
@@ -13,7 +15,14 @@ import {
 
 @Component({
   selector: 'app-contact',
-  imports: [DsNavbarComponent, DsSectionHeaderComponent, DsCartPanelComponent, DsFooterComponent],
+  imports: [
+    DsNavbarComponent,
+    DsSectionHeaderComponent,
+    DsCartPanelComponent,
+    DsBottomNavComponent,
+    DsCartFabComponent,
+    DsFooterComponent,
+  ],
   templateUrl: './contact.html',
   styleUrl: './contact.scss',
 })
@@ -23,10 +32,10 @@ export class Contact {
   protected readonly cartOpen = signal(false);
 
   protected readonly navLinks: DsNavLink[] = [
-    { label: 'Accueil', href: '/' },
-    { label: 'Nos gyozas', href: '/nos-gyozas' },
-    { label: 'À propos', href: '/a-propos' },
-    { label: 'Contact', href: '/contact', active: true },
+    { label: 'Accueil', href: '/', icon: 'home' },
+    { label: 'Nos gyozas', href: '/nos-gyozas', icon: 'gyozas' },
+    { label: 'À propos', href: '/a-propos', icon: 'about' },
+    { label: 'Contact', href: '/contact', active: true, icon: 'contact' },
   ];
 
   protected readonly address = 'Chemin de la Pudressa 35, 1731 Ependes';

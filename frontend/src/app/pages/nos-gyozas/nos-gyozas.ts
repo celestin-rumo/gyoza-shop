@@ -3,7 +3,9 @@ import { NgOptimizedImage } from '@angular/common';
 import { Router } from '@angular/router';
 import { CartService } from '../../cart.service';
 import {
+  DsBottomNavComponent,
   DsCartAddEvent,
+  DsCartFabComponent,
   DsCartPanelComponent,
   DsCartQuantityChangeEvent,
   DsCartRemoveEvent,
@@ -37,6 +39,8 @@ interface CookingStep {
     DsOriginCardComponent,
     DsRecipeCardComponent,
     DsCartPanelComponent,
+    DsBottomNavComponent,
+    DsCartFabComponent,
     DsFooterComponent,
   ],
   templateUrl: './nos-gyozas.html',
@@ -48,10 +52,10 @@ export class NosGyozas {
   protected readonly cartOpen = signal(false);
 
   protected readonly navLinks: DsNavLink[] = [
-    { label: 'Accueil', href: '/' },
-    { label: 'Nos gyozas', href: '/nos-gyozas', active: true },
-    { label: 'À propos', href: '/a-propos' },
-    { label: 'Contact', href: '/contact' },
+    { label: 'Accueil', href: '/', icon: 'home' },
+    { label: 'Nos gyozas', href: '/nos-gyozas', active: true, icon: 'gyozas' },
+    { label: 'À propos', href: '/a-propos', icon: 'about' },
+    { label: 'Contact', href: '/contact', icon: 'contact' },
   ];
 
   // TODO: remplacer par les vraies URLs des fournisseurs.

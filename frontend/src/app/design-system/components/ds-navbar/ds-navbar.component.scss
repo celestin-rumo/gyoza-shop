@@ -99,3 +99,14 @@
     color: var(--gz-accent-400);
   }
 }
+
+@media (max-width: 640px) {
+  .ds-navbar {
+    padding: var(--gz-space-3) var(--gz-space-4);
+  }
+
+  .ds-navbar__links,
+  .ds-navbar__cart {
+    display: none;
+  }
+}

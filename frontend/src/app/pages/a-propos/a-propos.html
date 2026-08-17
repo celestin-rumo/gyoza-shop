@@ -15,6 +15,9 @@
   (closed)="cartOpen.set(false)"
 ></ds-cart-panel>
 
+<ds-cart-fab [count]="cart.count()" (pressed)="cartOpen.set(true)"></ds-cart-fab>
+<ds-bottom-nav [links]="navLinks"></ds-bottom-nav>
+
 <main class="a-propos">
   <section class="intro">
     <div class="intro__content">

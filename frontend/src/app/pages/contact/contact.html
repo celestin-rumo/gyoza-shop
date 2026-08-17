@@ -15,6 +15,9 @@
   (closed)="cartOpen.set(false)"
 ></ds-cart-panel>
 
+<ds-cart-fab [count]="cart.count()" (pressed)="cartOpen.set(true)"></ds-cart-fab>
+<ds-bottom-nav [links]="navLinks"></ds-bottom-nav>
+
 <main class="contact">
   <ds-section-header
     title="Contact"

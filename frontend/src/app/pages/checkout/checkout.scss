@@ -34,6 +34,18 @@
   }
 }
 
+@media (max-width: 640px) {
+  .checkout {
+    padding-left: var(--gz-space-4);
+    padding-right: var(--gz-space-4);
+  }
+
+  .checkout__summary,
+  .checkout__form-section {
+    padding: var(--gz-space-4);
+  }
+}
+
 .checkout__heading {
   margin: 0 0 var(--gz-space-4);
   color: var(--gz-text-primary);

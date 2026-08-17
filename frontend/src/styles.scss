@@ -12,3 +12,10 @@ body {
   color: var(--gz-text-primary);
   font-family: var(--gz-font-family);
 }
+
+/* Laisse de la place pour ds-bottom-nav, fixé en bas de l'écran sous 640px. */
+@media (max-width: 640px) {
+  body {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+}

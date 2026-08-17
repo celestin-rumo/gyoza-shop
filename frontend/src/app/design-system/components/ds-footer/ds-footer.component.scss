@@ -94,3 +94,13 @@
   color: var(--gz-text-muted);
   font-size: var(--gz-fs-xs);
 }
+
+@media (max-width: 640px) {
+  .ds-footer__top {
+    padding: var(--gz-space-8) var(--gz-space-4);
+  }
+
+  .ds-footer__bottom {
+    padding: var(--gz-space-4);
+  }
+}

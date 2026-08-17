@@ -1,0 +1,17 @@
+<button type="button" class="ds-cart-fab" (click)="pressed.emit()" aria-label="Ouvrir le panier ({{ count() }} article{{ count() > 1 ? 's' : '' }})">
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path
+      d="M3 4h2l2.4 12.2a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.6L21 8H6"
+      stroke="currentColor"
+      stroke-width="1.6"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <circle cx="10" cy="20" r="1.4" fill="currentColor" />
+    <circle cx="17" cy="20" r="1.4" fill="currentColor" />
+  </svg>
+
+  @if (count() > 0) {
+    <span class="ds-cart-fab__badge" aria-hidden="true">{{ count() }}</span>
+  }
+</button>
