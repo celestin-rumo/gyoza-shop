@@ -85,7 +85,7 @@
     ></ds-section-header>
 
     <div class="products__grid">
-      @for (product of products; track product.id) {
+      @for (product of products(); track product.id) {
         <ds-product-card
           [product]="product"
           [packQuantitiesInCart]="cart.packQuantitiesInCart(product.id)"

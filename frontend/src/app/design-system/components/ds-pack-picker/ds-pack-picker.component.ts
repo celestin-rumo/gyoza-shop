@@ -3,10 +3,10 @@ import { DsButtonComponent } from '../ds-button/ds-button.component';
 import { DsPricePipe } from '../../pipes/ds-price.pipe';
 
 export interface DsProductPack {
-  id: string;
-  label: string;
+  id: number;
   count: number;
   price: number;
+  label: string;
 }
 
 export interface DsPackSelection {
@@ -35,7 +35,7 @@ export class DsPackPickerComponent {
   add = output<DsPackSelection>();
   remove = output<DsProductPack>();
 
-  protected readonly selectedPackId = signal<string | null>(null);
+  protected readonly selectedPackId = signal<number | null>(null);
   protected readonly quantity = signal(1);
 
   protected readonly selectedPack = computed(
@@ -47,12 +47,12 @@ export class DsPackPickerComponent {
     return pack ? this.quantityInCart(pack.id) : 0;
   });
 
-  protected quantityInCart(packId: string): number {
+  protected quantityInCart(packId: number): number {
     return this.quantitiesInCart()[packId] ?? 0;
   }
 
-  protected selectPack(id: string): void {
-    this.selectedPackId.set(id);
+  protected selectPack(packId: number): void {
+    this.selectedPackId.set(packId);
   }
 
   protected increment(): void {

@@ -7,7 +7,7 @@ import { DsPricePipe } from '../../pipes/ds-price.pipe';
 export type DsProductTagTone = 'accent' | 'neutral' | 'sage';
 
 export interface DsProduct {
-  id: string;
+  id: number;
   tagTone: DsProductTagTone;
   imageUrl: string;
   imageAlt: string;

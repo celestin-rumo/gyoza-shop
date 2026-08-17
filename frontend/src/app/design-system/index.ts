@@ -1,4 +1,4 @@
-export * from './currency.service';
+export * from '../services/currency.service';
 export * from './pipes/ds-price.pipe';
 export * from './components/ds-badge/ds-badge.component';
 export * from './components/ds-bottom-nav/ds-bottom-nav.component';

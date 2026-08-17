@@ -2,7 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
-import { CartService } from './cart.service';
+import { CartService } from './services/cart.service';
 import {
   DsBottomNavComponent,
   DsCartAddEvent,

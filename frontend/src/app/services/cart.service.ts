@@ -1,5 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { DsCartAddEvent } from './design-system';
+import { DsCartAddEvent } from '../design-system';
 
 /**
  * Panier partagé par toutes les pages : ajouter un pack de poulet depuis l'accueil
@@ -36,14 +36,14 @@ export class CartService {
     });
   }
 
-  remove(productId: string, packId: string): void {
+  remove(productId: number, packId: number): void {
     this._lines.update((lines) =>
       lines.filter((line) => !(line.product.id === productId && line.pack.id === packId)),
     );
   }
 
   /** Modifie la quantité d'un élément du panier ; le retire si la quantité tombe à 0 ou moins. */
-  setQuantity(productId: string, packId: string, quantity: number): void {
+  setQuantity(productId: number, packId: number, quantity: number): void {
     if (quantity <= 0) {
       this.remove(productId, packId);
       return;
@@ -69,7 +69,7 @@ export class CartService {
   }
 
   /** Quantité déjà présente dans le panier pour un produit donné, par id de pack. */
-  packQuantitiesInCart(productId: string): Record<string, number> {
+  packQuantitiesInCart(productId: number): Record<string, number> {
     const quantities: Record<string, number> = {};
 
     for (const line of this.lines()) {

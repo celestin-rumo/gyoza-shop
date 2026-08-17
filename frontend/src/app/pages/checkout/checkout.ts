@@ -2,8 +2,8 @@ import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { email, form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { firstValueFrom } from 'rxjs';
-import { CartService } from '../../cart.service';
-import { OrderCustomer, OrderService } from '../../order.service';
+import { CartService } from '../../services/cart.service';
+import { OrderCustomer, OrderService } from '../../services/order.service';
 import {
   DsButtonComponent,
   DsCartAddEvent,
@@ -51,7 +51,7 @@ export class Checkout {
 
           try {
             await firstValueFrom(
-              this.orderService.placeOrder(this.customer(), this.cart.lines(), this.cart.subtotal()),
+              this.orderService.placeOrder(this.customer(), this.cart.lines()),
             );
             this.cart.clear();
             this.orderPlaced.set(true);
