@@ -1,0 +1,63 @@
+<ds-navbar brand="GYOZA" brandSuffix="MAISON" [links]="navLinks" [cartCount]="0"></ds-navbar>
+
+<main class="contact">
+  <ds-section-header
+    title="Contact"
+    subtitle="Une question, une envie particulière ? Nous sommes à votre écoute."
+  ></ds-section-header>
+
+  <div class="contact__grid">
+    <a class="contact__card" [href]="mapHref" target="_blank" rel="noopener">
+      <span class="contact__icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M12 21s7-6.1 7-11.5A7 7 0 0 0 5 9.5C5 14.9 12 21 12 21Z"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linejoin="round"
+          />
+          <circle cx="12" cy="9.5" r="2.4" stroke="currentColor" stroke-width="1.6" />
+        </svg>
+      </span>
+      <span class="contact__label">Adresse</span>
+      <span class="contact__value">{{ address }}</span>
+      <span class="contact__cta">Voir sur la carte →</span>
+    </a>
+
+    <a class="contact__card" [href]="mailHref">
+      <span class="contact__icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3.5" y="5.5" width="17" height="13" rx="2" stroke="currentColor" stroke-width="1.6" />
+          <path
+            d="m4.5 7 7.5 6 7.5-6"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </span>
+      <span class="contact__label">Email</span>
+      <span class="contact__value">{{ email }}</span>
+      <span class="contact__cta">Envoyer un message →</span>
+    </a>
+
+    <a class="contact__card" [href]="telHref">
+      <span class="contact__icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M6.5 4h3l1.5 4.5-2 1.5a11 11 0 0 0 5 5l1.5-2 4.5 1.5v3a2 2 0 0 1-2.2 2C10.8 19 5 13.2 4.5 6.2A2 2 0 0 1 6.5 4Z"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </span>
+      <span class="contact__label">Téléphone</span>
+      <span class="contact__value">{{ phone }}</span>
+      <span class="contact__cta">Appeler →</span>
+    </a>
+  </div>
+</main>
+
+<ds-footer></ds-footer>

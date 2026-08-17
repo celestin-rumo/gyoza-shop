@@ -1,0 +1,80 @@
+.ds-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color var(--gz-transition-fast),
+    transform var(--gz-transition-fast), box-shadow var(--gz-transition-fast);
+
+  ::ng-deep svg {
+    width: 55%;
+    height: 55%;
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.92);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--gz-accent-400);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  // ---- Tailles ----
+  &--sm {
+    width: 28px;
+    height: 28px;
+  }
+  &--md {
+    width: 40px;
+    height: 40px;
+  }
+  &--lg {
+    width: 52px;
+    height: 52px;
+  }
+
+  // ---- Variantes ----
+  &--accent {
+    background: var(--gz-accent-400);
+    color: var(--gz-text-on-accent);
+    &:hover:not(:disabled) {
+      background: var(--gz-accent-500);
+      box-shadow: var(--gz-shadow-accent);
+    }
+  }
+
+  &--sage {
+    background: var(--gz-sage-300);
+    color: var(--gz-text-on-accent);
+    &:hover:not(:disabled) {
+      background: var(--gz-sage-500);
+    }
+  }
+
+  &--outline {
+    background: transparent;
+    border-color: var(--gz-border);
+    color: var(--gz-text-primary);
+    &:hover:not(:disabled) {
+      border-color: var(--gz-accent-400);
+      color: var(--gz-accent-400);
+    }
+  }
+
+  &--ghost {
+    background: var(--gz-surface);
+    color: var(--gz-text-primary);
+    &:hover:not(:disabled) {
+      background: var(--gz-surface-hover);
+    }
+  }
+}

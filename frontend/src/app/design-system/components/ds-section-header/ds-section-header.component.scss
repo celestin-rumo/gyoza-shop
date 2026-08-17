@@ -1,0 +1,27 @@
+.ds-section-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--gz-space-2);
+  font-family: var(--gz-font-family);
+  margin-bottom: var(--gz-space-10);
+
+  &--left {
+    align-items: flex-start;
+    text-align: left;
+  }
+}
+
+.ds-section-header__title {
+  color: var(--gz-text-primary);
+  font-size: var(--gz-fs-2xl);
+  font-weight: var(--gz-fw-semibold);
+  margin: 0;
+}
+
+.ds-section-header__subtitle {
+  color: var(--gz-text-secondary);
+  font-size: var(--gz-fs-base);
+  margin: 0;
+}

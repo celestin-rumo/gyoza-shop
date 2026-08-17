@@ -1,0 +1,18 @@
+<button
+  [type]="type"
+  class="ds-btn"
+  [class.ds-btn--sm]="size === 'sm'"
+  [class.ds-btn--md]="size === 'md'"
+  [class.ds-btn--lg]="size === 'lg'"
+  [class.ds-btn--primary]="variant === 'primary'"
+  [class.ds-btn--outline]="variant === 'outline'"
+  [class.ds-btn--ghost]="variant === 'ghost'"
+  [class.ds-btn--sage]="variant === 'sage'"
+  [class.ds-btn--full]="fullWidth"
+  [disabled]="disabled"
+  (click)="onClick($event)"
+>
+  <ng-content select="[dsIconLeft]"></ng-content>
+  <span class="ds-btn__label"><ng-content></ng-content></span>
+  <ng-content select="[dsIconRight]"></ng-content>
+</button>

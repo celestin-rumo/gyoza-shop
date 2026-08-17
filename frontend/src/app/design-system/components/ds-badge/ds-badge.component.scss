@@ -1,0 +1,58 @@
+.ds-badge {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-family: var(--gz-font-family);
+  font-weight: var(--gz-fw-semibold);
+  line-height: 1.2;
+
+  &--accent {
+    background: var(--gz-accent-400);
+    color: var(--gz-text-on-accent);
+  }
+  &--sage {
+    background: var(--gz-sage-300);
+    color: var(--gz-text-on-accent);
+  }
+  &--neutral {
+    background: var(--gz-surface);
+    color: var(--gz-text-primary);
+    border: 1px solid var(--gz-border);
+  }
+
+  // Étiquette pilule simple (ex: "Panier (0)", "Nouveau")
+  &--pill {
+    padding: var(--gz-space-1) var(--gz-space-4);
+    border-radius: var(--gz-radius-pill);
+    font-size: var(--gz-fs-sm);
+  }
+
+  // Sceau circulaire "FAIT MAISON AVEC AMOUR"
+  &--stamp {
+    width: 128px;
+    height: 128px;
+    border-radius: 50%;
+    padding: var(--gz-space-4);
+    font-size: var(--gz-fs-xs);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    box-shadow: var(--gz-shadow-md);
+
+    // Bord "cranté" façon tampon, via un dégradé conique répété
+    background:
+      radial-gradient(circle, var(--gz-accent-400) 62%, transparent 63%),
+      repeating-conic-gradient(
+        var(--gz-accent-400) 0deg 9deg,
+        transparent 9deg 18deg
+      );
+
+    ::ng-deep small {
+      display: block;
+      font-weight: var(--gz-fw-medium);
+      font-size: 0.65em;
+      margin-top: var(--gz-space-1);
+    }
+  }
+}

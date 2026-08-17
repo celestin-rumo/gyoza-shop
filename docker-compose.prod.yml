@@ -1,0 +1,11 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+
+    ports:
+      - "4000:4000"
+
+    environment:
+      NODE_ENV: production

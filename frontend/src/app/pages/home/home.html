@@ -1,0 +1,102 @@
+<ds-navbar
+  brand="GYOZA"
+  brandSuffix="MAISON"
+  [links]="navLinks"
+  [cartCount]="cartCount()"
+></ds-navbar>
+
+<main class="home">
+  <section class="hero">
+    <div class="hero__content">
+      <h1 class="hero__title">
+        Des gyozas<br />
+        faits maison,<br />
+        <span class="hero__title-accent">livrés chez vous.</span>
+      </h1>
+
+      <p class="hero__subtitle">
+        Gyozas artisanaux préparés avec des ingrédients frais et de qualité. À déguster, à
+        partager.
+      </p>
+
+      <div class="hero__actions">
+        <ds-button variant="primary" size="md">Commander</ds-button>
+        <ds-button variant="outline" size="md">Découvrir nos gyozas</ds-button>
+      </div>
+
+      <div class="hero__features">
+        <ds-feature-item title="Ingrédients frais" subtitle="et sélectionnés">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M5 19c8 0 13-5 13-13 0 0-9-1-13 5-3 4-2 6 0 8Z"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path d="M5 19c2-4 5-7 9-9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          </svg>
+        </ds-feature-item>
+
+        <ds-feature-item title="Fait maison" subtitle="chaque jour">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M4 12h16c0 4.4-3.6 8-8 8s-8-3.6-8-8Z"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M9 8c-.8-1 .8-1.6 0-3M13 8c-.8-1 .8-1.6 0-3"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+            />
+          </svg>
+        </ds-feature-item>
+
+        <ds-feature-item title="Livraison rapide" subtitle="et soignée">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="6" cy="18" r="2.2" stroke="currentColor" stroke-width="1.6" />
+            <circle cx="17" cy="18" r="2.2" stroke="currentColor" stroke-width="1.6" />
+            <path
+              d="M6 18h6l2-6h3M14 12l1.5-3H18M8 18l3-8"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </ds-feature-item>
+      </div>
+    </div>
+
+    <div class="hero__media">
+      <img
+        class="hero__image"
+        src="https://placehold.co/720x560/141310/2a2926?text=Gyozas"
+        alt="Assiette de gyozas grillés servie avec une sauce et des baguettes"
+      />
+      <ds-badge class="hero__stamp" shape="stamp" tone="accent">
+        <span>FAIT MAISON</span>
+        <small>AVEC AMOUR</small>
+      </ds-badge>
+    </div>
+  </section>
+
+  <section class="products" id="gyozas">
+    <ds-section-header
+      title="Nos gyozas"
+      subtitle="Des saveurs uniques pour tous les goûts."
+    ></ds-section-header>
+
+    <div class="products__grid">
+      @for (product of products; track product.id) {
+        <ds-product-card [product]="product" (add)="onAddToCart($event)"></ds-product-card>
+      }
+    </div>
+  </section>
+</main>
+
+<ds-footer></ds-footer>

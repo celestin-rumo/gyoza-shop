@@ -1,0 +1,95 @@
+.ds-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gz-space-2);
+  font-family: var(--gz-font-family);
+  font-weight: var(--gz-fw-medium);
+  border-radius: var(--gz-radius-pill);
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--gz-transition-fast),
+    border-color var(--gz-transition-fast),
+    color var(--gz-transition-fast),
+    transform var(--gz-transition-fast),
+    box-shadow var(--gz-transition-fast);
+
+  &:active:not(:disabled) {
+    transform: translateY(1px) scale(0.99);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--gz-accent-400);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  &--full {
+    width: 100%;
+  }
+
+  // ---- Tailles ----
+  &--sm {
+    padding: var(--gz-space-2) var(--gz-space-4);
+    font-size: var(--gz-fs-sm);
+  }
+  &--md {
+    padding: var(--gz-space-3) var(--gz-space-6);
+    font-size: var(--gz-fs-base);
+  }
+  &--lg {
+    padding: var(--gz-space-4) var(--gz-space-8);
+    font-size: var(--gz-fs-lg);
+  }
+
+  // ---- Variantes ----
+  &--primary {
+    background: var(--gz-accent-400);
+    color: var(--gz-text-on-accent);
+
+    &:hover:not(:disabled) {
+      background: var(--gz-accent-500);
+      box-shadow: var(--gz-shadow-accent);
+    }
+  }
+
+  &--outline {
+    background: transparent;
+    border-color: var(--gz-text-primary);
+    color: var(--gz-text-primary);
+
+    &:hover:not(:disabled) {
+      background: var(--gz-surface-hover);
+      border-color: var(--gz-accent-400);
+    }
+  }
+
+  &--ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--gz-text-primary);
+
+    &:hover:not(:disabled) {
+      background: var(--gz-surface-hover);
+    }
+  }
+
+  &--sage {
+    background: var(--gz-sage-300);
+    color: var(--gz-text-on-accent);
+
+    &:hover:not(:disabled) {
+      background: var(--gz-sage-500);
+    }
+  }
+}
+
+.ds-btn__label {
+  display: inline-flex;
+  align-items: center;
+}

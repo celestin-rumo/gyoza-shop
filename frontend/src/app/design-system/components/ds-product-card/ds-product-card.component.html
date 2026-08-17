@@ -1,0 +1,28 @@
+<article class="ds-product-card">
+  <div class="ds-product-card__media">
+    <img
+      class="ds-product-card__image"
+      [src]="product.imageUrl"
+      [alt]="product.imageAlt"
+      loading="lazy"
+    />
+  </div>
+
+  <div class="ds-product-card__body">
+    <h3 class="ds-product-card__name">{{ product.name }}</h3>
+    <p class="ds-product-card__description">{{ product.description }}</p>
+
+    <div class="ds-product-card__footer">
+      <span class="ds-product-card__price">{{ formatPrice(product.price, product.currency) }}</span>
+      <ds-icon-button
+        [variant]="addButtonVariant"
+        ariaLabel="Ajouter {{ product.name }} au panier"
+        (pressed)="onAdd()"
+      >
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+        </svg>
+      </ds-icon-button>
+    </div>
+  </div>
+</article>

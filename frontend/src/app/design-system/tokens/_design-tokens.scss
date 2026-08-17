@@ -1,0 +1,82 @@
+// =========================================================
+// GYOZA MAISON — DESIGN TOKENS
+// A importer UNE FOIS dans styles.scss global : @use 'app/design-system/tokens/design-tokens';
+// Toutes les valeurs sont exposées en CSS custom properties sur :root
+// pour rester utilisables partout (composants, styles inline, etc).
+// =========================================================
+
+:root {
+  // ---- Couleurs de fond ----
+  --gz-bg: #0a0a0a;
+  --gz-bg-elevated: #121212;
+  --gz-surface: #161513;
+  --gz-surface-hover: #1d1c19;
+  --gz-border: #2a2926;
+  --gz-border-soft: #201f1c;
+
+  // ---- Couleurs de texte ----
+  --gz-text-primary: #f6f4f0;
+  --gz-text-secondary: #a9a6a0;
+  --gz-text-muted: #7a776f;
+  --gz-text-on-accent: #201510;
+
+  // ---- Couleur d'accent (saumon / corail) ----
+  --gz-accent-50: #fbe9e1;
+  --gz-accent-200: #f0c4ae;
+  --gz-accent-400: #e6a68c;   // fond des boutons primaires
+  --gz-accent-500: #dd8f72;   // texte "livrés chez vous", hover bouton
+  --gz-accent-600: #c97a5e;
+
+  // ---- Couleur secondaire (sauge / vert) ----
+  --gz-sage-200: #d9dcc4;
+  --gz-sage-300: #c3caa3;     // badge crevette, bouton "+"
+  --gz-sage-500: #99a674;
+
+  // ---- Couleurs utilitaires ----
+  --gz-white: #ffffff;
+  --gz-black: #000000;
+
+  // ---- Typographie ----
+  --gz-font-family: 'Poppins', 'Quicksand', 'Segoe UI', system-ui, sans-serif;
+  --gz-fs-xs: 0.75rem;    // 12px
+  --gz-fs-sm: 0.875rem;   // 14px
+  --gz-fs-base: 1rem;     // 16px
+  --gz-fs-lg: 1.125rem;   // 18px
+  --gz-fs-xl: 1.5rem;     // 24px
+  --gz-fs-2xl: 2rem;      // 32px
+  --gz-fs-3xl: 2.75rem;   // 44px
+  --gz-fs-4xl: 3.5rem;    // 56px
+  --gz-fw-regular: 400;
+  --gz-fw-medium: 500;
+  --gz-fw-semibold: 600;
+  --gz-fw-bold: 700;
+  --gz-lh-tight: 1.1;
+  --gz-lh-normal: 1.5;
+
+  // ---- Espacements (échelle 4px) ----
+  --gz-space-1: 4px;
+  --gz-space-2: 8px;
+  --gz-space-3: 12px;
+  --gz-space-4: 16px;
+  --gz-space-5: 20px;
+  --gz-space-6: 24px;
+  --gz-space-8: 32px;
+  --gz-space-10: 40px;
+  --gz-space-12: 48px;
+  --gz-space-16: 64px;
+
+  // ---- Rayons ----
+  --gz-radius-sm: 8px;
+  --gz-radius-md: 14px;
+  --gz-radius-lg: 20px;
+  --gz-radius-pill: 999px;
+
+  // ---- Ombres ----
+  --gz-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --gz-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --gz-shadow-accent: 0 6px 18px rgba(230, 166, 140, 0.25);
+
+  // ---- Transitions ----
+  --gz-transition-fast: 150ms ease;
+  --gz-transition-base: 220ms ease;
+}

@@ -1,0 +1,39 @@
+<header class="ds-navbar">
+  <div class="ds-navbar__brand">
+    <span class="ds-navbar__logo">
+      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="20" cy="20" r="19" stroke="currentColor" stroke-width="1.5" />
+        <path d="M11 22c3 4 15 4 18 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+      </svg>
+    </span>
+    <span class="ds-navbar__brand-text">
+      <strong>{{ brand }}</strong>
+      <small>{{ brandSuffix }}</small>
+    </span>
+  </div>
+
+  <nav class="ds-navbar__links">
+    <a
+      *ngFor="let link of links"
+      class="ds-navbar__link"
+      [class.ds-navbar__link--active]="link.active"
+      [href]="link.href"
+      (click)="linkClick.emit(link)"
+    >
+      {{ link.label }}
+    </a>
+  </nav>
+
+  <div class="ds-navbar__actions">
+    <button type="button" class="ds-navbar__icon-link" aria-label="Mon compte" (click)="accountClick.emit()">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.6" />
+        <path d="M4.5 20c1.7-3.5 5-5 7.5-5s5.8 1.5 7.5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+      </svg>
+    </button>
+
+    <ds-button variant="primary" size="sm" (pressed)="cartClick.emit()">
+      Panier ({{ cartCount }})
+    </ds-button>
+  </div>
+</header>

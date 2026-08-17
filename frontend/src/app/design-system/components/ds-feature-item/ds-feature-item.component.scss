@@ -1,0 +1,38 @@
+.ds-feature {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gz-space-3);
+  font-family: var(--gz-font-family);
+}
+
+.ds-feature__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  color: var(--gz-accent-400);
+
+  ::ng-deep svg {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.ds-feature__text {
+  display: flex;
+  flex-direction: column;
+  line-height: var(--gz-lh-tight);
+}
+
+.ds-feature__title {
+  color: var(--gz-text-primary);
+  font-weight: var(--gz-fw-medium);
+  font-size: var(--gz-fs-sm);
+}
+
+.ds-feature__subtitle {
+  color: var(--gz-text-secondary);
+  font-size: var(--gz-fs-sm);
+}

@@ -1,0 +1,16 @@
+<button
+  type="button"
+  class="ds-icon-btn"
+  [class.ds-icon-btn--sm]="size === 'sm'"
+  [class.ds-icon-btn--md]="size === 'md'"
+  [class.ds-icon-btn--lg]="size === 'lg'"
+  [class.ds-icon-btn--accent]="variant === 'accent'"
+  [class.ds-icon-btn--sage]="variant === 'sage'"
+  [class.ds-icon-btn--outline]="variant === 'outline'"
+  [class.ds-icon-btn--ghost]="variant === 'ghost'"
+  [attr.aria-label]="ariaLabel"
+  [disabled]="disabled"
+  (click)="onClick($event)"
+>
+  <ng-content></ng-content>
+</button>
