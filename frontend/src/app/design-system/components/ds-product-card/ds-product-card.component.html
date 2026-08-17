@@ -13,6 +13,10 @@
     <p class="ds-product-card__description">{{ product.description }}</p>
     <span class="ds-product-card__price">Dès {{ formatPrice(fromPrice) }}</span>
 
+    <a class="ds-product-card__details-link" [routerLink]="['/nos-gyozas']" [fragment]="product.id">
+      Voir la recette et la composition →
+    </a>
+
     <ds-pack-picker
       [packs]="product.packs"
       [quantitiesInCart]="packQuantitiesInCart"

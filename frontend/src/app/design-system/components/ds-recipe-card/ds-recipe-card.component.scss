@@ -1,3 +1,8 @@
+:host {
+  display: block;
+  scroll-margin-top: var(--gz-space-8);
+}
+
 .ds-recipe-card {
   display: grid;
   grid-template-columns: minmax(0, 420px) minmax(0, 1fr);

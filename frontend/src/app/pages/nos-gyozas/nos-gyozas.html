@@ -80,6 +80,7 @@
 
   <section class="recipes">
     <ds-recipe-card
+      [id]="gyozaPoulet.id"
       [product]="gyozaPoulet"
       [ingredients]="pouletIngredients"
       [packQuantitiesInCart]="cart.packQuantitiesInCart(gyozaPoulet.id)"
@@ -89,6 +90,7 @@
     ></ds-recipe-card>
 
     <ds-recipe-card
+      [id]="gyozaLegumes.id"
       [product]="gyozaLegumes"
       [ingredients]="legumesIngredients"
       [packQuantitiesInCart]="cart.packQuantitiesInCart(gyozaLegumes.id)"

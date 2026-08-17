@@ -81,9 +81,9 @@
 
 .products__grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 320px));
+  grid-template-columns: repeat(2, minmax(0, 440px));
   justify-content: center;
-  gap: var(--gz-space-6);
+  gap: var(--gz-space-8);
 }
 
 @media (max-width: 1080px) {

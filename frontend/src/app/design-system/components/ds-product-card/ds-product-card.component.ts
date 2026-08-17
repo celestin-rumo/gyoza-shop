@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { DsPackPickerComponent, DsPackSelection, DsProductPack } from '../ds-pack-picker/ds-pack-picker.component';
 
 export type DsProductTagTone = 'accent' | 'neutral' | 'sage';
@@ -34,7 +35,7 @@ export interface DsCartRemoveEvent {
 @Component({
   selector: 'ds-product-card',
   standalone: true,
-  imports: [CommonModule, DsPackPickerComponent],
+  imports: [CommonModule, RouterLink, DsPackPickerComponent],
   templateUrl: './ds-product-card.component.html',
   styleUrls: ['./ds-product-card.component.scss'],
 })
