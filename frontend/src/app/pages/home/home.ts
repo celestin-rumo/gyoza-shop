@@ -1,10 +1,12 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { CartService } from '../../cart.service';
 import {
   DsBadgeComponent,
   DsButtonComponent,
   DsCartAddEvent,
+  DsCartPanelComponent,
+  DsCartQuantityChangeEvent,
   DsCartRemoveEvent,
   DsFeatureItemComponent,
   DsFooterComponent,
@@ -24,6 +26,7 @@ import {
     DsBadgeComponent,
     DsSectionHeaderComponent,
     DsProductCardComponent,
+    DsCartPanelComponent,
     DsFooterComponent,
   ],
   templateUrl: './home.html',
@@ -32,11 +35,12 @@ import {
 export class Home {
   private readonly router = inject(Router);
   protected readonly cart = inject(CartService);
+  protected readonly cartOpen = signal(false);
 
   protected readonly navLinks: DsNavLink[] = [
     { label: 'Accueil', href: '#', active: true },
     { label: 'Nos gyozas', href: '/nos-gyozas' },
-    { label: 'À propos', href: '#a-propos' },
+    { label: 'À propos', href: '/a-propos' },
     { label: 'Contact', href: '/contact' },
   ];
 
@@ -77,6 +81,19 @@ export class Home {
 
   protected onRemoveFromCart(event: DsCartRemoveEvent): void {
     this.cart.remove(event.product.id, event.pack.id);
+  }
+
+  protected onCartQuantityChange(event: DsCartQuantityChangeEvent): void {
+    this.cart.setQuantity(event.line.product.id, event.line.pack.id, event.quantity);
+  }
+
+  protected onCartLineRemove(line: DsCartAddEvent): void {
+    this.cart.remove(line.product.id, line.pack.id);
+  }
+
+  protected onConfirmOrder(): void {
+    this.cartOpen.set(false);
+    this.router.navigateByUrl('/checkout');
   }
 
   protected onDiscoverGyozas(): void {

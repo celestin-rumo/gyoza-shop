@@ -1,0 +1,35 @@
+<article class="ds-cart-item">
+  <div class="ds-cart-item__info">
+    <h3 class="ds-cart-item__title">{{ line().product.name }}</h3>
+    <p class="ds-cart-item__pack">{{ line().pack.label }}</p>
+    <p class="ds-cart-item__unit-price">{{ formatPrice(line().pack.price, line().pack.currency) }} / paquet</p>
+  </div>
+
+  <div class="ds-cart-item__controls">
+    <div class="ds-cart-item__stepper">
+      <button
+        type="button"
+        class="ds-cart-item__step"
+        (click)="decrement()"
+        [disabled]="line().quantity <= 1"
+        aria-label="Diminuer la quantité"
+      >
+        −
+      </button>
+      <span class="ds-cart-item__quantity" aria-live="polite">{{ line().quantity }}</span>
+      <button type="button" class="ds-cart-item__step" (click)="increment()" aria-label="Augmenter la quantité">
+        +
+      </button>
+    </div>
+
+    <p class="ds-cart-item__total">{{ formatPrice(lineTotal(), line().pack.currency) }}</p>
+
+    <button type="button" class="ds-cart-item__remove" (click)="onRemove()" aria-label="Retirer {{ line().product.name }} ({{ line().pack.label }}) du panier">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M5 7h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+        <path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M7.5 7 8.2 19a1.5 1.5 0 0 0 1.5 1.4h4.6a1.5 1.5 0 0 0 1.5-1.4L16.5 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </button>
+  </div>
+</article>

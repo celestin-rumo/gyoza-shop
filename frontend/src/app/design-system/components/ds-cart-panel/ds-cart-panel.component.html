@@ -1,0 +1,41 @@
+@if (open()) {
+  <div class="ds-cart-panel__backdrop" (click)="onClose()"></div>
+
+  <section class="ds-cart-panel" role="dialog" aria-modal="true" aria-label="Panier">
+    <header class="ds-cart-panel__header">
+      <h2 class="ds-cart-panel__title">Votre panier</h2>
+      <button type="button" class="ds-cart-panel__close" aria-label="Fermer le panier" (click)="onClose()">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+        </svg>
+      </button>
+    </header>
+
+    @if (lines().length > 0) {
+      <ul class="ds-cart-panel__list">
+        @for (line of lines(); track trackLine($index, line)) {
+          <li>
+            <ds-cart-item
+              [line]="line"
+              (quantityChange)="onQuantityChange(line, $event)"
+              (remove)="onRemove(line)"
+            ></ds-cart-item>
+          </li>
+        }
+      </ul>
+
+      <footer class="ds-cart-panel__footer">
+        <div class="ds-cart-panel__subtotal">
+          <span>Sous-total</span>
+          <strong>{{ formatPrice(subtotal()) }}</strong>
+        </div>
+
+        <ds-button variant="primary" size="md" [fullWidth]="true" (pressed)="onConfirm()">
+          Confirmer la commande
+        </ds-button>
+      </footer>
+    } @else {
+      <p class="ds-cart-panel__empty">Votre panier est vide pour le moment.</p>
+    }
+  </section>
+}

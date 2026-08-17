@@ -3,7 +3,17 @@
   brandSuffix="MAISON"
   [links]="navLinks"
   [cartCount]="cart.count()"
+  (cartClick)="cartOpen.set(true)"
 ></ds-navbar>
+
+<ds-cart-panel
+  [lines]="cart.lines()"
+  [open]="cartOpen()"
+  (quantityChange)="onCartQuantityChange($event)"
+  (remove)="onCartLineRemove($event)"
+  (confirm)="onConfirmOrder()"
+  (closed)="cartOpen.set(false)"
+></ds-cart-panel>
 
 <main class="nos-gyozas">
   <ds-section-header

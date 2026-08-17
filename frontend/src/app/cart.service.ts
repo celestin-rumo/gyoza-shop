@@ -7,12 +7,18 @@ import { DsCartAddEvent } from './design-system';
  */
 @Injectable({ providedIn: 'root' })
 export class CartService {
-  private readonly lines = signal<DsCartAddEvent[]>([]);
+  private readonly _lines = signal<DsCartAddEvent[]>([]);
+
+  readonly lines = this._lines.asReadonly();
 
   readonly count = computed(() => this.lines().reduce((total, line) => total + line.quantity, 0));
 
+  readonly subtotal = computed(() =>
+    this.lines().reduce((total, line) => total + line.pack.price * line.quantity, 0),
+  );
+
   add(event: DsCartAddEvent): void {
-    this.lines.update((lines) => {
+    this._lines.update((lines) => {
       const existing = lines.find(
         (line) => line.product.id === event.product.id && line.pack.id === event.pack.id,
       );
@@ -28,9 +34,27 @@ export class CartService {
   }
 
   remove(productId: string, packId: string): void {
-    this.lines.update((lines) =>
+    this._lines.update((lines) =>
       lines.filter((line) => !(line.product.id === productId && line.pack.id === packId)),
     );
+  }
+
+  /** Modifie la quantité d'un élément du panier ; le retire si la quantité tombe à 0 ou moins. */
+  setQuantity(productId: string, packId: string, quantity: number): void {
+    if (quantity <= 0) {
+      this.remove(productId, packId);
+      return;
+    }
+
+    this._lines.update((lines) =>
+      lines.map((line) =>
+        line.product.id === productId && line.pack.id === packId ? { ...line, quantity } : line,
+      ),
+    );
+  }
+
+  clear(): void {
+    this._lines.set([]);
   }
 
   /** Quantité déjà présente dans le panier pour un produit donné, par id de pack. */

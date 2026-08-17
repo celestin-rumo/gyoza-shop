@@ -1,8 +1,11 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
+import { Router } from '@angular/router';
 import { CartService } from '../../cart.service';
 import {
   DsCartAddEvent,
+  DsCartPanelComponent,
+  DsCartQuantityChangeEvent,
   DsCartRemoveEvent,
   DsFooterComponent,
   DsNavbarComponent,
@@ -33,18 +36,21 @@ interface CookingStep {
     DsSectionHeaderComponent,
     DsOriginCardComponent,
     DsRecipeCardComponent,
+    DsCartPanelComponent,
     DsFooterComponent,
   ],
   templateUrl: './nos-gyozas.html',
   styleUrl: './nos-gyozas.scss',
 })
 export class NosGyozas {
+  private readonly router = inject(Router);
   protected readonly cart = inject(CartService);
+  protected readonly cartOpen = signal(false);
 
   protected readonly navLinks: DsNavLink[] = [
     { label: 'Accueil', href: '/' },
     { label: 'Nos gyozas', href: '/nos-gyozas', active: true },
-    { label: 'À propos', href: '/#a-propos' },
+    { label: 'À propos', href: '/a-propos' },
     { label: 'Contact', href: '/contact' },
   ];
 
@@ -148,5 +154,18 @@ export class NosGyozas {
 
   protected onRemoveFromCart(event: DsCartRemoveEvent): void {
     this.cart.remove(event.product.id, event.pack.id);
+  }
+
+  protected onCartQuantityChange(event: DsCartQuantityChangeEvent): void {
+    this.cart.setQuantity(event.line.product.id, event.line.pack.id, event.quantity);
+  }
+
+  protected onCartLineRemove(line: DsCartAddEvent): void {
+    this.cart.remove(line.product.id, line.pack.id);
+  }
+
+  protected onConfirmOrder(): void {
+    this.cartOpen.set(false);
+    this.router.navigateByUrl('/checkout');
   }
 }
