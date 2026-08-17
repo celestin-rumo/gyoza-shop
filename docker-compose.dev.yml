@@ -20,5 +20,21 @@ services:
       sh -c "npm ci &&
              npm start -- --host 0.0.0.0"
 
+  database:
+    image: postgres:17
+    container_name: gyoza-database
+
+    environment:
+      POSTGRES_DB: gyoza
+      POSTGRES_USER: gyoza
+      POSTGRES_PASSWORD: gyoza
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
 volumes:
   frontend_node_modules:
+  postgres_data:
