@@ -55,6 +55,7 @@ jobs:
         run: |
           cd "${{ env.DEPLOY_PATH }}"
 
+          rm -f .env
           cat > .env <<EOF
           IMAGE_TAG=${IMAGE_TAG}
           POSTGRES_DB=gyoza

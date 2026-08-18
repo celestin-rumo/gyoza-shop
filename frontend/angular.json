@@ -36,7 +36,9 @@
             "security": {
               "allowedHosts": [
                 "localhost",
-                "127.0.0.1"
+                "127.0.0.1",
+                "gyoza.celestinrumo.ch",
+                "www.gyoza.celestinrumo.ch"
               ]
             },
             "ssr": {

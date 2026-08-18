@@ -18,6 +18,16 @@ services:
       - "traefik.http.routers.gyoza-frontend.priority=1"
       - "traefik.http.services.gyoza-frontend.loadbalancer.server.port=4000"
 
+      - "traefik.http.middlewares.gyoza-www-redirect.redirectregex.regex=^https://www\\.gyoza\\.celestinrumo\\.ch/(.*)"
+      - "traefik.http.middlewares.gyoza-www-redirect.redirectregex.replacement=https://gyoza.celestinrumo.ch/$${1}"
+      - "traefik.http.middlewares.gyoza-www-redirect.redirectregex.permanent=true"
+      - "traefik.http.routers.gyoza-frontend-www.rule=Host(`www.gyoza.celestinrumo.ch`)"
+      - "traefik.http.routers.gyoza-frontend-www.entrypoints=websecure"
+      - "traefik.http.routers.gyoza-frontend-www.tls.certresolver=le"
+      - "traefik.http.routers.gyoza-frontend-www.priority=1"
+      - "traefik.http.routers.gyoza-frontend-www.middlewares=gyoza-www-redirect"
+      - "traefik.http.routers.gyoza-frontend-www.service=gyoza-frontend"
+
     networks:
       - traefik-proxy
 
