@@ -11,6 +11,13 @@ export interface OrderCustomer {
   email: string;
 }
 
+export interface OrderResponse {
+  id: number;
+  status: string;
+  totalPrice: number;
+  createdAt: string;
+}
+
 export interface OrderLineRequest {
   packId: number;
   quantity: number;
@@ -28,7 +35,7 @@ export class OrderService {
   placeOrder(
     customer: OrderCustomer,
     lines: DsCartAddEvent[],
-  ): Observable<void> {
+  ): Observable<OrderResponse> {
 
     const request: OrderRequest = {
       customer,
@@ -38,7 +45,7 @@ export class OrderService {
       })),
     };
 
-    return this.http.post<void>(
+    return this.http.post<OrderResponse>(
       '/api/orders',
       request
     );

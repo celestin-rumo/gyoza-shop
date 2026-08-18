@@ -1,5 +1,6 @@
 package ch.celestin.gyoza.pack;
 
+import ch.celestin.gyoza.exception.PackNotFoundException;
 import ch.celestin.gyoza.pack.dto.CreatePackRequest;
 import ch.celestin.gyoza.pack.dto.PackResponse;
 import ch.celestin.gyoza.pack.dto.UpdatePackRequest;
@@ -44,9 +45,7 @@ public class PackOptionServiceImpl implements PackOptionService {
     public PackResponse updatePack(Long packId, UpdatePackRequest request) {
         PackOption pack = packOptionRepository
                 .findById(packId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Pack introuvable : " + packId
-                ));
+                .orElseThrow(() -> new PackNotFoundException(packId));
 
         pack.changeSize(request.size());
         pack.changePrice(request.price());
@@ -58,7 +57,7 @@ public class PackOptionServiceImpl implements PackOptionService {
     @Transactional
     public void deletePack(Long packId) {
         if (!packOptionRepository.existsById(packId)) {
-            throw new EntityNotFoundException("Pack introuvable : " + packId);
+            throw new PackNotFoundException(packId);
         }
 
         packOptionRepository.deleteById(packId);

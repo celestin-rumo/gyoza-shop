@@ -45,11 +45,6 @@
   }
 }
 
-.admin-home__card--disabled {
-  opacity: 0.5;
-  pointer-events: none;
-}
-
 .admin-home__card-title {
   margin: 0 0 var(--gz-space-2);
   color: var(--gz-text-primary);

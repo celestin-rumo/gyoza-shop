@@ -1,5 +1,6 @@
 package ch.celestin.gyoza.product;
 
+import ch.celestin.gyoza.exception.InsufficientStockException;
 import jakarta.persistence.*;
 
 @Entity
@@ -61,9 +62,7 @@ public class Product {
         }
 
         if (quantity > stockQuantity) {
-            throw new IllegalArgumentException(
-                    "Insufficient stock"
-            );
+            throw new InsufficientStockException(name, quantity, stockQuantity);
         }
 
         stockQuantity -= quantity;
