@@ -4,6 +4,7 @@
   [links]="navLinks()"
   [cartCount]="cart.count()"
   (cartClick)="cart.open()"
+  (accountClick)="onAccountClick()"
 ></ds-navbar>
 
 <ds-cart-panel

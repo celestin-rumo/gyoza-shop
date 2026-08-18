@@ -66,4 +66,8 @@ export class App {
     this.cart.close();
     this.router.navigateByUrl('/checkout');
   }
+
+  protected onAccountClick(): void {
+    this.router.navigateByUrl('/admin/login');
+  }
 }
