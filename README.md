@@ -69,6 +69,27 @@ Tester un endpoint de l'API sans passer par le frontend :
 curl http://localhost:8080/api/products
 ```
 
+## Tests
+
+Trois niveaux, du plus rapide au plus complet — tous tournent en CI (`.github/workflows/build-and-push.yml`) : unitaire + intégration bloquent le build des images, e2e bloque le tag/release/déploiement.
+
+| Niveau      | Backend (`backend/`)                          | Frontend (`frontend/`)                                        |
+| ----------- | ---------------------------------------------- | --------------------------------------------------------------- |
+| Unitaire    | `mvn test` — classes `*Test.java` (Mockito, pas de Spring/DB) | `npm run test:unit` — `*.spec.ts`                                |
+| Intégration | `mvn verify` — classes `*IT.java` (contexte Spring complet + Postgres via Testcontainers) | `npm run test:integration` — `*.integration.spec.ts` (page + services réels, réseau simulé) |
+
+`mvn verify` nécessite Docker (Testcontainers y démarre un vrai Postgres). `npm test` lance l'ensemble (unitaire + intégration) en local.
+
+### End-to-end
+
+Playwright, dans [e2e/](e2e/), contre une stack complète et jetable (`docker-compose.e2e.yml` : frontend + backend construits depuis `Dockerfile.prod`, Postgres, un Traefik minimal reproduisant le routing de prod).
+
+```bash
+docker compose -f docker-compose.e2e.yml up -d --build
+cd e2e && npm ci && npx playwright install --with-deps chromium && npm test
+docker compose -f docker-compose.e2e.yml down -v   # à la fin
+```
+
 ## État du projet
 
-Voir [releases-notes/](releases-notes/) pour le détail des versions. Version actuelle : **v0.7.0** — tests automatisés et déploiement continu restent à faire avant la v1.0.0.
+Voir [releases-notes/](releases-notes/) pour le détail des versions. Version actuelle : **v0.8.0** — CI/CD et tests automatisés en place ; couverture de tests à étoffer avant la v1.0.0.

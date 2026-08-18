@@ -1,0 +1,29 @@
+# Gyoza Maison — v0.9.0
+
+*August 18, 2026*
+
+A full testing pyramid — unit, integration, and end-to-end — is now in place on both the Angular frontend and the Spring Boot backend, wired into CI so it gates every build and deployment.
+
+## Testing
+
+- **Backend unit tests** (`mvn test`, Mockito): business rules on the `Product` entity (stock add/remove, `InsufficientStockException`), `OrderServiceImpl` (order creation, stock decrement, status transitions), and `AdminTokenStore` (session token issuance/expiry).
+- **Backend integration tests** (`mvn verify`, `*IT.java`): full Spring context against a real, disposable Postgres via Testcontainers — covers the security filter chain (public vs. admin-only routes), authentication, and order creation end to end through real HTTP calls and JPA persistence.
+- **Frontend unit tests** (`npm run test:unit`, Vitest): `CartService`, the admin route guard, the auth interceptor (token attachment, auto-logout on 401/403), and an HTTP service tested with `HttpTestingController`.
+- **Frontend integration tests** (`npm run test:integration`, `*.integration.spec.ts`): the checkout page mounted with its real `CartService` and Signal Forms wiring, only the network boundary mocked.
+- **End-to-end tests** (Playwright, in `e2e/`): the critical storefront journey (catalog → cart → checkout → confirmation) and admin journey (login guard → stock adjustment → order status transition), run against a disposable Docker stack (`docker-compose.e2e.yml`) built from the same `Dockerfile.prod` images and a Traefik setup mirroring production's routing.
+- **Coverage**: computed automatically on every test run (JaCoCo for the backend, Vitest's `v8` provider for the frontend) — no extra flags needed.
+
+## CI/CD
+
+- `test-frontend` and `test-backend` now run on every push and pull request, and gate image builds: no image is published if tests fail.
+- A new `e2e` job runs the Playwright suite against the freshly built images and gates tagging, the GitHub release, and — through the existing `workflow_run` trigger — the production deployment.
+- Coverage summaries are published to the GitHub Actions run summary, with full HTML reports attached as downloadable artifacts.
+
+## Fixes
+
+- Fixed `/api` requests timing out in production: the backend was reachable from Traefik over the wrong Docker network.
+- Fixed the production `.env` write failing on a pre-existing restrictive file, added the `www` → apex redirect for a valid TLS cert, and allow-listed the production hostnames in Angular's SSR host check.
+
+## Remaining before v1.0.0
+
+- Broaden test coverage beyond the foundational examples above (current baseline: ~64% lines on the backend, ~28% on the frontend).

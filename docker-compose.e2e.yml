@@ -1,0 +1,85 @@
+# Disposable full-stack environment for the Playwright e2e suite (see e2e/).
+# Mirrors docker-compose.prod.yml's topology (frontend + backend behind a
+# path-based reverse proxy, Postgres) but built from source (`build:`, not
+# `image:`) so it works locally and in CI without any registry auth, and with
+# throwaway, non-sensitive credentials since the stack never persists data.
+#
+# Explicit project name: docker-compose.dev.yml/docker-compose.prod.yml have no
+# `name:` either, so they'd all default to the directory name ("gyoza-shop") and
+# collide as the *same* Compose project — Compose would then "recreate" the dev
+# stack's containers to match this file, silently reusing their volumes (e.g. an
+# old Postgres data dir with different credentials). A dedicated name keeps this
+# stack fully isolated and safe to run alongside the dev stack.
+name: gyoza-shop-e2e
+
+services:
+  traefik:
+    image: traefik:v3.1
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "4300:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - e2e
+    depends_on:
+      - frontend
+      - backend
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.e2e-frontend.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.e2e-frontend.entrypoints=web"
+      - "traefik.http.routers.e2e-frontend.priority=1"
+      - "traefik.http.services.e2e-frontend.loadbalancer.server.port=4000"
+    networks:
+      - e2e
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    environment:
+      DB_URL: jdbc:postgresql://database:5432/gyoza_e2e
+      DB_USERNAME: gyoza
+      DB_PASSWORD: e2e-postgres-password
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: e2e-admin-password
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.e2e-backend.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.e2e-backend.entrypoints=web"
+      - "traefik.http.routers.e2e-backend.priority=100"
+      - "traefik.http.services.e2e-backend.loadbalancer.server.port=8080"
+    networks:
+      - e2e
+    depends_on:
+      database:
+        condition: service_healthy
+
+  database:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: gyoza_e2e
+      POSTGRES_USER: gyoza
+      POSTGRES_PASSWORD: e2e-postgres-password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gyoza -d gyoza_e2e"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - e2e
+
+networks:
+  e2e:
