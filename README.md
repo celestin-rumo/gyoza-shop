@@ -35,7 +35,17 @@ docker compose -f docker-compose.dev.yml up --build
 | Backend    | http://localhost:8080         |
 | PostgreSQL | localhost:5432                |
 
-Back-office admin : `/admin/login` (identifiants par défaut en dev : `admin` / `changeme`, définis dans `docker-compose.dev.yml`).
+Back-office admin : `/login` (identifiants par défaut en dev : `admin@gyoza.local` / `changeme`, définis dans `docker-compose.dev.yml`). Même page de connexion que les clients — l'admin est un compte comme un autre, juste avec le rôle `ADMIN`.
+
+### Emails en local
+
+En dev, aucun email n'est réellement envoyé : `MAIL_PROVIDER` n'est pas défini dans `docker-compose.dev.yml`, donc le backend utilise le fallback `log` (`LoggingMailService`) qui écrit le lien (vérification de compte, réinitialisation de mot de passe) dans les logs au lieu de passer par Resend.
+
+```bash
+docker compose -f docker-compose.dev.yml logs backend | grep "mail:log"
+```
+
+Copie l'URL affichée (`http://localhost:4200/verify-email?token=...` ou `/reset-password?token=...`) directement dans le navigateur.
 
 ## Commandes utiles
 
@@ -92,4 +102,4 @@ docker compose -f docker-compose.e2e.yml down -v   # à la fin
 
 ## État du projet
 
-Voir [releases-notes/](releases-notes/) pour le détail des versions. Version actuelle : **v0.8.0** — CI/CD et tests automatisés en place ; couverture de tests à étoffer avant la v1.0.0.
+Voir [releases-notes/](releases-notes/) pour le détail des versions. Version actuelle : **v1.0.0** — comptes clients (inscription, vérification email, connexion par session, mot de passe oublié) et gestion des droits admin, en plus du socle CI/CD et tests automatisés déjà en place.

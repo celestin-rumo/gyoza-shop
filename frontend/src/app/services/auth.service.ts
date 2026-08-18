@@ -1,64 +1,76 @@
-import { Injectable, PLATFORM_ID, computed, inject, signal } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map, tap } from 'rxjs';
+import { Observable, catchError, of, tap } from 'rxjs';
 
-const TOKEN_STORAGE_KEY = 'gyoza_admin_token';
+export type Role = 'CUSTOMER' | 'ADMIN';
 
-interface LoginResponse {
-  token: string;
+export interface CurrentUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: Role;
+}
+
+export interface RegisterPayload {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
 }
 
 /**
- * Admin session: opaque token obtained via `/api/auth/login`, kept in `sessionStorage`
- * (cleared when the tab closes) and replayed on every `/api/admin/**` call
- * by `authInterceptor`.
+ * Authentication state: the backend sets an HttpOnly session cookie on login,
+ * which is the actual source of truth and isn't readable from JS. `currentUser`
+ * is just a client-side cache, hydrated once at startup via `refreshMe()`
+ * (see the app initializer in app.config.ts) and kept in sync on login/logout.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
-  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
-  private readonly _token = signal<string | null>(this.readStoredToken());
+  private readonly _currentUser = signal<CurrentUser | null>(null);
 
-  readonly isAuthenticated = computed(() => this._token() !== null);
+  readonly currentUser = this._currentUser.asReadonly();
+  readonly isAuthenticated = computed(() => this._currentUser() !== null);
+  readonly isAdmin = computed(() => this._currentUser()?.role === 'ADMIN');
 
-  token(): string | null {
-    return this._token();
+  register(payload: RegisterPayload): Observable<void> {
+    return this.http.post<void>('/api/auth/register', payload);
   }
 
-  login(username: string, password: string): Observable<void> {
+  login(email: string, password: string): Observable<CurrentUser> {
     return this.http
-      .post<LoginResponse>('/api/auth/login', { username, password })
-      .pipe(
-        tap((response) => this.setToken(response.token)),
-        map(() => undefined),
-      );
+      .post<CurrentUser>('/api/auth/login', { email, password })
+      .pipe(tap((user) => this._currentUser.set(user)));
   }
 
-  logout(): void {
-    this.setToken(null);
+  logout(): Observable<void> {
+    return this.http
+      .post<void>('/api/auth/logout', {})
+      .pipe(tap(() => this._currentUser.set(null)));
   }
 
-  private setToken(token: string | null): void {
-    this._token.set(token);
-
-    if (!this.isBrowser) {
-      return;
-    }
-
-    if (token) {
-      sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
-    } else {
-      sessionStorage.removeItem(TOKEN_STORAGE_KEY);
-    }
+  forgotPassword(email: string): Observable<void> {
+    return this.http.post<void>('/api/auth/forgot-password', { email });
   }
 
-  private readStoredToken(): string | null {
-    if (!this.isBrowser) {
-      return null;
-    }
+  resetPassword(token: string, newPassword: string): Observable<void> {
+    return this.http.post<void>('/api/auth/reset-password', { token, newPassword });
+  }
 
-    return sessionStorage.getItem(TOKEN_STORAGE_KEY);
+  verifyEmail(token: string): Observable<void> {
+    return this.http.get<void>('/api/auth/verify-email', { params: { token } });
+  }
+
+  /** Re-derives `currentUser` from the session cookie; used once at app startup. */
+  refreshMe(): Observable<CurrentUser | null> {
+    return this.http.get<CurrentUser>('/api/users/me').pipe(
+      tap((user) => this._currentUser.set(user)),
+      catchError(() => {
+        this._currentUser.set(null);
+        return of(null);
+      }),
+    );
   }
 }

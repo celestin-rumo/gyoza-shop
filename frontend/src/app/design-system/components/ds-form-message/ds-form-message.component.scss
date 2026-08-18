@@ -1,0 +1,19 @@
+:host {
+  display: block;
+}
+
+.ds-form-message {
+  margin: 0;
+  padding: var(--gz-space-3) var(--gz-space-4);
+  background: rgba(230, 166, 140, 0.12);
+  border: 1px solid var(--gz-accent-400);
+  border-radius: var(--gz-radius-sm);
+  color: var(--gz-text-primary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+
+  &--success {
+    background: rgba(153, 166, 116, 0.14);
+    border-color: var(--gz-sage-500);
+  }
+}

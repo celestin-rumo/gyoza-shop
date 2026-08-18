@@ -1,5 +1,6 @@
 export * from '../services/currency.service';
 export * from './pipes/ds-price.pipe';
+export * from './components/ds-auth-card/ds-auth-card.component';
 export * from './components/ds-badge/ds-badge.component';
 export * from './components/ds-bottom-nav/ds-bottom-nav.component';
 export * from './components/ds-button/ds-button.component';
@@ -8,6 +9,8 @@ export * from './components/ds-cart-item/ds-cart-item.component';
 export * from './components/ds-cart-panel/ds-cart-panel.component';
 export * from './components/ds-feature-item/ds-feature-item.component';
 export * from './components/ds-footer/ds-footer.component';
+export * from './components/ds-form-field/ds-form-field.component';
+export * from './components/ds-form-message/ds-form-message.component';
 export * from './components/ds-icon-button/ds-icon-button.component';
 export * from './components/ds-navbar/ds-navbar.component';
 export * from './components/ds-origin-card/ds-origin-card.component';

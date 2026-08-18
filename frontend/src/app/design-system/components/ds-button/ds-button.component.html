@@ -10,6 +10,8 @@
   [class.ds-btn--sage]="variant === 'sage'"
   [class.ds-btn--full]="fullWidth"
   [disabled]="disabled"
+  [attr.title]="title"
+  [attr.aria-label]="disabled && title ? title : null"
   (click)="onClick($event)"
 >
   <ng-content select="[dsIconLeft]"></ng-content>

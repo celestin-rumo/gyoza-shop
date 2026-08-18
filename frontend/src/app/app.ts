@@ -68,6 +68,6 @@ export class App {
   }
 
   protected onAccountClick(): void {
-    this.router.navigateByUrl('/admin/login');
+    this.router.navigateByUrl('/login');
   }
 }

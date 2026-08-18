@@ -53,7 +53,7 @@ services:
       DB_URL: jdbc:postgresql://database:5432/gyoza_e2e
       DB_USERNAME: gyoza
       DB_PASSWORD: e2e-postgres-password
-      ADMIN_USERNAME: admin
+      ADMIN_EMAIL: admin@e2e.local
       ADMIN_PASSWORD: e2e-admin-password
     labels:
       - "traefik.enable=true"

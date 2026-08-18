@@ -13,9 +13,26 @@ export const routes: Routes = [
   { path: 'contact', component: Contact },
   { path: 'checkout', component: Checkout },
   {
-    path: 'admin/login',
+    path: 'login',
+    loadComponent: () => import('./pages/login/login').then((m) => m.Login),
+  },
+  {
+    path: 'register',
+    loadComponent: () => import('./pages/register/register').then((m) => m.Register),
+  },
+  {
+    path: 'forgot-password',
     loadComponent: () =>
-      import('./pages/admin/admin-login/admin-login').then((m) => m.AdminLogin),
+      import('./pages/forgot-password/forgot-password').then((m) => m.ForgotPassword),
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./pages/reset-password/reset-password').then((m) => m.ResetPassword),
+  },
+  {
+    path: 'verify-email',
+    loadComponent: () => import('./pages/verify-email/verify-email').then((m) => m.VerifyEmail),
   },
   {
     path: 'admin',
@@ -39,6 +56,12 @@ export const routes: Routes = [
     path: 'admin/analytics',
     loadComponent: () =>
       import('./pages/admin/admin-analytics/admin-analytics').then((m) => m.AdminAnalytics),
+    canActivate: [adminGuard],
+  },
+  {
+    path: 'admin/users',
+    loadComponent: () =>
+      import('./pages/admin/admin-users/admin-users').then((m) => m.AdminUsers),
     canActivate: [adminGuard],
   },
 ];

@@ -1,45 +1,93 @@
 package ch.celestin.gyoza.security;
 
+import ch.celestin.gyoza.security.dto.ForgotPasswordRequest;
 import ch.celestin.gyoza.security.dto.LoginRequest;
-import ch.celestin.gyoza.security.dto.LoginResponse;
+import ch.celestin.gyoza.security.dto.RegisterRequest;
+import ch.celestin.gyoza.security.dto.ResetPasswordRequest;
+import ch.celestin.gyoza.user.dto.UserResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final AdminProperties adminProperties;
-    private final AdminTokenStore tokenStore;
+    private final AuthService authService;
+    private final AuthenticationManager authenticationManager;
+    private final SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
 
-    public AuthController(AdminProperties adminProperties, AdminTokenStore tokenStore) {
-        this.adminProperties = adminProperties;
-        this.tokenStore = tokenStore;
+    public AuthController(AuthService authService, AuthenticationManager authenticationManager) {
+        this.authService = authService;
+        this.authenticationManager = authenticationManager;
+    }
+
+    @PostMapping("/register")
+    @ResponseStatus(HttpStatus.CREATED)
+    public void register(@Valid @RequestBody RegisterRequest request) {
+        authService.register(request);
     }
 
     @PostMapping("/login")
-    public LoginResponse login(@Valid @RequestBody LoginRequest request) {
-        boolean usernameMatches = constantTimeEquals(request.username(), adminProperties.username());
-        boolean passwordMatches = constantTimeEquals(request.password(), adminProperties.password());
+    public UserResponse login(
+            @Valid @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse
+    ) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.email().toLowerCase(), request.password())
+        );
 
-        if (!usernameMatches || !passwordMatches) {
-            throw new BadCredentialsException("Identifiants invalides");
-        }
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
+        securityContextRepository.saveContext(context, httpRequest, httpResponse);
 
-        return new LoginResponse(tokenStore.issue());
+        GyozaUserDetails principal = (GyozaUserDetails) authentication.getPrincipal();
+        return UserResponse.from(principal.user());
     }
 
-    private boolean constantTimeEquals(String a, String b) {
-        return MessageDigest.isEqual(
-                a.getBytes(StandardCharsets.UTF_8),
-                b.getBytes(StandardCharsets.UTF_8)
-        );
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void logout(HttpServletRequest request) {
+        SecurityContextHolder.clearContext();
+
+        var session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+    }
+
+    @PostMapping("/forgot-password")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+    }
+
+    @PostMapping("/reset-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+    }
+
+    @GetMapping("/verify-email")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void verifyEmail(@RequestParam String token) {
+        authService.verifyEmail(token);
     }
 }

@@ -3,7 +3,9 @@ package ch.celestin.gyoza.exception;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -118,6 +120,70 @@ public class GlobalExceptionHandler {
                 .body(
                         new ApiError(
                                 "INVALID_ORDER_STATUS",
+                                ex.getMessage(),
+                                LocalDateTime.now()
+                        )
+                );
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ApiError> handleDisabledAccount(
+            DisabledException ex
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(
+                        new ApiError(
+                                "ACCOUNT_NOT_VERIFIED",
+                                "Ce compte n'a pas encore été vérifié",
+                                LocalDateTime.now()
+                        )
+                );
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiError> handleAccessDenied(
+            AccessDeniedException ex
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(
+                        new ApiError(
+                                "ACCESS_DENIED",
+                                ex.getMessage(),
+                                LocalDateTime.now()
+                        )
+                );
+    }
+
+    @ExceptionHandler(EmailAlreadyRegisteredException.class)
+    public ResponseEntity<ApiError> handleEmailAlreadyRegistered(
+            EmailAlreadyRegisteredException ex
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(
+                        new ApiError(
+                                "EMAIL_ALREADY_REGISTERED",
+                                ex.getMessage(),
+                                LocalDateTime.now()
+                        )
+                );
+    }
+
+    @ExceptionHandler(InvalidOrExpiredTokenException.class)
+    public ResponseEntity<ApiError> handleInvalidOrExpiredToken(
+            InvalidOrExpiredTokenException ex
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(
+                        new ApiError(
+                                "INVALID_OR_EXPIRED_TOKEN",
                                 ex.getMessage(),
                                 LocalDateTime.now()
                         )

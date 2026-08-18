@@ -1,0 +1,13 @@
+<div class="ds-form-field">
+  <label class="ds-form-field__label" [for]="fieldId()">{{ label() }}</label>
+  <input
+    [id]="fieldId()"
+    class="ds-form-field__input"
+    [type]="type()"
+    [autocomplete]="autocomplete()"
+    [formField]="field()"
+  />
+  @if (state().touched() && state().invalid()) {
+    <p class="ds-form-field__error">{{ state().errors()[0]?.message }}</p>
+  }
+</div>

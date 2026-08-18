@@ -5,6 +5,7 @@ import ch.celestin.gyoza.pack.PackOptionRepository;
 import ch.celestin.gyoza.product.Product;
 import ch.celestin.gyoza.product.ProductRepository;
 import ch.celestin.gyoza.support.AbstractIntegrationTest;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -34,7 +35,11 @@ class OrderControllerIT extends AbstractIntegrationTest {
         Product chicken = sixPackOfChicken.getProduct();
         int stockBefore = chicken.getStockQuantity();
 
+        Cookie csrf = fetchCsrfCookie();
+
         mockMvc.perform(post("/api/orders")
+                        .cookie(csrf)
+                        .header("X-XSRF-TOKEN", csrf.getValue())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -57,7 +62,11 @@ class OrderControllerIT extends AbstractIntegrationTest {
 
     @Test
     void createOrder_withAnUnknownPack_isRejected() throws Exception {
+        Cookie csrf = fetchCsrfCookie();
+
         mockMvc.perform(post("/api/orders")
+                        .cookie(csrf)
+                        .header("X-XSRF-TOKEN", csrf.getValue())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {

@@ -77,8 +77,7 @@ export class AdminStocks implements OnInit {
   }
 
   protected logout(): void {
-    this.authService.logout();
-    this.router.navigateByUrl('/admin/login');
+    this.authService.logout().subscribe(() => this.router.navigateByUrl('/login'));
   }
 
   private async loadProducts(): Promise<void> {

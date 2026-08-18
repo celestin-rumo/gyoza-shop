@@ -49,8 +49,9 @@ jobs:
         env:
           IMAGE_TAG: ${{ steps.vars.outputs.image_tag }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
         shell: bash
         run: |
           cd "${{ env.DEPLOY_PATH }}"
@@ -61,8 +62,9 @@ jobs:
           POSTGRES_DB=gyoza
           POSTGRES_USER=gyoza
           POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-          ADMIN_USERNAME=${ADMIN_USERNAME}
+          ADMIN_EMAIL=${ADMIN_EMAIL}
           ADMIN_PASSWORD=${ADMIN_PASSWORD}
+          RESEND_API_KEY=${RESEND_API_KEY}
           EOF
           chmod 600 .env
 

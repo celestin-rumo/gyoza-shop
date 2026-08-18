@@ -4,14 +4,45 @@ import ch.celestin.gyoza.pack.PackOption;
 import ch.celestin.gyoza.pack.PackOptionRepository;
 import ch.celestin.gyoza.product.Product;
 import ch.celestin.gyoza.product.ProductRepository;
+import ch.celestin.gyoza.user.Role;
+import ch.celestin.gyoza.user.User;
+import ch.celestin.gyoza.user.UserRepository;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
 
 @Configuration
+@EnableConfigurationProperties(AdminProperties.class)
 public class DataInitializer {
+
+    @Bean
+    CommandLineRunner initAdminUser(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            AdminProperties adminProperties
+    ) {
+        return args -> {
+
+            String email = adminProperties.email().toLowerCase();
+
+            if (userRepository.existsByEmail(email)) {
+                return;
+            }
+
+            userRepository.save(new User(
+                    email,
+                    passwordEncoder.encode(adminProperties.password()),
+                    "Admin",
+                    "Gyoza",
+                    Role.ADMIN,
+                    true
+            ));
+        };
+    }
 
     @Bean
     CommandLineRunner initData(

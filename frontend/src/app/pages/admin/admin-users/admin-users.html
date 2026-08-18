@@ -1,0 +1,62 @@
+<main class="admin-users">
+  <header class="admin-users__header">
+    <ds-section-header
+      title="Gestion des droits"
+      subtitle="Comptes ayant accès au panneau admin."
+      align="left"
+    ></ds-section-header>
+
+    <div class="admin-users__header-actions">
+      <a class="admin-users__back-link" routerLink="/admin">← Retour</a>
+      <ds-button variant="outline" size="sm" (pressed)="logout()">Se déconnecter</ds-button>
+    </div>
+  </header>
+
+  <form [formRoot]="addAdminForm" class="admin-users__add-form">
+    <ds-form-field
+      label="Ajouter un admin par email"
+      fieldId="email"
+      type="email"
+      autocomplete="email"
+      [field]="addAdminForm.email"
+    ></ds-form-field>
+
+    @if (submitError()) {
+      <ds-form-message variant="error">{{ submitError() }}</ds-form-message>
+    }
+
+    <ds-button type="submit" variant="primary" size="md" [disabled]="submitting()">
+      {{ submitting() ? 'Ajout en cours…' : 'Donner les droits admin' }}
+    </ds-button>
+  </form>
+
+  @if (loading()) {
+    <p class="admin-users__hint">Chargement…</p>
+  } @else if (loadError()) {
+    <ds-form-message variant="error">{{ loadError() }}</ds-form-message>
+  } @else if (admins().length === 0) {
+    <p class="admin-users__hint">Aucun compte admin.</p>
+  } @else {
+    <ul class="admin-users__list">
+      @for (admin of admins(); track admin.id) {
+        <li class="admin-users__row">
+          <div>
+            <p class="admin-users__row-name">{{ admin.firstName }} {{ admin.lastName }}</p>
+            <p class="admin-users__row-email">{{ admin.email }}</p>
+          </div>
+          <ds-button
+            variant="outline"
+            size="sm"
+            [title]="
+              admin.primaryAdmin ? 'L’administrateur principal ne peut pas être révoqué.' : null
+            "
+            [disabled]="admin.primaryAdmin || revokingEmail() === admin.email"
+            (pressed)="revoke(admin)"
+          >
+            {{ revokingEmail() === admin.email ? 'Révocation…' : 'Révoquer' }}
+          </ds-button>
+        </li>
+      }
+    </ul>
+  }
+</main>

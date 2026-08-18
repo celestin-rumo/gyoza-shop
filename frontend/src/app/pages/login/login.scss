@@ -1,0 +1,13 @@
+@use '../../design-system/tokens/auth-form' as auth-form;
+
+:host {
+  display: block;
+}
+
+.login-form {
+  @include auth-form.card;
+}
+
+.login-form__links {
+  @include auth-form.links;
+}

@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
 
-const ADMIN_USERNAME = 'admin';
+const ADMIN_EMAIL = 'admin@e2e.local';
 const ADMIN_PASSWORD = 'e2e-admin-password';
 
-test('an unauthenticated visitor is redirected to the admin login page', async ({ page }) => {
+test('an unauthenticated visitor is redirected to the login page', async ({ page }) => {
   await page.goto('/admin/orders');
 
-  await expect(page).toHaveURL(/\/admin\/login$/);
+  await expect(page).toHaveURL(/\/login$/);
 });
 
 test('an admin can log in, adjust stock, and move an order forward', async ({ page, request }) => {
@@ -32,8 +32,8 @@ test('an admin can log in, adjust stock, and move an order forward', async ({ pa
   expect(orderResponse.ok()).toBe(true);
   const order = await orderResponse.json();
 
-  await page.goto('/admin/login');
-  await page.getByLabel('Nom d’utilisateur').fill(ADMIN_USERNAME);
+  await page.goto('/login');
+  await page.getByLabel('Email').fill(ADMIN_EMAIL);
   await page.getByLabel('Mot de passe').fill(ADMIN_PASSWORD);
   await page.getByRole('button', { name: 'Se connecter' }).click();
 

@@ -13,8 +13,19 @@ spring:
       hibernate:
         format_sql: true
 
+server:
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      timeout: 8h
+      cookie:
+        same-site: lax
+
 app:
   admin:
-    username: ${ADMIN_USERNAME:admin}
+    email: ${ADMIN_EMAIL:admin@example.com}
     password: ${ADMIN_PASSWORD:changeme}
-    token-ttl-hours: ${ADMIN_TOKEN_TTL_HOURS:8}
+  mail:
+    provider: ${MAIL_PROVIDER:log}
+    from-address: ${MAIL_FROM:no-reply@celestinrumo.ch}
+    frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:4200}

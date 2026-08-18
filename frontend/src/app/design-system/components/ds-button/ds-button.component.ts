@@ -25,6 +25,12 @@ export class DsButtonComponent {
   @Input() type: 'button' | 'submit' | 'reset' = 'button';
   /** Optional icon displayed before the text (e.g. cart badge) */
   @Input() fullWidth = false;
+  /**
+   * Native tooltip text, forwarded to the inner <button>. When the button is
+   * disabled, also becomes its aria-label so assistive tech gets the same
+   * explanation sighted users see on hover.
+   */
+  @Input() title: string | null = null;
 
   @Output() pressed = new EventEmitter<MouseEvent>();
 

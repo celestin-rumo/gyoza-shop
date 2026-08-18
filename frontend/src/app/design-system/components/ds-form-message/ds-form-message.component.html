@@ -1,0 +1,7 @@
+<p
+  class="ds-form-message"
+  [class.ds-form-message--success]="variant() === 'success'"
+  [attr.role]="variant() === 'error' ? 'alert' : 'status'"
+>
+  <ng-content></ng-content>
+</p>

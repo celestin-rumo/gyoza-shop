@@ -201,8 +201,7 @@ export class AdminOrders implements OnInit {
   }
 
   protected logout(): void {
-    this.authService.logout();
-    this.router.navigateByUrl('/admin/login');
+    this.authService.logout().subscribe(() => this.router.navigateByUrl('/login'));
   }
 
   private setStatusError(orderId: number, message: string): void {

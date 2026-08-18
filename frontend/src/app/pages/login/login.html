@@ -1,0 +1,32 @@
+<ds-auth-card title="Se connecter" subtitle="Accède à ton compte Gyoza Shop.">
+  <form [formRoot]="loginForm" class="login-form">
+    <ds-form-field
+      label="Email"
+      fieldId="email"
+      type="email"
+      autocomplete="email"
+      [field]="loginForm.email"
+    ></ds-form-field>
+
+    <ds-form-field
+      label="Mot de passe"
+      fieldId="password"
+      type="password"
+      autocomplete="current-password"
+      [field]="loginForm.password"
+    ></ds-form-field>
+
+    @if (loginError()) {
+      <ds-form-message variant="error">{{ loginError() }}</ds-form-message>
+    }
+
+    <ds-button type="submit" variant="primary" size="md" [fullWidth]="true" [disabled]="submitting()">
+      {{ submitting() ? 'Connexion en cours…' : 'Se connecter' }}
+    </ds-button>
+
+    <p class="login-form__links">
+      <a routerLink="/forgot-password">Mot de passe oublié ?</a>
+      <a routerLink="/register">Créer un compte</a>
+    </p>
+  </form>
+</ds-auth-card>

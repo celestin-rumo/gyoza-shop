@@ -44,8 +44,12 @@ services:
       DB_URL: jdbc:postgresql://database:5432/${POSTGRES_DB:-gyoza}
       DB_USERNAME: ${POSTGRES_USER:-gyoza}
       DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in the production .env file}
-      ADMIN_USERNAME: ${ADMIN_USERNAME:?ADMIN_USERNAME must be set in the production .env file}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?ADMIN_EMAIL must be set in the production .env file}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD must be set in the production .env file}
+      MAIL_PROVIDER: resend
+      RESEND_API_KEY: ${RESEND_API_KEY:?RESEND_API_KEY must be set in the production .env file}
+      MAIL_FROM: no-reply@celestinrumo.ch
+      FRONTEND_BASE_URL: https://gyoza.celestinrumo.ch
 
     depends_on:
       database:

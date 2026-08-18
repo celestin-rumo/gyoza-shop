@@ -1,0 +1,19 @@
+<ds-auth-card title="Vérification de l’email">
+  @switch (status()) {
+    @case ('pending') {
+      <p class="verify-email__pending">Vérification en cours…</p>
+    }
+    @case ('success') {
+      <ds-form-message variant="success">
+        Ton adresse email a été vérifiée. Tu peux maintenant te connecter.
+      </ds-form-message>
+      <a class="verify-email__link" routerLink="/login">Se connecter</a>
+    }
+    @case ('error') {
+      <ds-form-message variant="error">
+        Ce lien de vérification est invalide ou a expiré.
+      </ds-form-message>
+      <a class="verify-email__link" routerLink="/register">Créer un compte</a>
+    }
+  }
+</ds-auth-card>

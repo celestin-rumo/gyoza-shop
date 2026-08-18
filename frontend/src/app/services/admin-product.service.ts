@@ -17,8 +17,8 @@ export interface PackPayload {
 }
 
 /**
- * Admin calls (protected by token, see `authInterceptor`). Each mutation also refreshes
- * `CatalogService` so the homepage and "Our gyozas" reflect the change.
+ * Admin calls (protected by session + role, see `adminGuard`/`SecurityConfig`). Each mutation
+ * also refreshes `CatalogService` so the homepage and "Our gyozas" reflect the change.
  */
 @Injectable({ providedIn: 'root' })
 export class AdminProductService {

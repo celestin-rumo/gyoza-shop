@@ -1,0 +1,26 @@
+:host {
+  display: block;
+}
+
+.verify-email__pending {
+  margin: 0;
+  color: var(--gz-text-secondary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+}
+
+.verify-email__link {
+  display: inline-block;
+  margin-top: var(--gz-space-4);
+  color: var(--gz-text-secondary);
+  text-decoration: underline;
+
+  &:hover {
+    color: var(--gz-text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--gz-accent-400);
+    outline-offset: 2px;
+  }
+}

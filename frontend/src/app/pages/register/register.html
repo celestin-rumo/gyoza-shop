@@ -1,0 +1,47 @@
+<ds-auth-card title="Créer un compte" subtitle="Rejoins Gyoza Shop pour suivre tes commandes.">
+  @if (registered()) {
+    <ds-form-message variant="success">
+      Ton compte a été créé ! Vérifie tes emails pour confirmer ton adresse avant de te connecter.
+    </ds-form-message>
+  } @else {
+    <form [formRoot]="registerForm" class="register-form">
+      <ds-form-field
+        label="Prénom"
+        fieldId="firstName"
+        autocomplete="given-name"
+        [field]="registerForm.firstName"
+      ></ds-form-field>
+
+      <ds-form-field
+        label="Nom"
+        fieldId="lastName"
+        autocomplete="family-name"
+        [field]="registerForm.lastName"
+      ></ds-form-field>
+
+      <ds-form-field
+        label="Email"
+        fieldId="email"
+        type="email"
+        autocomplete="email"
+        [field]="registerForm.email"
+      ></ds-form-field>
+
+      <ds-form-field
+        label="Mot de passe"
+        fieldId="password"
+        type="password"
+        autocomplete="new-password"
+        [field]="registerForm.password"
+      ></ds-form-field>
+
+      @if (submitError()) {
+        <ds-form-message variant="error">{{ submitError() }}</ds-form-message>
+      }
+
+      <ds-button type="submit" variant="primary" size="md" [fullWidth]="true" [disabled]="submitting()">
+        {{ submitting() ? 'Création en cours…' : 'Créer mon compte' }}
+      </ds-button>
+    </form>
+  }
+</ds-auth-card>

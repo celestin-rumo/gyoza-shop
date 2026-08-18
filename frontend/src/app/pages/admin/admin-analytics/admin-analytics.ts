@@ -277,8 +277,7 @@ export class AdminAnalytics implements OnInit, OnDestroy {
   }
 
   protected logout(): void {
-    this.authService.logout();
-    this.router.navigateByUrl('/admin/login');
+    this.authService.logout().subscribe(() => this.router.navigateByUrl('/login'));
   }
 
   protected selectProduct(product: string): void {
