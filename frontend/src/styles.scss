@@ -8,9 +8,22 @@ html,
 body {
   margin: 0;
   padding: 0;
+  height: 100%;
   background: var(--gz-bg);
   color: var(--gz-text-primary);
   font-family: var(--gz-font-family);
+}
+
+/* Colonne flex sur la coquille de l'app : le contenu routé s'étire pour occuper
+   l'espace restant, ce qui garde le footer en bas même quand une page est courte. */
+app-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+router-outlet + * {
+  flex: 1 0 auto;
 }
 
 /* Laisse de la place pour ds-bottom-nav, fixé en bas de l'écran sous 640px. */
