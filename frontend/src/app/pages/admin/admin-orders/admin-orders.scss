@@ -8,7 +8,7 @@
   padding: var(--gz-space-12) var(--gz-space-4) var(--gz-space-16);
   display: flex;
   flex-direction: column;
-  gap: var(--gz-space-8);
+  gap: var(--gz-space-6);
 }
 
 .admin-orders__header {
@@ -58,6 +58,78 @@
   font-size: var(--gz-fs-sm);
 }
 
+.admin-orders__prep {
+  padding: var(--gz-space-5);
+  background: var(--gz-surface);
+  border: 1px solid var(--gz-border-soft);
+  border-radius: var(--gz-radius-lg);
+}
+
+.admin-orders__prep-title {
+  margin: 0 0 var(--gz-space-4);
+  color: var(--gz-text-primary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-base);
+  font-weight: var(--gz-fw-semibold);
+}
+
+.admin-orders__prep-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--gz-space-4);
+}
+
+.prep-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gz-space-1);
+  padding: var(--gz-space-4);
+  background: var(--gz-bg-elevated);
+  border: 1px solid var(--gz-border-soft);
+  border-radius: var(--gz-radius-md);
+}
+
+.prep-tile__label {
+  color: var(--gz-text-secondary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+}
+
+.prep-tile__value {
+  color: var(--gz-accent-500);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-xl);
+  font-weight: var(--gz-fw-semibold);
+}
+
+.prep-tile__packs {
+  margin: var(--gz-space-1) 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--gz-text-secondary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-xs);
+}
+
+.admin-orders__divider {
+  margin: 0;
+  border: none;
+  border-top: 1px solid var(--gz-border-soft);
+}
+
+.admin-orders__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gz-space-4);
+}
+
+.admin-orders__pagination-status {
+  color: var(--gz-text-secondary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+}
+
 .admin-orders__filters {
   display: flex;
   align-items: center;
@@ -96,7 +168,7 @@
 .admin-orders__list {
   display: flex;
   flex-direction: column;
-  gap: var(--gz-space-4);
+  gap: var(--gz-space-3);
 }
 
 .admin-order {
@@ -111,7 +183,7 @@
   display: flex;
   align-items: center;
   gap: var(--gz-space-4);
-  padding: var(--gz-space-5);
+  padding: var(--gz-space-4);
   background: transparent;
   border: none;
   color: inherit;

@@ -12,7 +12,37 @@
     </div>
   </header>
 
-  @if (!loading() && !loadError() && orders().length > 0) {
+  @if (loading()) {
+    <p class="admin-orders__hint">Chargement…</p>
+  } @else if (loadError()) {
+    <p class="admin-orders__submit-error" role="alert">{{ loadError() }}</p>
+  } @else if (orders().length === 0) {
+    <p class="admin-orders__hint">Aucune commande pour le moment.</p>
+  } @else {
+    <section class="admin-orders__prep">
+      <h2 class="admin-orders__prep-title">Besoins en préparation</h2>
+
+      @if (prepSummary().length === 0) {
+        <p class="admin-orders__hint">Aucune commande réservée pour le moment.</p>
+      } @else {
+        <div class="admin-orders__prep-grid">
+          @for (product of prepSummary(); track product.productName) {
+            <article class="prep-tile">
+              <span class="prep-tile__label">{{ product.productName }}</span>
+              <span class="prep-tile__value">{{ product.totalUnits }} gyozas</span>
+              <ul class="prep-tile__packs">
+                @for (pack of product.packs; track pack.packSize) {
+                  <li>{{ pack.packQuantity }} × pack de {{ pack.packSize }}</li>
+                }
+              </ul>
+            </article>
+          }
+        </div>
+      }
+    </section>
+
+    <hr class="admin-orders__divider" />
+
     <div class="admin-orders__filters" role="group" aria-label="Filtrer par statut">
       <button
         type="button"
@@ -34,104 +64,124 @@
         </button>
       }
     </div>
-  }
 
-  @if (loading()) {
-    <p class="admin-orders__hint">Chargement…</p>
-  } @else if (loadError()) {
-    <p class="admin-orders__submit-error" role="alert">{{ loadError() }}</p>
-  } @else if (orders().length === 0) {
-    <p class="admin-orders__hint">Aucune commande pour le moment.</p>
-  } @else if (filteredOrders().length === 0) {
-    <p class="admin-orders__hint">Aucune commande avec ce statut.</p>
-  } @else {
-    <div class="admin-orders__list">
-      @for (order of filteredOrders(); track order.id) {
-        <article class="admin-order">
-          <button
-            type="button"
-            class="admin-order__summary"
-            [attr.aria-expanded]="isExpanded(order.id)"
-            aria-controls="admin-order-details-{{ order.id }}"
-            (click)="toggleExpanded(order.id)"
-          >
-            <span class="admin-order__summary-id">Commande #{{ order.id }}</span>
-
-            <span class="admin-order__badge admin-order__badge--{{ order.status.toLowerCase() }}">
-              {{ statusLabels[order.status] }}
-            </span>
-
-            <span class="admin-order__summary-total">{{ order.totalPrice | dsPrice }}</span>
-
-            <span
-              class="admin-order__chevron"
-              [class.admin-order__chevron--open]="isExpanded(order.id)"
-              aria-hidden="true"
+    @if (filteredOrders().length === 0) {
+      <p class="admin-orders__hint">Aucune commande avec ce statut.</p>
+    } @else {
+      <div class="admin-orders__list">
+        @for (order of pagedOrders(); track order.id) {
+          <article class="admin-order">
+            <button
+              type="button"
+              class="admin-order__summary"
+              [attr.aria-expanded]="isExpanded(order.id)"
+              aria-controls="admin-order-details-{{ order.id }}"
+              (click)="toggleExpanded(order.id)"
             >
-              ⌄
-            </span>
-          </button>
+              <span class="admin-order__summary-id">Commande #{{ order.id }}</span>
 
-          @if (isExpanded(order.id)) {
-            <div class="admin-order__details" id="admin-order-details-{{ order.id }}">
-              <section class="admin-order__section">
-                <h4 class="admin-order__section-title">Passée le</h4>
-                <p class="admin-order__date">{{ order.createdAt | date: 'dd.MM.yyyy HH:mm' }}</p>
-              </section>
+              <span class="admin-order__badge admin-order__badge--{{ order.status.toLowerCase() }}">
+                {{ statusLabels[order.status] }}
+              </span>
 
-              <section class="admin-order__section">
-                <h4 class="admin-order__section-title">Client</h4>
-                <p class="admin-order__customer">
-                  {{ order.customer.firstName }} {{ order.customer.lastName }}<br />
-                  {{ order.customer.email }}<br />
-                  {{ order.customer.address }}
-                </p>
-              </section>
+              <span class="admin-order__summary-total">{{ order.totalPrice | dsPrice }}</span>
 
-              <section class="admin-order__section">
-                <h4 class="admin-order__section-title">Articles</h4>
+              <span
+                class="admin-order__chevron"
+                [class.admin-order__chevron--open]="isExpanded(order.id)"
+                aria-hidden="true"
+              >
+                ⌄
+              </span>
+            </button>
 
-                <ul class="admin-order__items">
-                  @for (item of order.items; track item.productName + item.packSize) {
-                    <li class="admin-order__item">
-                      <span>{{ item.packQuantity }} × {{ item.productName }} (pack de {{ item.packSize }})</span>
-                      <span>{{ item.unitPackPrice | dsPrice }}</span>
-                    </li>
-                  }
-                </ul>
-
-                <div class="admin-order__total">
-                  <span>Total</span>
-                  <strong>{{ order.totalPrice | dsPrice }}</strong>
-                </div>
-              </section>
-
-              @if (nextStatuses(order.status).length > 0) {
+            @if (isExpanded(order.id)) {
+              <div class="admin-order__details" id="admin-order-details-{{ order.id }}">
                 <section class="admin-order__section">
-                  <h4 class="admin-order__section-title">Changer le statut</h4>
-
-                  <div class="admin-order__status-actions">
-                    @for (status of nextStatuses(order.status); track status) {
-                      <ds-button
-                        [variant]="status === 'CANCELLED' ? 'ghost' : 'outline'"
-                        size="sm"
-                        [disabled]="updatingOrderId() === order.id"
-                        (pressed)="setStatus(order, status)"
-                      >
-                        {{ statusLabels[status] }}
-                      </ds-button>
-                    }
-                  </div>
-
-                  @if (statusErrorFor(order.id); as error) {
-                    <p class="admin-order__error" role="alert">{{ error }}</p>
-                  }
+                  <h4 class="admin-order__section-title">Passée le</h4>
+                  <p class="admin-order__date">{{ order.createdAt | date: 'dd.MM.yyyy HH:mm' }}</p>
                 </section>
-              }
-            </div>
-          }
-        </article>
+
+                <section class="admin-order__section">
+                  <h4 class="admin-order__section-title">Client</h4>
+                  <p class="admin-order__customer">
+                    {{ order.customer.firstName }} {{ order.customer.lastName }}<br />
+                    {{ order.customer.email }}<br />
+                    {{ order.customer.address }}
+                  </p>
+                </section>
+
+                <section class="admin-order__section">
+                  <h4 class="admin-order__section-title">Articles</h4>
+
+                  <ul class="admin-order__items">
+                    @for (item of order.items; track item.productName + item.packSize) {
+                      <li class="admin-order__item">
+                        <span>{{ item.packQuantity }} × {{ item.productName }} (pack de {{ item.packSize }})</span>
+                        <span>{{ item.unitPackPrice | dsPrice }}</span>
+                      </li>
+                    }
+                  </ul>
+
+                  <div class="admin-order__total">
+                    <span>Total</span>
+                    <strong>{{ order.totalPrice | dsPrice }}</strong>
+                  </div>
+                </section>
+
+                @if (nextStatuses(order.status).length > 0) {
+                  <section class="admin-order__section">
+                    <h4 class="admin-order__section-title">Changer le statut</h4>
+
+                    <div class="admin-order__status-actions">
+                      @for (status of nextStatuses(order.status); track status) {
+                        <ds-button
+                          [variant]="status === 'CANCELLED' ? 'ghost' : 'outline'"
+                          size="sm"
+                          [disabled]="updatingOrderId() === order.id"
+                          (pressed)="setStatus(order, status)"
+                        >
+                          {{ statusLabels[status] }}
+                        </ds-button>
+                      }
+                    </div>
+
+                    @if (statusErrorFor(order.id); as error) {
+                      <p class="admin-order__error" role="alert">{{ error }}</p>
+                    }
+                  </section>
+                }
+              </div>
+            }
+          </article>
+        }
+      </div>
+
+      @if (totalPages() > 1) {
+        <nav class="admin-orders__pagination" aria-label="Pagination des commandes">
+          <ds-button
+            variant="outline"
+            size="sm"
+            [disabled]="currentPage() === 1"
+            (pressed)="goToPage(currentPage() - 1)"
+          >
+            ← Précédent
+          </ds-button>
+
+          <span class="admin-orders__pagination-status">
+            Page {{ currentPage() }} / {{ totalPages() }}
+          </span>
+
+          <ds-button
+            variant="outline"
+            size="sm"
+            [disabled]="currentPage() === totalPages()"
+            (pressed)="goToPage(currentPage() + 1)"
+          >
+            Suivant →
+          </ds-button>
+        </nav>
       }
-    </div>
+    }
   }
 </main>

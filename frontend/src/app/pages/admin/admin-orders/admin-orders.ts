@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
@@ -32,6 +32,19 @@ const ALL_STATUSES: OrderStatus[] = ['RESERVED', 'PREPARING', 'READY', 'DELIVERE
 
 type StatusFilter = OrderStatus | 'ALL';
 
+const PAGE_SIZE = 8;
+
+interface PrepPack {
+  packSize: number;
+  packQuantity: number;
+}
+
+interface PrepProduct {
+  productName: string;
+  totalUnits: number;
+  packs: PrepPack[];
+}
+
 @Component({
   selector: 'app-admin-orders',
   imports: [DsSectionHeaderComponent, DsButtonComponent, DsPricePipe, DatePipe, RouterLink],
@@ -54,6 +67,7 @@ export class AdminOrders implements OnInit {
 
   protected readonly statusFilter = signal<StatusFilter>('ALL');
   protected readonly expandedOrderIds = signal<ReadonlySet<number>>(new Set());
+  protected readonly currentPage = signal(1);
 
   protected readonly filteredOrders = computed(() => {
     const filter = this.statusFilter();
@@ -65,6 +79,19 @@ export class AdminOrders implements OnInit {
     return this.orders().filter((order) => order.status === filter);
   });
 
+  protected readonly reservedOrders = computed(() =>
+    this.orders().filter((order) => order.status === 'RESERVED'),
+  );
+
+  protected readonly totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filteredOrders().length / PAGE_SIZE)),
+  );
+
+  protected readonly pagedOrders = computed(() => {
+    const start = (this.currentPage() - 1) * PAGE_SIZE;
+    return this.filteredOrders().slice(start, start + PAGE_SIZE);
+  });
+
   protected readonly orderCounts = computed(() => {
     const counts: Partial<Record<OrderStatus, number>> = {};
 
@@ -74,6 +101,43 @@ export class AdminOrders implements OnInit {
 
     return counts;
   });
+
+  /** Total des packs (par taille) à préparer pour chaque produit, à partir des commandes réservées. */
+  protected readonly prepSummary = computed<PrepProduct[]>(() => {
+    const packsByProduct = new Map<string, Map<number, number>>();
+
+    for (const order of this.reservedOrders()) {
+      for (const item of order.items) {
+        const sizes = packsByProduct.get(item.productName) ?? new Map<number, number>();
+        sizes.set(item.packSize, (sizes.get(item.packSize) ?? 0) + item.packQuantity);
+        packsByProduct.set(item.productName, sizes);
+      }
+    }
+
+    return Array.from(packsByProduct.entries())
+      .map(([productName, sizes]) => {
+        const packs = Array.from(sizes.entries())
+          .map(([packSize, packQuantity]) => ({ packSize, packQuantity }))
+          .sort((a, b) => a.packSize - b.packSize);
+
+        const totalUnits = packs.reduce((sum, pack) => sum + pack.packSize * pack.packQuantity, 0);
+
+        return { productName, totalUnits, packs };
+      })
+      .sort((a, b) => a.productName.localeCompare(b.productName, 'fr'));
+  });
+
+  constructor() {
+    // Garde-fou : si la page courante devient hors limites (ex: dernière commande
+    // d'une page qui change de statut et sort de la liste visible), on recadre.
+    effect(() => {
+      const total = this.totalPages();
+
+      if (this.currentPage() > total) {
+        this.currentPage.set(total);
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.loadOrders();
@@ -93,6 +157,11 @@ export class AdminOrders implements OnInit {
 
   protected setStatusFilter(filter: StatusFilter): void {
     this.statusFilter.set(filter);
+    this.currentPage.set(1);
+  }
+
+  protected goToPage(page: number): void {
+    this.currentPage.set(Math.min(Math.max(1, page), this.totalPages()));
   }
 
   protected isExpanded(orderId: number): boolean {
