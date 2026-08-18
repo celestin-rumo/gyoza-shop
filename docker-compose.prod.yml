@@ -53,6 +53,7 @@ services:
 
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik-proxy"
       - "traefik.http.routers.gyoza-api.rule=Host(`gyoza.celestinrumo.ch`) && PathPrefix(`/api`)"
       - "traefik.http.routers.gyoza-api.entrypoints=websecure"
       - "traefik.http.routers.gyoza-api.tls.certresolver=le"
