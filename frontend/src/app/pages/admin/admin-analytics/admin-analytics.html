@@ -1,0 +1,254 @@
+<main class="admin-analytics">
+  <header class="admin-analytics__header">
+    <ds-section-header
+      title="Analytics"
+      subtitle="Vue d’ensemble des ventes et des clients."
+      align="left"
+    ></ds-section-header>
+
+    <div class="admin-analytics__header-actions">
+      <a class="admin-analytics__back-link" routerLink="/admin">← Retour</a>
+      <ds-button variant="outline" size="sm" (pressed)="logout()">Se déconnecter</ds-button>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <p class="admin-analytics__hint">Chargement…</p>
+  } @else if (loadError()) {
+    <p class="admin-analytics__error" role="alert">{{ loadError() }}</p>
+  } @else {
+    <section class="admin-analytics__section">
+      <h2 class="admin-analytics__section-title">Vue d’ensemble</h2>
+
+      <div class="admin-analytics__tiles">
+        @for (tile of statTiles(); track tile.label) {
+          <article class="stat-tile">
+            <span class="stat-tile__label">{{ tile.label }}</span>
+            <span class="stat-tile__value">{{ tile.value }}</span>
+          </article>
+        }
+      </div>
+    </section>
+
+    <section class="admin-analytics__section">
+      <h2 class="admin-analytics__section-title">Évolution sur une période</h2>
+
+      <form class="admin-analytics__date-range" (submit)="$event.preventDefault(); applyDateRange()">
+        <label class="admin-analytics__date-field">
+          Date de début
+          <input
+            type="date"
+            [value]="startDate()"
+            [max]="endDate()"
+            (change)="onStartDateChange($any($event.target).value)"
+          />
+        </label>
+
+        <label class="admin-analytics__date-field">
+          Date de fin
+          <input
+            type="date"
+            [value]="endDate()"
+            [min]="startDate()"
+            (change)="onEndDateChange($any($event.target).value)"
+          />
+        </label>
+
+        <ds-button type="submit" variant="outline" size="sm" [disabled]="rangeInvalid() || timeSeriesLoading()">
+          {{ timeSeriesLoading() ? 'Chargement…' : 'Afficher' }}
+        </ds-button>
+      </form>
+
+      @if (rangeInvalid()) {
+        <p class="admin-analytics__error" role="alert">
+          La date de début doit précéder la date de fin.
+        </p>
+      } @else if (timeSeriesLoadError()) {
+        <p class="admin-analytics__error" role="alert">{{ timeSeriesLoadError() }}</p>
+      }
+
+      @if (timeSeries(); as series) {
+        <div class="admin-analytics__charts-grid">
+          <div class="admin-analytics__chart-section">
+            <h3 class="admin-analytics__chart-title">Chiffre d’affaires</h3>
+
+            <figure class="admin-analytics__chart-figure">
+              <div class="admin-analytics__chart-wrap">
+                <canvas #revenueChart role="img" aria-label="Chiffre d’affaires par jour"></canvas>
+              </div>
+
+              <figcaption class="sr-only">
+                <table>
+                  <caption>Chiffre d’affaires par jour</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Jour</th>
+                      <th scope="col">Chiffre d’affaires</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (day of series.days; track day.date) {
+                      <tr>
+                        <th scope="row">{{ day.date }}</th>
+                        <td>{{ day.revenue }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </figcaption>
+            </figure>
+          </div>
+
+          <div class="admin-analytics__chart-section">
+            <h3 class="admin-analytics__chart-title">Commandes</h3>
+
+            <figure class="admin-analytics__chart-figure">
+              <div class="admin-analytics__chart-wrap">
+                <canvas #ordersChart role="img" aria-label="Nombre de commandes par jour"></canvas>
+              </div>
+
+              <figcaption class="sr-only">
+                <table>
+                  <caption>Nombre de commandes par jour</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Jour</th>
+                      <th scope="col">Commandes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (day of series.days; track day.date) {
+                      <tr>
+                        <th scope="row">{{ day.date }}</th>
+                        <td>{{ day.orderCount }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </figcaption>
+            </figure>
+          </div>
+
+          <div class="admin-analytics__chart-section">
+            <h3 class="admin-analytics__chart-title">Nouveaux clients</h3>
+
+            <figure class="admin-analytics__chart-figure">
+              <div class="admin-analytics__chart-wrap">
+                <canvas #customersChart role="img" aria-label="Nouveaux clients par jour"></canvas>
+              </div>
+
+              <figcaption class="sr-only">
+                <table>
+                  <caption>Nouveaux clients par jour</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Jour</th>
+                      <th scope="col">Nouveaux clients</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (day of series.days; track day.date) {
+                      <tr>
+                        <th scope="row">{{ day.date }}</th>
+                        <td>{{ day.newCustomerCount }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </figcaption>
+            </figure>
+          </div>
+
+          <div class="admin-analytics__chart-section admin-analytics__chart-section--wide">
+            <div class="admin-analytics__chart-header">
+              <h3 class="admin-analytics__chart-title">Gyozas vendus</h3>
+
+              <div class="admin-analytics__filters" role="group" aria-label="Filtrer par produit">
+                <button
+                  type="button"
+                  class="admin-analytics__filter"
+                  [class.admin-analytics__filter--active]="selectedProduct() === allProducts"
+                  (click)="selectProduct(allProducts)"
+                >
+                  Tous les produits
+                </button>
+
+                @for (product of productNames(); track product) {
+                  <button
+                    type="button"
+                    class="admin-analytics__filter"
+                    [class.admin-analytics__filter--active]="selectedProduct() === product"
+                    [style.--filter-dot]="colorFor(product)"
+                    (click)="selectProduct(product)"
+                  >
+                    {{ product }}
+                  </button>
+                }
+              </div>
+            </div>
+
+            <figure class="admin-analytics__chart-figure">
+              <div class="admin-analytics__chart-wrap">
+                <canvas #gyozaChart role="img" aria-label="Gyozas vendus par jour et par produit"></canvas>
+              </div>
+
+              <figcaption class="sr-only">
+                <table>
+                  <caption>Gyozas vendus par jour et par produit</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Jour</th>
+                      @for (product of productNames(); track product) {
+                        <th scope="col">{{ product }}</th>
+                      }
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (day of series.days; track day.date) {
+                      <tr>
+                        <th scope="row">{{ day.date }}</th>
+                        @for (product of productNames(); track product) {
+                          <td>{{ day.unitsByProduct[product] ?? 0 }}</td>
+                        }
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+      }
+    </section>
+
+    <section class="admin-analytics__section">
+      <h2 class="admin-analytics__section-title">Commandes par statut</h2>
+
+      <figure class="admin-analytics__chart-figure">
+        <div class="admin-analytics__chart-wrap">
+          <canvas #statusChart role="img" aria-label="Nombre de commandes par statut"></canvas>
+        </div>
+
+        <figcaption class="sr-only">
+          <table>
+            <caption>Nombre de commandes par statut</caption>
+            <thead>
+              <tr>
+                <th scope="col">Statut</th>
+                <th scope="col">Commandes</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of statusCounts(); track row.status) {
+                <tr>
+                  <th scope="row">{{ row.label }}</th>
+                  <td>{{ row.count }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </figcaption>
+      </figure>
+    </section>
+  }
+</main>

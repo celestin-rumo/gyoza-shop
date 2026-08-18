@@ -2,6 +2,8 @@ package ch.celestin.gyoza.customer;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "customers")
 public class Customer {
@@ -22,6 +24,11 @@ public class Customer {
     @Column(nullable = false)
     private String address;
 
+    // Nullable: rows created before this field existed have no value.
+    // Not backfilled since it only feeds "new customers" analytics, where an
+    // unknown creation date is simply excluded rather than guessed at.
+    private LocalDateTime createdAt;
+
     protected Customer() {
     }
 
@@ -35,6 +42,7 @@ public class Customer {
         this.lastName = lastName;
         this.email = email;
         this.address = address;
+        this.createdAt = LocalDateTime.now();
     }
 
     public Long getId() {
@@ -55,5 +63,9 @@ public class Customer {
 
     public String getAddress() {
         return address;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
 }
