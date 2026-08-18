@@ -1,0 +1,32 @@
+# Gyoza Maison — v0.7.0
+
+*August 18, 2026*
+
+Pre-production build of the Gyoza Maison online shop: the customer-facing storefront and the admin back office are both functional end to end.
+
+## Storefront
+
+- **Catalog**: gyoza listings with product detail (photo, description, meat/veggie category tags), stock availability, and pack size selection via a pack picker.
+- **Cart & checkout**: add-to-cart from product cards, cart panel and floating cart button on mobile, checkout form (customer details with validation), and order confirmation.
+- **Content pages**: home, "Our Gyozas", "About Us" (team introduction), and contact.
+- **Navigation**: navbar with account access, dedicated mobile bottom navigation, layout with a footer pinned to the bottom of the screen.
+- **Design system**: reusable components (buttons, badges, product/recipe cards, navbar, footer, cart) on a consistent visual language (dark background, coral accent).
+
+## Admin back office
+
+- **Authentication**: dedicated admin login (`/admin/login`) protecting all management pages.
+- **Stock management**: product creation and stock quantity adjustments.
+- **Order management**: order tracking with status filtering (reserved, preparing, ready, delivered, cancelled), controlled status transitions, pagination, and a preparation summary (quantities to prepare per product/pack).
+- **Analytics**: dashboard with key metrics and a sales time series over a given period.
+
+## Backend & infrastructure
+
+- Spring Boot REST API (products, packs, orders, authentication, analytics) backed by PostgreSQL.
+- Angular frontend with server-side rendering (SSR).
+- Dockerized dev environment (`docker-compose.dev.yml`) and production configuration (`docker-compose.prod.yml`).
+- Demo dataset seeded automatically on startup.
+
+## Remaining before v1.0.0
+
+- Test coverage (frontend and backend).
+- Automated deployment (CI/CD).
