@@ -1,0 +1,39 @@
+# Gyoza Maison — v1.0.0
+
+*August 18, 2026*
+
+Real customer accounts replace the single hardcoded admin login: registration, email verification, session-based login, and password reset, plus a dedicated admin-rights management screen.
+
+## Accounts
+
+- **Registration**: email + password, account disabled until the address is verified via a link sent by email.
+- **Login**: session-cookie authentication (HttpOnly cookie) with CSRF protection (cookie double-submit pattern) — no more Bearer token on the client.
+- **Password reset**: forgot-password / reset-password flow, single-use tokens hashed at rest, short expiry.
+- The admin is no longer a separate hardcoded username/password: it's a `User` row (role `ADMIN`) seeded on startup from `ADMIN_EMAIL`/`ADMIN_PASSWORD`, signing in through the same `/login` page as customers.
+
+## Admin rights management
+
+- New `/admin/users` page: list current admins, grant admin rights to any registered account by email, revoke them.
+- The seeded primary admin's role can't be changed by anyone, including itself — enforced in the API and reflected in the UI as a disabled, tooltipped button.
+
+## Email delivery
+
+- Verification and password-reset emails sent via Resend in production; dev and e2e default to a logging-only sender, so no real API key is required to run locally.
+
+## Shared frontend components
+
+- New `ds-form-field`, `ds-form-message`, and `ds-auth-card` design-system components, plus a shared SCSS mixin, so the five new auth pages share one implementation instead of five near-identical ones.
+
+## CI/CD
+
+- The build-and-push workflow now accepts a `retag_from` input to promote an already-built image to a new version tag without rebuilding.
+
+## Infra
+
+- `ADMIN_USERNAME` renamed to `ADMIN_EMAIL` across `docker-compose.{dev,prod,e2e}.yml` and the deploy workflow; production gets `RESEND_API_KEY`/`MAIL_PROVIDER` wiring.
+
+## Not in this release
+
+- Google OAuth login (discussed, deferred).
+- Linking user accounts to orders — checkout remains guest-only.
+- Profile editing while logged in (`PUT /api/users/me`, in-session password change).
