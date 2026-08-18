@@ -16,9 +16,20 @@ test('an admin can log in, adjust stock, and move an order forward', async ({ pa
     'size' in pack ? pack.size === 6 : pack.count === 6,
   );
 
+  // The security rewrite made every mutating request go through the same
+  // double-submit CSRF check the storefront's Angular HttpClient satisfies
+  // automatically. A raw API call has to relay it by hand: read the
+  // XSRF-TOKEN cookie the GET above caused the backend to set, and send it
+  // back as the X-XSRF-TOKEN header.
+  const { cookies } = await request.storageState();
+  const csrfCookie = cookies.find((cookie) => cookie.name === 'XSRF-TOKEN');
+
   // Seed one order directly through the API: the admin journey below only needs
   // *an* order to act on, not one placed through the storefront UI.
   const orderResponse = await request.post('/api/orders', {
+    headers: {
+      'X-XSRF-TOKEN': decodeURIComponent(csrfCookie!.value),
+    },
     data: {
       customer: {
         firstName: 'Marie',
