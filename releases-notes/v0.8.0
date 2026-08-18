@@ -1,0 +1,18 @@
+# Gyoza Maison — v0.8.0
+
+*August 18, 2026*
+
+Continuous integration and deployment are now in place: every push to `main` builds, publishes, and deploys the app automatically.
+
+## CI/CD
+
+- **Build and Push Images**: GitHub Actions workflow building the frontend and backend Docker images and publishing them to GHCR (`ghcr.io/celestin-rumo/gyoza-frontend`, `ghcr.io/celestin-rumo/gyoza-backend`), tagged with `latest`, the commit SHA, and a release tag. Also creates the corresponding git tag and GitHub release.
+- **Deploy App on Server**: workflow triggered automatically once the build succeeds (or manually with a chosen image tag), running on a self-hosted runner. Writes the production `.env` from repository secrets, syncs `docker-compose.prod.yml`, pulls the images, and restarts the frontend, backend, and database containers behind Traefik.
+
+## Documentation
+
+- Added the project `README.md` with stack overview, project structure, and day-to-day Docker Compose commands.
+
+## Remaining before v1.0.0
+
+- Test coverage (frontend and backend).
