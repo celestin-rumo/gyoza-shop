@@ -14,6 +14,11 @@ on:
         required: true
         default: "v1.0.0"
         type: string
+      retag_from:
+        description: "Optional: existing image tag/sha to retag as `version` instead of rebuilding (ex: latest, or a commit sha)"
+        required: false
+        default: ""
+        type: string
 
 concurrency:
   group: build-and-push-images-${{ github.ref }}
@@ -31,6 +36,7 @@ jobs:
       release_tag: ${{ steps.meta.outputs.release_tag }}
       release_name: ${{ steps.meta.outputs.release_name }}
       is_prerelease: ${{ steps.meta.outputs.is_prerelease }}
+      is_promote: ${{ steps.meta.outputs.is_promote }}
     steps:
       - name: Compute release metadata
         id: meta
@@ -46,7 +52,15 @@ jobs:
             echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
           fi
 
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.retag_from }}" ]; then
+            echo "is_promote=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_promote=false" >> "$GITHUB_OUTPUT"
+          fi
+
   test-frontend:
+    needs: prepare-meta
+    if: needs.prepare-meta.outputs.is_promote != 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -98,6 +112,8 @@ jobs:
           retention-days: 14
 
   test-backend:
+    needs: prepare-meta
+    if: needs.prepare-meta.outputs.is_promote != 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -162,7 +178,7 @@ jobs:
 
   build-frontend:
     needs: [prepare-meta, test-frontend]
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && needs.prepare-meta.outputs.is_promote != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -205,7 +221,7 @@ jobs:
 
   build-backend:
     needs: [prepare-meta, test-backend]
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && needs.prepare-meta.outputs.is_promote != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -247,8 +263,8 @@ jobs:
           cache-to: type=gha,mode=max,scope=backend
 
   e2e:
-    needs: [build-frontend, build-backend]
-    if: github.event_name != 'pull_request'
+    needs: [prepare-meta, build-frontend, build-backend]
+    if: github.event_name != 'pull_request' && needs.prepare-meta.outputs.is_promote != 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -287,18 +303,51 @@ jobs:
         if: always()
         run: docker compose -f docker-compose.e2e.yml down -v
 
+  promote:
+    needs: prepare-meta
+    if: needs.prepare-meta.outputs.is_promote == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Retag existing backend image
+        run: |
+          docker buildx imagetools create \
+            --tag ${{ env.IMAGE_BACKEND }}:${{ needs.prepare-meta.outputs.release_tag }} \
+            ${{ env.IMAGE_BACKEND }}:${{ inputs.retag_from }}
+
+      - name: Retag existing frontend image
+        run: |
+          docker buildx imagetools create \
+            --tag ${{ env.IMAGE_FRONTEND }}:${{ needs.prepare-meta.outputs.release_tag }} \
+            ${{ env.IMAGE_FRONTEND }}:${{ inputs.retag_from }}
+
   create-tag:
     needs:
       - prepare-meta
       - build-frontend
       - build-backend
       - e2e
+      - promote
     if: >
       always() &&
       needs.prepare-meta.result == 'success' &&
-      needs.build-frontend.result == 'success' &&
-      needs.build-backend.result == 'success' &&
-      needs.e2e.result == 'success'
+      (
+        needs.promote.result == 'success' ||
+        (needs.build-frontend.result == 'success' && needs.build-backend.result == 'success' && needs.e2e.result == 'success')
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -328,12 +377,14 @@ jobs:
       - build-backend
       - e2e
       - create-tag
+      - promote
     if: >
       always() &&
-      needs.build-frontend.result == 'success' &&
-      needs.build-backend.result == 'success' &&
-      needs.e2e.result == 'success' &&
-      needs.create-tag.result == 'success'
+      needs.create-tag.result == 'success' &&
+      (
+        needs.promote.result == 'success' ||
+        (needs.build-frontend.result == 'success' && needs.build-backend.result == 'success' && needs.e2e.result == 'success')
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -348,14 +399,10 @@ jobs:
           prerelease: ${{ needs.prepare-meta.outputs.is_prerelease == 'true' }}
           make_latest: ${{ needs.prepare-meta.outputs.is_prerelease != 'true' }}
           body: |
-            Docker images published for `${{ needs.prepare-meta.outputs.release_tag }}`
+            Docker images published for `${{ needs.prepare-meta.outputs.release_tag }}`${{ needs.prepare-meta.outputs.is_promote == 'true' && format(' (retagged from `{0}`)', inputs.retag_from) || '' }}
 
             Frontend:
             - `${{ env.IMAGE_FRONTEND }}:${{ needs.prepare-meta.outputs.release_tag }}`
-            - `${{ env.IMAGE_FRONTEND }}:${{ github.sha }}`
-            - `${{ env.IMAGE_FRONTEND }}:latest`
 
             Backend:
             - `${{ env.IMAGE_BACKEND }}:${{ needs.prepare-meta.outputs.release_tag }}`
-            - `${{ env.IMAGE_BACKEND }}:${{ github.sha }}`
-            - `${{ env.IMAGE_BACKEND }}:latest`
