@@ -10,9 +10,9 @@ public class InvalidOrderStatusException
             OrderStatus requested
     ) {
         super(
-                "Cannot change order status from "
+                "Impossible de changer le statut de la commande de "
                         + current
-                        + " to "
+                        + " à "
                         + requested
         );
     }

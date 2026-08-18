@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 /**
  * <ds-footer></ds-footer>
  *
- * Utilisé pour : le pied de page, identique sur toutes les pages du site.
+ * Used for: the footer, identical across every page of the site.
  */
 @Component({
   selector: 'ds-footer',

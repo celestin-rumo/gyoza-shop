@@ -19,8 +19,8 @@ export interface DsCartQuantityChangeEvent {
  *   (closed)="cartOpen.set(false)"
  * ></ds-cart-panel>
  *
- * Utilisé pour : le panneau qui s'ouvre depuis le bouton "Panier" du header, listant chaque
- * élément (produit, pack, quantité), le sous-total, et le bouton de confirmation de commande.
+ * Used for: the panel that opens from the header's "Cart" button, listing each
+ * item (product, pack, quantity), the subtotal, and the order confirmation button.
  */
 @Component({
   selector: 'ds-cart-panel',

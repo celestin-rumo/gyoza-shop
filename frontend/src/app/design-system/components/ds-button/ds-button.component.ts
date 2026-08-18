@@ -5,11 +5,11 @@ export type DsButtonVariant = 'primary' | 'outline' | 'ghost' | 'sage';
 export type DsButtonSize = 'sm' | 'md' | 'lg';
 
 /**
- * <ds-button variant="primary" size="md">Commander</ds-button>
- * <ds-button variant="outline">Découvrir nos gyozas</ds-button>
+ * <ds-button variant="primary" size="md">Order now</ds-button>
+ * <ds-button variant="outline">Discover our gyozas</ds-button>
  *
- * Utilisé pour : CTA hero ("Commander"), CTA secondaire ("Découvrir nos gyozas"),
- * bouton panier du header ("Panier (0)"), etc.
+ * Used for: hero CTA ("Order now"), secondary CTA ("Discover our gyozas"),
+ * header cart button ("Cart (0)"), etc.
  */
 @Component({
   selector: 'ds-button',
@@ -23,7 +23,7 @@ export class DsButtonComponent {
   @Input() size: DsButtonSize = 'md';
   @Input() disabled = false;
   @Input() type: 'button' | 'submit' | 'reset' = 'button';
-  /** Icône optionnelle affichée avant le texte (ex: badge panier) */
+  /** Optional icon displayed before the text (e.g. cart badge) */
   @Input() fullWidth = false;
 
   @Output() pressed = new EventEmitter<MouseEvent>();

@@ -9,8 +9,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Jetons de session admin gardés en mémoire (une seule instance backend, pas de
- * persistance nécessaire : un redémarrage invalide simplement les sessions en cours).
+ * Admin session tokens kept in memory (a single backend instance, no
+ * persistence needed: a restart simply invalidates any ongoing sessions).
  */
 @Component
 public class AdminTokenStore {

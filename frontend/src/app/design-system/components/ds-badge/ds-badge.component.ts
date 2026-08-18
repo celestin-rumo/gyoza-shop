@@ -6,14 +6,14 @@ export type DsBadgeTone = 'accent' | 'sage' | 'neutral';
 
 /**
  * <ds-badge shape="stamp" tone="accent">
- *   <span>FAIT MAISON</span>
- *   <small>AVEC AMOUR</small>
+ *   <span>HANDMADE</span>
+ *   <small>WITH LOVE</small>
  * </ds-badge>
  *
- * <ds-badge shape="pill" tone="sage">Nouveau</ds-badge>
+ * <ds-badge shape="pill" tone="sage">New</ds-badge>
  *
- * Utilisé pour : le sceau "Fait maison avec amour" sur le hero,
- * ou tout petit label/tag décoratif.
+ * Used for: the "Handmade with love" stamp on the hero,
+ * or any small decorative label/tag.
  */
 @Component({
   selector: 'ds-badge',

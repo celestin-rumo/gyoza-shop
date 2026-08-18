@@ -10,9 +10,9 @@ interface LoginResponse {
 }
 
 /**
- * Session admin : jeton opaque obtenu via `/api/auth/login`, gardé en `sessionStorage`
- * (effacé à la fermeture de l'onglet) et rejoué sur chaque appel `/api/admin/**`
- * par `authInterceptor`.
+ * Admin session: opaque token obtained via `/api/auth/login`, kept in `sessionStorage`
+ * (cleared when the tab closes) and replayed on every `/api/admin/**` call
+ * by `authInterceptor`.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {

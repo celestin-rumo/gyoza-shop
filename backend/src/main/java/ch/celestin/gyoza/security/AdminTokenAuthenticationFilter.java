@@ -13,8 +13,8 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Authentifie les requêtes admin via un jeton opaque (`Authorization: Bearer <token>`),
- * délivré par {@code AuthController} après connexion et vérifié via {@link AdminTokenStore}.
+ * Authenticates admin requests via an opaque token (`Authorization: Bearer <token>`),
+ * issued by {@code AuthController} after login and verified via {@link AdminTokenStore}.
  */
 public class AdminTokenAuthenticationFilter extends OncePerRequestFilter {
 

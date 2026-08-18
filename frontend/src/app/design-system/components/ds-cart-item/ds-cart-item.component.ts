@@ -5,7 +5,7 @@ import { DsPricePipe } from '../../pipes/ds-price.pipe';
 /**
  * <ds-cart-item [line]="line" (quantityChange)="onQuantityChange($event)" (remove)="onRemove()"></ds-cart-item>
  *
- * Utilisé pour : chaque ligne du panier (titre, pack, quantité modifiable, prix unitaire et total).
+ * Used for: each cart line (title, pack, editable quantity, unit price and total).
  */
 @Component({
   selector: 'ds-cart-item',

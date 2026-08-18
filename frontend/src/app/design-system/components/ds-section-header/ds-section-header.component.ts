@@ -4,9 +4,9 @@ import { CommonModule } from '@angular/common';
 export type DsSectionAlign = 'center' | 'left';
 
 /**
- * <ds-section-header title="Nos gyozas" subtitle="Des saveurs uniques pour tous les goûts."></ds-section-header>
+ * <ds-section-header title="Our gyozas" subtitle="Unique flavors for every taste."></ds-section-header>
  *
- * Utilisé pour : tout titre de section (Nos gyozas, FAQ, À propos, Contact...).
+ * Used for: any section title (Our gyozas, FAQ, About, Contact...).
  */
 @Component({
   selector: 'ds-section-header',

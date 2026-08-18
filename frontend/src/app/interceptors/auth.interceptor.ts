@@ -8,8 +8,8 @@ import { AuthService } from '../services/auth.service';
 const ADMIN_API_PREFIX = '/api/admin';
 
 /**
- * Ajoute le jeton admin aux appels `/api/admin/**` et déconnecte automatiquement
- * si le backend répond 401/403 (jeton expiré ou invalide).
+ * Adds the admin token to `/api/admin/**` calls and automatically logs out
+ * if the backend responds with 401/403 (expired or invalid token).
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   if (!req.url.startsWith(ADMIN_API_PREFIX)) {

@@ -1,19 +1,19 @@
 import { Injectable, signal } from '@angular/core';
 
 /**
- * Source unique de vérité pour la devise affichée dans toute l'application.
- * Les prix des produits sont saisis dans la devise de base (`baseCode`) ; `rate` permet
- * d'appliquer un taux de change pour les afficher dans une autre devise (`code`) sans
- * toucher aux données produit.
+ * Single source of truth for the currency displayed throughout the application.
+ * Product prices are entered in the base currency (`baseCode`); `rate` allows applying
+ * an exchange rate to display them in another currency (`code`) without touching
+ * the product data.
  */
 @Injectable({ providedIn: 'root' })
 export class CurrencyService {
   private readonly _code = signal('CHF');
   private readonly _rate = signal(1);
 
-  /** Code de la devise affichée (ex: CHF, EUR). */
+  /** Code of the displayed currency (e.g. CHF, EUR). */
   readonly code = this._code.asReadonly();
-  /** Taux appliqué aux prix (stockés dans la devise de base) pour obtenir `code`. */
+  /** Rate applied to prices (stored in the base currency) to obtain `code`. */
   readonly rate = this._rate.asReadonly();
 
   setCode(code: string): void {

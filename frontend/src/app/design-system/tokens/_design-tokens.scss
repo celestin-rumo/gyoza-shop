@@ -1,12 +1,12 @@
 // =========================================================
 // GYOZA MAISON — DESIGN TOKENS
-// A importer UNE FOIS dans styles.scss global : @use 'app/design-system/tokens/design-tokens';
-// Toutes les valeurs sont exposées en CSS custom properties sur :root
-// pour rester utilisables partout (composants, styles inline, etc).
+// Import ONCE in the global styles.scss: @use 'app/design-system/tokens/design-tokens';
+// All values are exposed as CSS custom properties on :root
+// so they stay usable everywhere (components, inline styles, etc).
 // =========================================================
 
 :root {
-  // ---- Couleurs de fond ----
+  // ---- Background colors ----
   --gz-bg: #0a0a0a;
   --gz-bg-elevated: #121212;
   --gz-surface: #161513;
@@ -14,29 +14,29 @@
   --gz-border: #2a2926;
   --gz-border-soft: #201f1c;
 
-  // ---- Couleurs de texte ----
+  // ---- Text colors ----
   --gz-text-primary: #f6f4f0;
   --gz-text-secondary: #a9a6a0;
   --gz-text-muted: #7a776f;
   --gz-text-on-accent: #201510;
 
-  // ---- Couleur d'accent (saumon / corail) ----
+  // ---- Accent color (salmon / coral) ----
   --gz-accent-50: #fbe9e1;
   --gz-accent-200: #f0c4ae;
-  --gz-accent-400: #e6a68c;   // fond des boutons primaires
-  --gz-accent-500: #dd8f72;   // texte "livrés chez vous", hover bouton
+  --gz-accent-400: #e6a68c;   // primary button background
+  --gz-accent-500: #dd8f72;   // "delivered to your door" text, button hover
   --gz-accent-600: #c97a5e;
 
-  // ---- Couleur secondaire (sauge / vert) ----
+  // ---- Secondary color (sage / green) ----
   --gz-sage-200: #d9dcc4;
-  --gz-sage-300: #c3caa3;     // badge crevette, bouton "+"
+  --gz-sage-300: #c3caa3;     // shrimp badge, "+" button
   --gz-sage-500: #99a674;
 
-  // ---- Couleurs utilitaires ----
+  // ---- Utility colors ----
   --gz-white: #ffffff;
   --gz-black: #000000;
 
-  // ---- Typographie ----
+  // ---- Typography ----
   --gz-font-family: 'Poppins', 'Quicksand', 'Segoe UI', system-ui, sans-serif;
   --gz-fs-xs: 0.75rem;    // 12px
   --gz-fs-sm: 0.875rem;   // 14px
@@ -53,7 +53,7 @@
   --gz-lh-tight: 1.1;
   --gz-lh-normal: 1.5;
 
-  // ---- Espacements (échelle 4px) ----
+  // ---- Spacing (4px scale) ----
   --gz-space-1: 4px;
   --gz-space-2: 8px;
   --gz-space-3: 12px;
@@ -65,13 +65,13 @@
   --gz-space-12: 48px;
   --gz-space-16: 64px;
 
-  // ---- Rayons ----
+  // ---- Radii ----
   --gz-radius-sm: 8px;
   --gz-radius-md: 14px;
   --gz-radius-lg: 20px;
   --gz-radius-pill: 999px;
 
-  // ---- Ombres ----
+  // ---- Shadows ----
   --gz-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
   --gz-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
   --gz-shadow-accent: 0 6px 18px rgba(230, 166, 140, 0.25);

@@ -5,12 +5,12 @@ export type DsIconButtonVariant = 'accent' | 'sage' | 'outline' | 'ghost';
 export type DsIconButtonSize = 'sm' | 'md' | 'lg';
 
 /**
- * <ds-icon-button variant="accent" ariaLabel="Ajouter au panier">
+ * <ds-icon-button variant="accent" ariaLabel="Add to cart">
  *   <svg dsIcon>...</svg>
  * </ds-icon-button>
  *
- * Utilisé pour : le "+" rond sur chaque carte produit, l'icône compte,
- * ou tout bouton circulaire d'action.
+ * Used for: the round "+" on each product card, the count icon,
+ * or any circular action button.
  */
 @Component({
   selector: 'ds-icon-button',

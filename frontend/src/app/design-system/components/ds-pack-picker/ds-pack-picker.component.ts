@@ -17,9 +17,9 @@ export interface DsPackSelection {
 /**
  * <ds-pack-picker [packs]="gyozaPoulet.packs" (add)="onPackAdd($event)"></ds-pack-picker>
  *
- * Utilisé pour : choisir un pack (6 / 10 / 20 gyozas) et une quantité avant ajout au panier.
- * Chaque clic sur "Ajouter" émet une sélection indépendante : l'utilisateur peut par exemple
- * ajouter un pack de 6 puis, sans perdre le premier, changer de pack et ajouter un pack de 10.
+ * Used for: choosing a pack (6 / 10 / 20 gyozas) and a quantity before adding to cart.
+ * Each click on "Add" emits an independent selection: for example, the user can
+ * add a pack of 6, then, without losing the first one, switch packs and add a pack of 10.
  */
 @Component({
   selector: 'ds-pack-picker',
@@ -29,7 +29,7 @@ export interface DsPackSelection {
 })
 export class DsPackPickerComponent {
   packs = input.required<DsProductPack[]>();
-  /** Quantité déjà présente dans le panier pour ce produit, par id de pack. */
+  /** Quantity already in the cart for this product, by pack id. */
   quantitiesInCart = input<Record<string, number>>({});
 
   add = output<DsPackSelection>();

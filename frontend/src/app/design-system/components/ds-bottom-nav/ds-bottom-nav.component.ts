@@ -5,8 +5,8 @@ import { DsNavLink } from '../ds-navbar/ds-navbar.component';
 /**
  * <ds-bottom-nav [links]="navLinks"></ds-bottom-nav>
  *
- * Utilisé pour : la navigation principale sur mobile, fixée en bas de l'écran (remplace
- * les liens du header, cachés sous 640px). N'affiche que les liens qui ont une `icon`.
+ * Used for: the main navigation on mobile, fixed to the bottom of the screen (replaces
+ * the header links, hidden below 640px). Only shows links that have an `icon`.
  */
 @Component({
   selector: 'ds-bottom-nav',

@@ -30,8 +30,8 @@ export interface DsCartRemoveEvent {
 /**
  * <ds-product-card [product]="gyozaPoulet" (add)="onAdd($event)"></ds-product-card>
  *
- * Utilisé pour : les cartes de la grille "Nos gyozas", avec choix du pack (6/10/20) et de la quantité
- * avant ajout au panier.
+ * Used for: the cards in the "Our gyozas" grid, with a choice of pack (6/10/20) and quantity
+ * before adding to cart.
  */
 @Component({
   selector: 'ds-product-card',
@@ -42,7 +42,7 @@ export interface DsCartRemoveEvent {
 })
 export class DsProductCardComponent {
   @Input({ required: true }) product!: DsProduct;
-  /** Quantité déjà présente dans le panier pour ce produit, par id de pack. */
+  /** Quantity already in the cart for this product, by pack id. */
   @Input() packQuantitiesInCart: Record<string, number> = {};
 
   @Output() add = new EventEmitter<DsCartAddEvent>();

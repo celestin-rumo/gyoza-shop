@@ -8,11 +8,11 @@ public class InsufficientStockException extends RuntimeException {
             int available
     ) {
         super(
-                "Insufficient stock for "
+                "Stock insuffisant pour "
                         + productName
-                        + ". Requested: "
+                        + ". Demandé : "
                         + requested
-                        + ", available: "
+                        + ", disponible : "
                         + available
         );
     }

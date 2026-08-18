@@ -9,7 +9,7 @@ export interface DsNavLink {
   label: string;
   href: string;
   active?: boolean;
-  /** Icône utilisée par la navigation mobile en bas d'écran (ds-bottom-nav). */
+  /** Icon used by the mobile navigation at the bottom of the screen (ds-bottom-nav). */
   icon?: DsNavLinkIcon;
 }
 
@@ -23,7 +23,7 @@ export interface DsNavLink {
  *   (accountClick)="openAccount()"
  * ></ds-navbar>
  *
- * Utilisé pour : le header, identique sur toutes les pages du site.
+ * Used for: the header, identical across every page of the site.
  */
 @Component({
   selector: 'ds-navbar',
@@ -42,7 +42,7 @@ export class DsNavbarComponent {
   @Output() accountClick = new EventEmitter<void>();
   @Output() linkClick = new EventEmitter<DsNavLink>();
 
-  /** Un lien est une vraie route Angular s'il pointe vers un chemin, sans ancre `#...`. */
+  /** A link is a real Angular route if it points to a path, without a `#...` anchor. */
   isRouterLink(href: string): boolean {
     return href.startsWith('/') && !href.includes('#');
   }

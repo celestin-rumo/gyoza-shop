@@ -22,8 +22,8 @@ const NAV_LINKS: Omit<DsNavLink, 'active'>[] = [
 ];
 
 /**
- * Coquille de l'application : header, panier (panneau, bouton flottant mobile, nav du bas)
- * et footer, communs à toutes les pages, entourant le `<router-outlet>`.
+ * Application shell: header, cart (panel, mobile floating button, bottom nav)
+ * and footer, shared across all pages, wrapping the `<router-outlet>`.
  */
 @Component({
   selector: 'app-root',

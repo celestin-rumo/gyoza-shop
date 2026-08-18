@@ -56,10 +56,10 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   CANCELLED: 'Annulée',
 };
 
-/** Ordre du flux de commande (badges de la page "Nos commandes"), pas l'ordre alphabétique. */
+/** Order-flow order (badges on the "Orders" page), not alphabetical order. */
 const STATUS_ORDER: OrderStatus[] = ['RESERVED', 'PREPARING', 'READY', 'DELIVERED', 'CANCELLED'];
 
-/** Palette catégorielle validée (huit teintes, contraste + CVD confirmés sur --gz-surface). */
+/** Validated categorical palette (eight hues, contrast + CVD confirmed against --gz-surface). */
 const PRODUCT_COLORS = [
   '#3987e5',
   '#d95926',

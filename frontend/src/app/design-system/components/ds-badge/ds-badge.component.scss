@@ -22,14 +22,14 @@
     border: 1px solid var(--gz-border);
   }
 
-  // Étiquette pilule simple (ex: "Panier (0)", "Nouveau")
+  // Simple pill label (e.g. "Cart (0)", "New")
   &--pill {
     padding: var(--gz-space-1) var(--gz-space-4);
     border-radius: var(--gz-radius-pill);
     font-size: var(--gz-fs-sm);
   }
 
-  // Sceau circulaire "FAIT MAISON AVEC AMOUR"
+  // Circular stamp "HANDMADE WITH LOVE"
   &--stamp {
     width: 128px;
     height: 128px;
@@ -40,7 +40,7 @@
     text-transform: uppercase;
     box-shadow: var(--gz-shadow-md);
 
-    // Bord "cranté" façon tampon, via un dégradé conique répété
+    // Scalloped "stamp" edge, via a repeated conic gradient
     background:
       radial-gradient(circle, var(--gz-accent-400) 62%, transparent 63%),
       repeating-conic-gradient(

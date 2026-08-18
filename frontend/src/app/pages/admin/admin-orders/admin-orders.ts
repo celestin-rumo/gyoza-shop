@@ -19,7 +19,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   CANCELLED: 'Annulée',
 };
 
-/** Miroir de `Order.canTransitionTo` côté backend, pour n'afficher que des actions valides. */
+/** Mirrors `Order.canTransitionTo` on the backend, so only valid actions are shown. */
 const NEXT_STATUSES: Record<OrderStatus, OrderStatus[]> = {
   RESERVED: ['PREPARING', 'CANCELLED'],
   PREPARING: ['READY', 'CANCELLED'],
@@ -102,7 +102,7 @@ export class AdminOrders implements OnInit {
     return counts;
   });
 
-  /** Total des packs (par taille) à préparer pour chaque produit, à partir des commandes réservées. */
+  /** Total packs (by size) to prepare for each product, based on reserved orders. */
   protected readonly prepSummary = computed<PrepProduct[]>(() => {
     const packsByProduct = new Map<string, Map<number, number>>();
 
@@ -128,8 +128,8 @@ export class AdminOrders implements OnInit {
   });
 
   constructor() {
-    // Garde-fou : si la page courante devient hors limites (ex: dernière commande
-    // d'une page qui change de statut et sort de la liste visible), on recadre.
+    // Safety net: if the current page becomes out of bounds (e.g. the last order
+    // on a page changes status and drops out of the visible list), clamp it back.
     effect(() => {
       const total = this.totalPages();
 

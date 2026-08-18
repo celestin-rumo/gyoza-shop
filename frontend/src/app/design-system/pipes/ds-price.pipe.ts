@@ -4,8 +4,8 @@ import { CurrencyService } from '../../services/currency.service';
 /**
  * {{ pack.price | dsPrice }}
  *
- * Formate un prix avec la devise centralisée dans `CurrencyService`, seul endroit à
- * modifier pour changer de devise ou appliquer un taux de change.
+ * Formats a price using the currency centralized in `CurrencyService`, the only place
+ * to change to switch currency or apply an exchange rate.
  */
 @Pipe({ name: 'dsPrice' })
 export class DsPricePipe implements PipeTransform {

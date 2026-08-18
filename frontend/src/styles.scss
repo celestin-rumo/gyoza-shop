@@ -14,8 +14,8 @@ body {
   font-family: var(--gz-font-family);
 }
 
-/* Colonne flex sur la coquille de l'app : le contenu routé s'étire pour occuper
-   l'espace restant, ce qui garde le footer en bas même quand une page est courte. */
+/* Flex column on the app shell: the routed content stretches to fill
+   the remaining space, which keeps the footer at the bottom even when a page is short. */
 app-root {
   display: flex;
   flex-direction: column;
@@ -26,7 +26,7 @@ router-outlet + * {
   flex: 1 0 auto;
 }
 
-/* Laisse de la place pour ds-bottom-nav, fixé en bas de l'écran sous 640px. */
+/* Leaves room for ds-bottom-nav, fixed to the bottom of the screen below 640px. */
 @media (max-width: 640px) {
   body {
     padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));

@@ -13,7 +13,7 @@ interface Presentation {
   description: string;
 }
 
-/** Image neutre pour un produit fraîchement créé côté admin, tant qu'aucune photo n'a été choisie. */
+/** Neutral placeholder image for a product freshly created in the admin, until a photo has been chosen. */
 const PLACEHOLDER_IMAGE_URL =
   'data:image/svg+xml,' +
   encodeURIComponent(
@@ -44,9 +44,9 @@ const PRESENTATION_BY_PRODUCT_NAME: Record<string, Presentation> = {
 };
 
 /**
- * Source unique de vérité pour le catalogue produits (avec les prix depuis la base de données).
- * `load()` est appelé une seule fois au démarrage de l'app (voir `app.config.ts`) ; les pages
- * lisent ensuite le résultat déjà en mémoire via `products` / `productsByKey`.
+ * Single source of truth for the product catalog (with prices from the database).
+ * `load()` is called once when the app starts (see `app.config.ts`); pages then
+ * read the result already in memory via `products` / `productsByKey`.
  */
 @Injectable({ providedIn: 'root' })
 export class CatalogService {
@@ -60,12 +60,12 @@ export class CatalogService {
   readonly loading = this._loading.asReadonly();
   readonly error = this._error.asReadonly();
 
-  /** Tous les produits, mappés pour l'affichage (grille de l'accueil). */
+  /** All products, mapped for display (homepage grid). */
   readonly products = computed<DsProduct[]>(() =>
     this._products().map((product) => this.toDsProduct(product)),
   );
 
-  /** Produits mappés, indexés par leur nom technique (ex: "chicken", "vegetable"). */
+  /** Mapped products, indexed by their technical name (e.g. "chicken", "vegetable"). */
   readonly productsByKey = computed<Record<string, DsProduct>>(() => {
     const byKey: Record<string, DsProduct> = {};
 
@@ -84,7 +84,7 @@ export class CatalogService {
     return this.loadPromise;
   }
 
-  /** Recharge le catalogue depuis l'API : à appeler après une modification faite depuis l'admin. */
+  /** Reloads the catalog from the API: call after a change made from the admin. */
   refresh(): Promise<void> {
     this.loadPromise = this.fetch();
     return this.loadPromise;
@@ -97,7 +97,7 @@ export class CatalogService {
         this._error.set(null);
       })
       .catch((error) => {
-        console.error('Erreur GET products', error);
+        console.error('Error GET products', error);
         this._error.set('Impossible de charger le catalogue.');
       })
       .finally(() => {

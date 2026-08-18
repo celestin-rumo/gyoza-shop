@@ -8,7 +8,7 @@ export type DsRecipeImagePosition = 'left' | 'right';
 
 export interface DsRecipeIngredient {
   label: string;
-  /** Provenance locale à mettre en avant (ex: "Ferme d'Arrenay, Ependes"). Omis pour un ingrédient d'appoint. */
+  /** Local origin to highlight (e.g. "Ferme d'Arrenay, Ependes"). Omitted for a minor ingredient. */
   origin?: string;
 }
 
@@ -20,8 +20,8 @@ export interface DsRecipeIngredient {
  *   (add)="onAdd($event)"
  * ></ds-recipe-card>
  *
- * Utilisé pour : la fiche recette (ingrédients par ordre d'importance, à titre informatif)
- * de la page "Nos gyozas". Les ingrédients avec une `origin` sont mis en avant.
+ * Used for: the recipe card (ingredients in order of importance, for informational purposes)
+ * on the "Our gyozas" page. Ingredients with an `origin` are highlighted.
  */
 @Component({
   selector: 'ds-recipe-card',
@@ -33,7 +33,7 @@ export class DsRecipeCardComponent {
   product = input.required<DsProduct>();
   ingredients = input<DsRecipeIngredient[]>([]);
   imagePosition = input<DsRecipeImagePosition>('left');
-  /** Quantité déjà présente dans le panier pour ce produit, par id de pack. */
+  /** Quantity already in the cart for this product, by pack id. */
   packQuantitiesInCart = input<Record<string, number>>({});
 
   add = output<DsCartAddEvent>();

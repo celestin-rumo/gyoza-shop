@@ -5,8 +5,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
 
 /**
- * Exclut l'auto-configuration d'un utilisateur en mémoire avec mot de passe généré :
- * l'authentification admin passe uniquement par le jeton opaque de {@code AdminTokenStore}.
+ * Excludes the auto-configuration of an in-memory user with a generated password:
+ * admin authentication relies solely on the opaque token from {@code AdminTokenStore}.
  */
 @SpringBootApplication(exclude = UserDetailsServiceAutoConfiguration.class)
 public class GyozaApplication {

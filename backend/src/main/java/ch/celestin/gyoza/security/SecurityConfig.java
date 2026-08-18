@@ -25,8 +25,8 @@ public class SecurityConfig {
     ) throws Exception {
 
         http
-                // API sans état consommée par le frontend Angular : pas de session, pas de cookie,
-                // donc pas de risque CSRF à couvrir.
+                // Stateless API consumed by the Angular frontend: no session, no cookie,
+                // so there is no CSRF risk to cover.
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

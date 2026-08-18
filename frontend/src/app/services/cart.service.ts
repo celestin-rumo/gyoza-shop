@@ -2,8 +2,8 @@ import { Injectable, computed, signal } from '@angular/core';
 import { DsCartAddEvent } from '../design-system';
 
 /**
- * Panier partagé par toutes les pages : ajouter un pack de poulet depuis l'accueil
- * puis un autre depuis "Nos gyozas" alimente le même panier.
+ * Cart shared across all pages: adding a chicken pack from the homepage,
+ * then another from "Our gyozas", feeds the same cart.
  */
 @Injectable({ providedIn: 'root' })
 export class CartService {
@@ -11,7 +11,7 @@ export class CartService {
   private readonly _isOpen = signal(false);
 
   readonly lines = this._lines.asReadonly();
-  /** Le panneau panier (ds-cart-panel) est-il ouvert ? Piloté depuis le header ou le bouton flottant. */
+  /** Is the cart panel (ds-cart-panel) open? Controlled from the header or the floating button. */
   readonly isOpen = this._isOpen.asReadonly();
 
   readonly count = computed(() => this.lines().reduce((total, line) => total + line.quantity, 0));
@@ -42,7 +42,7 @@ export class CartService {
     );
   }
 
-  /** Modifie la quantité d'un élément du panier ; le retire si la quantité tombe à 0 ou moins. */
+  /** Updates the quantity of a cart item; removes it if the quantity drops to 0 or below. */
   setQuantity(productId: number, packId: number, quantity: number): void {
     if (quantity <= 0) {
       this.remove(productId, packId);
@@ -68,7 +68,7 @@ export class CartService {
     this._isOpen.set(false);
   }
 
-  /** Quantité déjà présente dans le panier pour un produit donné, par id de pack. */
+  /** Quantity already in the cart for a given product, by pack id. */
   packQuantitiesInCart(productId: number): Record<string, number> {
     const quantities: Record<string, number> = {};
 

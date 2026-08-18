@@ -3,8 +3,8 @@ import { Component, input, output } from '@angular/core';
 /**
  * <ds-cart-fab [count]="cart.count()" (pressed)="cartOpen.set(true)"></ds-cart-fab>
  *
- * Utilisé pour : le bouton panier flottant affiché sur mobile (sous 640px), en remplacement
- * du bouton "Panier" du header qui n'a plus la place. Toujours au-dessus de ds-bottom-nav.
+ * Used for: the floating cart button shown on mobile (below 640px), replacing the
+ * header's "Cart" button which no longer fits. Always displayed above ds-bottom-nav.
  */
 @Component({
   selector: 'ds-cart-fab',

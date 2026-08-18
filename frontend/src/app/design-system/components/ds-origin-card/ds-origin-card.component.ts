@@ -2,15 +2,15 @@ import { Component, input } from '@angular/core';
 
 /**
  * <ds-origin-card
- *   title="Farine"
- *   description="Cultivée et moulue par un paysan d'Ependes"
+ *   title="Flour"
+ *   description="Grown and milled by a farmer in Ependes"
  *   href="https://..."
  * >
  *   <svg>...</svg>
  * </ds-origin-card>
  *
- * Utilisé pour : mettre en avant la provenance locale d'un ingrédient (farine, poulet, légumes...),
- * en carte cliquable vers le site du fournisseur.
+ * Used for: highlighting the local origin of an ingredient (flour, chicken, vegetables...),
+ * as a clickable card linking to the supplier's website.
  */
 @Component({
   selector: 'ds-origin-card',
