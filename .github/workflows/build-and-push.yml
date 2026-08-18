@@ -1,0 +1,197 @@
+name: Build and Push Images
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Manual release version (ex: v1.0.0)"
+        required: true
+        default: "v1.0.0"
+        type: string
+
+concurrency:
+  group: build-and-push-images-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_FRONTEND: ghcr.io/celestin-rumo/gyoza-frontend
+  IMAGE_BACKEND: ghcr.io/celestin-rumo/gyoza-backend
+
+jobs:
+  prepare-meta:
+    runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.meta.outputs.release_tag }}
+      release_name: ${{ steps.meta.outputs.release_name }}
+      is_prerelease: ${{ steps.meta.outputs.is_prerelease }}
+    steps:
+      - name: Compute release metadata
+        id: meta
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "release_tag=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+            echo "release_name=Release ${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_tag=main-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+            echo "release_name=Main build #${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-frontend:
+    needs: prepare-meta
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: docker_meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_FRONTEND }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=${{ github.sha }}
+            type=raw,value=${{ needs.prepare-meta.outputs.release_tag }}
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile.prod
+          push: true
+          tags: ${{ steps.docker_meta.outputs.tags }}
+          labels: ${{ steps.docker_meta.outputs.labels }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+  build-backend:
+    needs: prepare-meta
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: docker_meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_BACKEND }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=${{ github.sha }}
+            type=raw,value=${{ needs.prepare-meta.outputs.release_tag }}
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile.prod
+          push: true
+          tags: ${{ steps.docker_meta.outputs.tags }}
+          labels: ${{ steps.docker_meta.outputs.labels }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+  create-tag:
+    needs:
+      - prepare-meta
+      - build-frontend
+      - build-backend
+    if: >
+      always() &&
+      needs.prepare-meta.result == 'success' &&
+      needs.build-frontend.result == 'success' &&
+      needs.build-backend.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create git tag if missing
+        shell: bash
+        run: |
+          if git ls-remote --tags origin | grep -q "refs/tags/${{ needs.prepare-meta.outputs.release_tag }}$"; then
+            echo "Tag already exists on origin"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag "${{ needs.prepare-meta.outputs.release_tag }}"
+            git push origin "${{ needs.prepare-meta.outputs.release_tag }}"
+          fi
+
+  release:
+    needs:
+      - prepare-meta
+      - build-frontend
+      - build-backend
+      - create-tag
+    if: >
+      always() &&
+      needs.build-frontend.result == 'success' &&
+      needs.build-backend.result == 'success' &&
+      needs.create-tag.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare-meta.outputs.release_tag }}
+          name: ${{ needs.prepare-meta.outputs.release_name }}
+          generate_release_notes: true
+          prerelease: ${{ needs.prepare-meta.outputs.is_prerelease == 'true' }}
+          make_latest: ${{ needs.prepare-meta.outputs.is_prerelease != 'true' }}
+          body: |
+            Docker images published for `${{ needs.prepare-meta.outputs.release_tag }}`
+
+            Frontend:
+            - `${{ env.IMAGE_FRONTEND }}:${{ needs.prepare-meta.outputs.release_tag }}`
+            - `${{ env.IMAGE_FRONTEND }}:${{ github.sha }}`
+            - `${{ env.IMAGE_FRONTEND }}:latest`
+
+            Backend:
+            - `${{ env.IMAGE_BACKEND }}:${{ needs.prepare-meta.outputs.release_tag }}`
+            - `${{ env.IMAGE_BACKEND }}:${{ github.sha }}`
+            - `${{ env.IMAGE_BACKEND }}:latest`

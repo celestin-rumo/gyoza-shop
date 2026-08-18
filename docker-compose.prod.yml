@@ -1,11 +1,88 @@
 services:
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.prod
+    container_name: gyoza-frontend
+    image: ghcr.io/celestin-rumo/gyoza-frontend:${IMAGE_TAG:-latest}
 
-    ports:
-      - "4000:4000"
+    expose:
+      - "4000"
 
     environment:
       NODE_ENV: production
+      PORT: 4000
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gyoza-frontend.rule=Host(`gyoza.celestinrumo.ch`)"
+      - "traefik.http.routers.gyoza-frontend.entrypoints=websecure"
+      - "traefik.http.routers.gyoza-frontend.tls.certresolver=le"
+      - "traefik.http.routers.gyoza-frontend.priority=1"
+      - "traefik.http.services.gyoza-frontend.loadbalancer.server.port=4000"
+
+    networks:
+      - traefik-proxy
+
+    restart: unless-stopped
+
+  backend:
+    container_name: gyoza-backend
+    image: ghcr.io/celestin-rumo/gyoza-backend:${IMAGE_TAG:-latest}
+
+    expose:
+      - "8080"
+
+    environment:
+      DB_URL: jdbc:postgresql://database:5432/${POSTGRES_DB:-gyoza}
+      DB_USERNAME: ${POSTGRES_USER:-gyoza}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in the production .env file}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:?ADMIN_USERNAME must be set in the production .env file}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD must be set in the production .env file}
+
+    depends_on:
+      database:
+        condition: service_healthy
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gyoza-api.rule=Host(`gyoza.celestinrumo.ch`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.gyoza-api.entrypoints=websecure"
+      - "traefik.http.routers.gyoza-api.tls.certresolver=le"
+      - "traefik.http.routers.gyoza-api.priority=100"
+      - "traefik.http.services.gyoza-api.loadbalancer.server.port=8080"
+
+    networks:
+      - traefik-proxy
+      - app-internal
+
+    restart: unless-stopped
+
+  database:
+    container_name: gyoza-database
+    image: postgres:17
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gyoza}
+      POSTGRES_USER: ${POSTGRES_USER:-gyoza}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in the production .env file}
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - app-internal
+
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+    external: true
+  app-internal:

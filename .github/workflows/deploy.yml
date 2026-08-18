@@ -1,0 +1,87 @@
+name: Deploy App on Server
+
+on:
+  workflow_run:
+    workflows: ["Build and Push Images"]
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to deploy"
+        required: true
+        default: latest
+        type: string
+
+env:
+  DEPLOY_PATH: /home/infra-edge/gyoza-shop
+  COMPOSE_PROD_FILE: docker-compose.prod.yml
+  FRONT_SERVICE_NAME: frontend
+  BACKEND_SERVICE_NAME: backend
+  DATABASE_SERVICE_NAME: database
+
+jobs:
+  deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set image tag
+        id: vars
+        shell: bash
+        run: |
+          IMAGE_TAG_TO_DEPLOY="${{ secrets.IMAGE_TAG }}"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            IMAGE_TAG_TO_DEPLOY="${{ inputs.image_tag }}"
+          fi
+
+          echo "image_tag=$IMAGE_TAG_TO_DEPLOY" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare deploy directory
+        shell: bash
+        run: mkdir -p "${{ env.DEPLOY_PATH }}"
+
+      - name: Write .env
+        env:
+          IMAGE_TAG: ${{ steps.vars.outputs.image_tag }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        shell: bash
+        run: |
+          cd "${{ env.DEPLOY_PATH }}"
+
+          cat > .env <<EOF
+          IMAGE_TAG=${IMAGE_TAG}
+          POSTGRES_DB=gyoza
+          POSTGRES_USER=gyoza
+          POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+          ADMIN_USERNAME=${ADMIN_USERNAME}
+          ADMIN_PASSWORD=${ADMIN_PASSWORD}
+          EOF
+          chmod 600 .env
+
+      - name: Sync deployment compose file
+        shell: bash
+        run: |
+          install -Dm644 docker-compose.prod.yml "${{ env.DEPLOY_PATH }}/${{ env.COMPOSE_PROD_FILE }}"
+
+      - name: Pull deployment images
+        shell: bash
+        run: |
+          cd "${{ env.DEPLOY_PATH }}"
+          docker compose \
+            -f "${{ env.COMPOSE_PROD_FILE }}" \
+            pull "${{ env.FRONT_SERVICE_NAME }}" "${{ env.BACKEND_SERVICE_NAME }}" "${{ env.DATABASE_SERVICE_NAME }}"
+
+      - name: Deploy frontend, backend and database containers
+        shell: bash
+        run: |
+          cd "${{ env.DEPLOY_PATH }}"
+          docker compose \
+            -f "${{ env.COMPOSE_PROD_FILE }}" \
+            up -d "${{ env.FRONT_SERVICE_NAME }}" "${{ env.BACKEND_SERVICE_NAME }}" "${{ env.DATABASE_SERVICE_NAME }}"

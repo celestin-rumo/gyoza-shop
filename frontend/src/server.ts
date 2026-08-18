@@ -10,6 +10,9 @@ import { join } from 'node:path';
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
 const app = express();
+// Traefik terminates TLS before forwarding the request to this server. This keeps
+// the original HTTPS scheme available to Angular SSR for relative API requests.
+app.set('trust proxy', true);
 const angularApp = new AngularNodeAppEngine();
 
 /**
@@ -50,13 +53,13 @@ app.use((req, res, next) => {
  * The server listens on the port defined by the `PORT` environment variable, or defaults to 4000.
  */
 if (isMainModule(import.meta.url) || process.env['pm_id']) {
-  const port = process.env['PORT'] || 4000;
-  app.listen(port, (error) => {
+  const port = Number.parseInt(process.env['PORT'] ?? '4000', 10) || 4000;
+  app.listen(port, '0.0.0.0', (error) => {
     if (error) {
       throw error;
     }
 
-    console.log(`Node Express server listening on http://localhost:${port}`);
+    console.log(`Node Express server listening on http://0.0.0.0:${port}`);
   });
 }
 
