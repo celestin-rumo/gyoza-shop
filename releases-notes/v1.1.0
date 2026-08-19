@@ -1,0 +1,27 @@
+# Gyoza Maison — v1.1.0
+
+*August 19, 2026*
+
+Orders are now linked to accounts: logged-in customers can see their order history, and checkout offers a clear choice between ordering with an account or as a guest.
+
+## Order history
+
+- Orders placed while logged in are now linked to the account (`Order.user`, optional — guest orders stay unlinked).
+- New `GET /api/orders/mine` (authenticated): returns the current account's orders, most recent first.
+- New `/my-orders` page: order history with date, status, items, and total, styled after the admin orders view. Gated by a new `authGuard` (any logged-in user, not just admins).
+- The navbar's account icon now goes straight to `/my-orders` when logged in, `/login` otherwise.
+
+## Checkout: account or guest
+
+- Checkout is now split into two clearly separated sections: **"Réserver avec mon compte"** (logged-in users — a read-only summary of the account's name/address/email, one button to order) and **"Continuer en tant qu'invité"** (the existing manual form, always available as an alternative — even to a logged-in account, e.g. to ship to someone else).
+- Not logged in yet? The account section becomes a prompt to sign in, with a `returnUrl` back to `/checkout` so login drops you right back where you were, cart intact.
+
+## Structured address on accounts
+
+- Registration now collects a real, structured address — **Rue**, **NPA**, **Ville** — instead of no address at all, so an account always has one to order with.
+- `User` gained `street`/`postalCode`/`city` (all required); `GET /api/users/me` and the login response now include them.
+
+## Not in this release
+
+- Guest orders still aren't linkable to an account after the fact (e.g. "claim this order" for someone who checked out as a guest, then registered).
+- No profile-editing screen yet to update a saved address after registration.
