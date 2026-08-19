@@ -1,0 +1,10 @@
+# Gyoza Maison — v1.2.1
+
+*August 19, 2026*
+
+CI/CD only: releases can now be cut with a single `git push` of a version tag.
+
+## CI/CD
+
+- `build-and-push.yml` now also triggers on pushing a `v*` tag (`git tag vX.Y.Z && git push origin vX.Y.Z`), running the full pipeline — tests, image build, e2e, tag confirmation, GitHub release — under that exact version.
+- Previously an official (non-prerelease) version needed a separate manual `workflow_dispatch` run after the tag existed; that manual path still works (useful for `retag_from`), but is no longer required for the common case.
