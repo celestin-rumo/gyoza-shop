@@ -38,6 +38,9 @@ public class DataInitializer {
                     passwordEncoder.encode(adminProperties.password()),
                     "Admin",
                     "Gyoza",
+                    "Chemin de la Pudressa 35",
+                    "1731",
+                    "Ependes",
                     Role.ADMIN,
                     true
             ));

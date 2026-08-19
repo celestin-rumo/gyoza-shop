@@ -9,12 +9,18 @@ export interface CurrentUser {
   email: string;
   firstName: string;
   lastName: string;
+  street: string;
+  postalCode: string;
+  city: string;
   role: Role;
 }
 
 export interface RegisterPayload {
   firstName: string;
   lastName: string;
+  street: string;
+  postalCode: string;
+  city: string;
   email: string;
   password: string;
 }

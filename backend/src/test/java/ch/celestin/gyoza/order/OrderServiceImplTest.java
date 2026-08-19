@@ -58,7 +58,7 @@ class OrderServiceImplTest {
 
         CreateOrderRequest request = createOrderRequest(1L, 2);
 
-        OrderResponse response = orderService.createOrder(request);
+        OrderResponse response = orderService.createOrder(request, null);
 
         assertThat(chicken.getStockQuantity()).isEqualTo(188); // 200 - 6 * 2
         assertThat(response.status()).isEqualTo(OrderStatus.RESERVED);
@@ -72,7 +72,7 @@ class OrderServiceImplTest {
 
         CreateOrderRequest request = createOrderRequest(404L, 1);
 
-        assertThatThrownBy(() -> orderService.createOrder(request))
+        assertThatThrownBy(() -> orderService.createOrder(request, null))
                 .isInstanceOf(PackNotFoundException.class);
     }
 
@@ -84,7 +84,7 @@ class OrderServiceImplTest {
 
         CreateOrderRequest request = createOrderRequest(1L, 1); // needs 6, only 5 in stock
 
-        assertThatThrownBy(() -> orderService.createOrder(request))
+        assertThatThrownBy(() -> orderService.createOrder(request, null))
                 .isInstanceOf(InsufficientStockException.class);
     }
 

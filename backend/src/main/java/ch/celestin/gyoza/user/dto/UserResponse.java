@@ -10,6 +10,9 @@ public record UserResponse(
         String email,
         String firstName,
         String lastName,
+        String street,
+        String postalCode,
+        String city,
         Role role
 ) {
     public static UserResponse from(User user) {
@@ -18,6 +21,9 @@ public record UserResponse(
                 user.getEmail(),
                 user.getFirstName(),
                 user.getLastName(),
+                user.getStreet(),
+                user.getPostalCode(),
+                user.getCity(),
                 user.getRole()
         );
     }

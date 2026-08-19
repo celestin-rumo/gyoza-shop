@@ -12,6 +12,9 @@ import { DsFormMessageComponent } from '../../design-system/components/ds-form-m
 interface RegisterFields {
   firstName: string;
   lastName: string;
+  street: string;
+  postalCode: string;
+  city: string;
   email: string;
   password: string;
 }
@@ -38,6 +41,9 @@ export class Register {
   protected readonly fields = signal<RegisterFields>({
     firstName: '',
     lastName: '',
+    street: '',
+    postalCode: '',
+    city: '',
     email: '',
     password: '',
   });
@@ -47,6 +53,9 @@ export class Register {
     (path) => {
       required(path.firstName, { message: 'Le prénom est requis.' });
       required(path.lastName, { message: 'Le nom est requis.' });
+      required(path.street, { message: 'La rue est requise.' });
+      required(path.postalCode, { message: 'Le NPA est requis.' });
+      required(path.city, { message: 'La ville est requise.' });
       required(path.email, { message: 'L’email est requis.' });
       email(path.email, { message: 'Veuillez saisir un email valide.' });
       required(path.password, { message: 'Le mot de passe est requis.' });

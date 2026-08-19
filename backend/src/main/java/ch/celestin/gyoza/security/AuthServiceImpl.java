@@ -59,6 +59,9 @@ public class AuthServiceImpl implements AuthService {
                 passwordEncoder.encode(request.password()),
                 request.firstName(),
                 request.lastName(),
+                request.street(),
+                request.postalCode(),
+                request.city(),
                 Role.CUSTOMER,
                 false
         );

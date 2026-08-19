@@ -86,6 +86,36 @@
   }
 }
 
+.checkout__account-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gz-space-3);
+  margin-bottom: var(--gz-space-4);
+}
+
+.checkout__subheading {
+  margin: 0 0 var(--gz-space-2);
+  color: var(--gz-text-primary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-base);
+  font-weight: var(--gz-fw-semibold);
+}
+
+.checkout__account-summary,
+.checkout__account-hint {
+  margin: 0;
+  color: var(--gz-text-secondary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+  line-height: var(--gz-lh-normal);
+}
+
+.checkout__divider {
+  margin: 0 0 var(--gz-space-4);
+  border: none;
+  border-top: 1px solid var(--gz-border-soft);
+}
+
 .checkout-form {
   display: flex;
   flex-direction: column;

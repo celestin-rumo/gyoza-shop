@@ -35,7 +35,7 @@ class AuthControllerIT extends AbstractIntegrationTest {
                         .header("X-XSRF-TOKEN", csrf.getValue())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"firstName":"Marie","lastName":"Martin","email":"%s","password":"password123"}
+                                {"firstName":"Marie","lastName":"Martin","street":"1 rue du Test","postalCode":"1000","city":"Lausanne","email":"%s","password":"password123"}
                                 """.formatted(email)))
                 .andExpect(status().isCreated());
 

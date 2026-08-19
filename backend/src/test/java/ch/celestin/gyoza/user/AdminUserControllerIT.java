@@ -47,7 +47,8 @@ class AdminUserControllerIT extends AbstractIntegrationTest {
     void updateRole_promotesAnExistingCustomerToAdmin_andCanBeRevoked() throws Exception {
         String email = "customer.to.promote@example.com";
         userRepository.save(new User(
-                email, passwordEncoder.encode("password123"), "Jean", "Dupont", Role.CUSTOMER, true
+                email, passwordEncoder.encode("password123"), "Jean", "Dupont",
+                "1 rue du Test", "1000", "Lausanne", Role.CUSTOMER, true
         ));
 
         MockHttpSession adminSession = loginAsAdmin();
@@ -113,7 +114,8 @@ class AdminUserControllerIT extends AbstractIntegrationTest {
     void updateRole_onThePrimaryAdmin_isRejectedEvenByAnotherAdmin() throws Exception {
         String secondAdminEmail = "second.admin@example.com";
         userRepository.save(new User(
-                secondAdminEmail, passwordEncoder.encode("password123"), "Alex", "Martin", Role.ADMIN, true
+                secondAdminEmail, passwordEncoder.encode("password123"), "Alex", "Martin",
+                "1 rue du Test", "1000", "Lausanne", Role.ADMIN, true
         ));
 
         Cookie csrfForLogin = fetchCsrfCookie();

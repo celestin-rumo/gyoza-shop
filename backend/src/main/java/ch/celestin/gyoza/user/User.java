@@ -32,6 +32,15 @@ public class User {
     @Column(nullable = false)
     private String lastName;
 
+    @Column(nullable = false)
+    private String street;
+
+    @Column(nullable = false)
+    private String postalCode;
+
+    @Column(nullable = false)
+    private String city;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
@@ -49,6 +58,9 @@ public class User {
             String passwordHash,
             String firstName,
             String lastName,
+            String street,
+            String postalCode,
+            String city,
             Role role,
             boolean enabled
     ) {
@@ -56,6 +68,9 @@ public class User {
         this.passwordHash = passwordHash;
         this.firstName = firstName;
         this.lastName = lastName;
+        this.street = street;
+        this.postalCode = postalCode;
+        this.city = city;
         this.role = role;
         this.enabled = enabled;
         this.createdAt = LocalDateTime.now();
@@ -79,6 +94,18 @@ public class User {
 
     public String getLastName() {
         return lastName;
+    }
+
+    public String getStreet() {
+        return street;
+    }
+
+    public String getPostalCode() {
+        return postalCode;
+    }
+
+    public String getCity() {
+        return city;
     }
 
     public Role getRole() {

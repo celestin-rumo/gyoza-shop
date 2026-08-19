@@ -3,7 +3,7 @@
     <section class="checkout__success">
       <ds-section-header
         title="Commande envoyée"
-        subtitle="Merci {{ customer().firstName }} ! Nous revenons vers vous rapidement à l’adresse {{ customer().email }}."
+        subtitle="Merci {{ placedWithName() }} ! Nous revenons vers vous rapidement à l’adresse {{ placedWithEmail() }}."
       ></ds-section-header>
       <ds-button variant="primary" size="md" (pressed)="goHome()">Retour à l’accueil</ds-button>
     </section>
@@ -46,6 +46,53 @@
 
       <section class="checkout__form-section" aria-label="Informations de livraison">
         <h2 class="checkout__heading">Vos informations</h2>
+
+        @if (currentUser(); as user) {
+          <div class="checkout__account-block">
+            <h3 class="checkout__subheading">Réserver avec mon compte</h3>
+            <p class="checkout__account-summary">
+              {{ user.firstName }} {{ user.lastName }}<br />
+              {{ user.street }}, {{ user.postalCode }} {{ user.city }}<br />
+              {{ user.email }}
+            </p>
+
+            @if (accountSubmitError()) {
+              <ds-form-message variant="error">{{ accountSubmitError() }}</ds-form-message>
+            }
+
+            <ds-button
+              type="button"
+              variant="primary"
+              size="md"
+              [fullWidth]="true"
+              [disabled]="accountSubmitting()"
+              (pressed)="reserveWithAccount()"
+            >
+              {{ accountSubmitting() ? 'Envoi en cours…' : 'Réserver avec mon compte' }}
+            </ds-button>
+          </div>
+
+          <hr class="checkout__divider" />
+        } @else {
+          <div class="checkout__account-block">
+            <h3 class="checkout__subheading">Tu as un compte ?</h3>
+            <p class="checkout__account-hint">Connecte-toi pour retrouver tes commandes plus tard.</p>
+
+            <ds-button
+              type="button"
+              variant="outline"
+              size="md"
+              [fullWidth]="true"
+              (pressed)="goToLogin()"
+            >
+              Se connecter
+            </ds-button>
+          </div>
+
+          <hr class="checkout__divider" />
+        }
+
+        <h3 class="checkout__subheading">Continuer en tant qu’invité</h3>
 
         <form [formRoot]="checkoutForm" class="checkout-form">
           <div class="checkout-form__field">
@@ -104,12 +151,12 @@
             }
           </div>
 
-          @if (submitError()) {
-            <p class="checkout-form__submit-error" role="alert">{{ submitError() }}</p>
+          @if (guestSubmitError()) {
+            <p class="checkout-form__submit-error" role="alert">{{ guestSubmitError() }}</p>
           }
 
-          <ds-button type="submit" variant="primary" size="md" [fullWidth]="true" [disabled]="submitting()">
-            {{ submitting() ? 'Envoi en cours…' : 'Valider la commande' }}
+          <ds-button type="submit" variant="primary" size="md" [fullWidth]="true" [disabled]="guestSubmitting()">
+            {{ guestSubmitting() ? 'Envoi en cours…' : 'Valider la commande' }}
           </ds-button>
         </form>
       </section>

@@ -3,6 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { CartService } from './services/cart.service';
+import { AuthService } from './services/auth.service';
 import {
   DsBottomNavComponent,
   DsCartAddEvent,
@@ -40,6 +41,7 @@ const NAV_LINKS: Omit<DsNavLink, 'active'>[] = [
 })
 export class App {
   private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
   protected readonly cart = inject(CartService);
 
   private readonly currentUrl = toSignal(
@@ -68,6 +70,6 @@ export class App {
   }
 
   protected onAccountClick(): void {
-    this.router.navigateByUrl('/login');
+    this.router.navigateByUrl(this.authService.isAuthenticated() ? '/my-orders' : '/login');
   }
 }

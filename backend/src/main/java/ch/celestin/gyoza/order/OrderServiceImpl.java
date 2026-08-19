@@ -8,6 +8,7 @@ import ch.celestin.gyoza.order.dto.*;
 import ch.celestin.gyoza.pack.PackOption;
 import ch.celestin.gyoza.pack.PackOptionRepository;
 import ch.celestin.gyoza.product.Product;
+import ch.celestin.gyoza.user.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,7 +34,8 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public OrderResponse createOrder(
-            CreateOrderRequest request
+            CreateOrderRequest request,
+            User currentUser
     ) {
 
         Customer customer = new Customer(
@@ -45,7 +47,7 @@ public class OrderServiceImpl implements OrderService {
 
         customerRepository.save(customer);
 
-        Order order = new Order(customer);
+        Order order = new Order(customer, currentUser);
 
         for (CreateOrderItemRequest line : request.lines()) {
 
@@ -83,6 +85,16 @@ public class OrderServiceImpl implements OrderService {
     public List<OrderResponse> getAllOrders() {
         return orderRepository
                 .findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getOrdersForUser(User currentUser) {
+        return orderRepository
+                .findByUserIdOrderByCreatedAtDesc(currentUser.getId())
                 .stream()
                 .map(this::toResponse)
                 .toList();

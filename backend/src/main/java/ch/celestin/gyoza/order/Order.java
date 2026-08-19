@@ -2,6 +2,7 @@ package ch.celestin.gyoza.order;
 
 import ch.celestin.gyoza.customer.Customer;
 import ch.celestin.gyoza.exception.InvalidOrderStatusException;
+import ch.celestin.gyoza.user.User;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -20,6 +21,14 @@ public class Order {
     @ManyToOne(optional = false)
     @JoinColumn(name = "customer_id")
     private Customer customer;
+
+    // Nullable: guest checkout leaves this unset. Independent of `customer`,
+    // which stays a per-order shipping/contact snapshot even when the buyer
+    // is logged in — they might ship to a different name/address than their
+    // account profile.
+    @ManyToOne(optional = true)
+    @JoinColumn(name = "user_id")
+    private User user;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -41,11 +50,16 @@ public class Order {
     protected Order() {
     }
 
-    public Order(Customer customer) {
+    public Order(Customer customer, User user) {
         this.customer = customer;
+        this.user = user;
         this.status = OrderStatus.RESERVED;
         this.createdAt = LocalDateTime.now();
         this.totalPrice = BigDecimal.ZERO;
+    }
+
+    public Order(Customer customer) {
+        this(customer, null);
     }
 
     public void addItem(OrderItem item) {
@@ -73,6 +87,10 @@ public class Order {
 
     public Customer getCustomer() {
         return customer;
+    }
+
+    public User getUser() {
+        return user;
     }
 
     public OrderStatus getStatus() {

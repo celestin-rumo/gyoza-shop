@@ -5,6 +5,7 @@ import { APropos } from './pages/a-propos/a-propos';
 import { Contact } from './pages/contact/contact';
 import { Checkout } from './pages/checkout/checkout';
 import { adminGuard } from './guards/admin.guard';
+import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', component: Home },
@@ -33,6 +34,11 @@ export const routes: Routes = [
   {
     path: 'verify-email',
     loadComponent: () => import('./pages/verify-email/verify-email').then((m) => m.VerifyEmail),
+  },
+  {
+    path: 'my-orders',
+    loadComponent: () => import('./pages/my-orders/my-orders').then((m) => m.MyOrders),
+    canActivate: [authGuard],
   },
   {
     path: 'admin',

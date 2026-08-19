@@ -20,6 +20,27 @@
       ></ds-form-field>
 
       <ds-form-field
+        label="Rue"
+        fieldId="street"
+        autocomplete="street-address"
+        [field]="registerForm.street"
+      ></ds-form-field>
+
+      <ds-form-field
+        label="NPA"
+        fieldId="postalCode"
+        autocomplete="postal-code"
+        [field]="registerForm.postalCode"
+      ></ds-form-field>
+
+      <ds-form-field
+        label="Ville"
+        fieldId="city"
+        autocomplete="address-level2"
+        [field]="registerForm.city"
+      ></ds-form-field>
+
+      <ds-form-field
         label="Email"
         fieldId="email"
         type="email"

@@ -1,0 +1,44 @@
+<main class="my-orders">
+  <ds-section-header
+    title="Mes commandes"
+    subtitle="L’historique de tes commandes."
+    align="left"
+  ></ds-section-header>
+
+  @if (loading()) {
+    <p class="my-orders__hint">Chargement…</p>
+  } @else if (loadError()) {
+    <ds-form-message variant="error">{{ loadError() }}</ds-form-message>
+  } @else if (orders().length === 0) {
+    <p class="my-orders__hint">Tu n’as pas encore passé de commande.</p>
+  } @else {
+    <ul class="my-orders__list">
+      @for (order of orders(); track order.id) {
+        <li class="order-card">
+          <div class="order-card__header">
+            <span class="order-card__id">Commande #{{ order.id }}</span>
+            <span class="order-card__badge order-card__badge--{{ order.status.toLowerCase() }}">
+              {{ statusLabels[order.status] }}
+            </span>
+          </div>
+
+          <p class="order-card__date">{{ order.createdAt | date: 'dd.MM.yyyy HH:mm' }}</p>
+
+          <ul class="order-card__items">
+            @for (item of order.items; track item.productName + item.packSize) {
+              <li class="order-card__item">
+                <span>{{ item.packQuantity }} × {{ item.productName }} (pack de {{ item.packSize }})</span>
+                <span>{{ item.unitPackPrice | dsPrice }}</span>
+              </li>
+            }
+          </ul>
+
+          <div class="order-card__total">
+            <span>Total</span>
+            <strong>{{ order.totalPrice | dsPrice }}</strong>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</main>

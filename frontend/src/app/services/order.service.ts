@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { DsCartAddEvent } from '../design-system';
+import { Order } from '../models/order.model';
 
 export interface OrderCustomer {
   firstName: string;
@@ -49,5 +50,9 @@ export class OrderService {
       '/api/orders',
       request
     );
+  }
+
+  getMyOrders(): Observable<Order[]> {
+    return this.http.get<Order[]>('/api/orders/mine');
   }
 }

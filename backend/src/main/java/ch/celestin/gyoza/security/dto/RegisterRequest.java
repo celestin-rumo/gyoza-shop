@@ -13,6 +13,15 @@ public record RegisterRequest(
         String lastName,
 
         @NotBlank
+        String street,
+
+        @NotBlank
+        String postalCode,
+
+        @NotBlank
+        String city,
+
+        @NotBlank
         @Email
         String email,
 
