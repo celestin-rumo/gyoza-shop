@@ -23,6 +23,13 @@
   gap: var(--gz-space-8);
 }
 
+@media (max-width: 640px) {
+  .admin-analytics {
+    padding-left: var(--gz-space-4);
+    padding-right: var(--gz-space-4);
+  }
+}
+
 .admin-analytics__header {
   display: flex;
   align-items: flex-start;
@@ -91,6 +98,12 @@
   grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
   gap: var(--gz-space-6);
   align-items: start;
+}
+
+@media (max-width: 960px) {
+  .admin-analytics__charts-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .admin-analytics__chart-section--wide {

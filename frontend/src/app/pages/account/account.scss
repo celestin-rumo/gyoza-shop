@@ -2,7 +2,7 @@
   display: block;
 }
 
-.admin-home {
+.account {
   max-width: 900px;
   margin: 0 auto;
   padding: var(--gz-space-12) var(--gz-space-4) var(--gz-space-16);
@@ -11,7 +11,7 @@
   gap: var(--gz-space-8);
 }
 
-.admin-home__header {
+.account__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -19,35 +19,36 @@
   flex-wrap: wrap;
 }
 
-.admin-home__header-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--gz-space-4);
+.account__info {
+  padding: var(--gz-space-5);
+  background: var(--gz-surface);
+  border: 1px solid var(--gz-border-soft);
+  border-radius: var(--gz-radius-lg);
 }
 
-.admin-home__back-link {
+.account__info-title {
+  margin: 0 0 var(--gz-space-3);
+  color: var(--gz-text-primary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-base);
+  font-weight: var(--gz-fw-semibold);
+}
+
+.account__info-line {
+  margin: 0;
   color: var(--gz-text-secondary);
   font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
-  text-decoration: none;
-
-  &:hover {
-    color: var(--gz-text-primary);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--gz-accent-400);
-    outline-offset: 2px;
-  }
+  line-height: var(--gz-lh-normal);
 }
 
-.admin-home__cards {
+.account__cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: var(--gz-space-4);
 }
 
-.admin-home__card {
+.account__card {
   display: block;
   padding: var(--gz-space-6);
   background: var(--gz-surface);
@@ -67,7 +68,7 @@
   }
 }
 
-.admin-home__card-title {
+.account__card-title {
   margin: 0 0 var(--gz-space-2);
   color: var(--gz-text-primary);
   font-family: var(--gz-font-family);
@@ -75,7 +76,7 @@
   font-weight: var(--gz-fw-semibold);
 }
 
-.admin-home__card-description {
+.account__card-description {
   margin: 0;
   color: var(--gz-text-secondary);
   font-family: var(--gz-font-family);

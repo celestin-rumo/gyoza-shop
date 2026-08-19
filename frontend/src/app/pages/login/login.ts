@@ -1,10 +1,10 @@
 import { Component, inject, signal } from '@angular/core';
-import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { email, form, FormRoot, required } from '@angular/forms/signals';
 import { firstValueFrom } from 'rxjs';
 
 import { AuthService } from '../../services/auth.service';
+import { apiErrorCode } from '../../shared/api-error';
 import { DsAuthCardComponent } from '../../design-system/components/ds-auth-card/ds-auth-card.component';
 import { DsButtonComponent } from '../../design-system/components/ds-button/ds-button.component';
 import { DsFormFieldComponent } from '../../design-system/components/ds-form-field/ds-form-field.component';
@@ -59,15 +59,14 @@ export class Login {
             const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
             await this.router.navigateByUrl(returnUrl ?? (user.role === 'ADMIN' ? '/admin' : '/'));
           } catch (error: unknown) {
-            const code =
-              error instanceof HttpErrorResponse
-                ? (error.error as { code?: string })?.code
-                : undefined;
+            const code = apiErrorCode(error);
 
             this.loginError.set(
               code === 'ACCOUNT_NOT_VERIFIED'
                 ? 'Ce compte n’a pas encore été vérifié. Vérifie tes emails pour l’activer.'
-                : 'Identifiants invalides.',
+                : code === 'CSRF_INVALID'
+                  ? 'Ta session a expiré, recharge la page et réessaie.'
+                  : 'Identifiants invalides.',
             );
           } finally {
             this.submitting.set(false);

@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { OrderService } from '../../services/order.service';
@@ -18,7 +19,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
 
 @Component({
   selector: 'app-my-orders',
-  imports: [DsSectionHeaderComponent, DsFormMessageComponent, DsPricePipe, DatePipe],
+  imports: [DsSectionHeaderComponent, DsFormMessageComponent, DsPricePipe, DatePipe, RouterLink],
   templateUrl: './my-orders.html',
   styleUrl: './my-orders.scss',
 })

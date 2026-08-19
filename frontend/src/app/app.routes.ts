@@ -36,6 +36,11 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/verify-email/verify-email').then((m) => m.VerifyEmail),
   },
   {
+    path: 'account',
+    loadComponent: () => import('./pages/account/account').then((m) => m.Account),
+    canActivate: [authGuard],
+  },
+  {
     path: 'my-orders',
     loadComponent: () => import('./pages/my-orders/my-orders').then((m) => m.MyOrders),
     canActivate: [authGuard],

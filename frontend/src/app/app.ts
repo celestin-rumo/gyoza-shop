@@ -70,6 +70,6 @@ export class App {
   }
 
   protected onAccountClick(): void {
-    this.router.navigateByUrl(this.authService.isAuthenticated() ? '/my-orders' : '/login');
+    this.router.navigateByUrl(this.authService.isAuthenticated() ? '/account' : '/login');
   }
 }

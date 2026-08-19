@@ -1,0 +1,26 @@
+# Gyoza Maison — v1.2.0
+
+*August 19, 2026*
+
+A proper account hub, a real error message when something in the security layer rejects a request, and a couple of user-reported fixes.
+
+## Account page
+
+- New `/account` page ("Mon compte"), reached via the navbar's profile icon (goes to `/login` when signed out, `/account` when signed in): shows the account's name/address/email, a "Se déconnecter" button, and a card linking to **"Mes commandes"**.
+- Admins additionally see an **"Administration"** card linking to `/admin` — a logged-in admin now picks between their own orders and the admin panel instead of only reaching one or the other.
+- `/my-orders` and the admin panel both gained a "← Retour" link back to `/account` for consistent two-way navigation.
+
+## Clearer security error messages
+
+- Found and fixed a real gap: CSRF rejections and role/authentication failures happen in the servlet filter chain, *before* Spring MVC ever sees the request — so they were bypassing the app's error handling entirely and returning Spring Boot's generic, uninformative error body. The frontend couldn't recognize these cases and always fell back to a vague "something went wrong."
+- Both now return the same structured error shape as the rest of the API, with a distinguishable code — including a new `CSRF_INVALID` case surfaced on login/register as *"Ta session a expiré, recharge la page et réessaie."*, an actionable message instead of a dead end.
+- Fixed an encoding bug found while testing this: the response was written with the servlet's default ISO-8859-1 encoding instead of UTF-8, mangling accented characters in the message.
+
+## Registration no longer depends on email delivery succeeding
+
+- If sending the verification email fails for any reason (unverified sending domain, Resend outage, rate limiting), the account is still created. The failure is only logged server-side — it no longer rolls back the whole registration and returns a dead-end 500.
+
+## Small fixes
+
+- Browser tab now shows "Gyoza Maison" with the site's own logo, instead of the generic Angular default.
+- Fixed analytics charts overflowing horizontally on mobile (forced 460px-minimum grid columns don't fit a phone screen) — they now stack in a single column below 960px wide.

@@ -1,9 +1,13 @@
 <main class="my-orders">
-  <ds-section-header
-    title="Mes commandes"
-    subtitle="L’historique de tes commandes."
-    align="left"
-  ></ds-section-header>
+  <header class="my-orders__header">
+    <ds-section-header
+      title="Mes commandes"
+      subtitle="L’historique de tes commandes."
+      align="left"
+    ></ds-section-header>
+
+    <a class="my-orders__back-link" routerLink="/account">← Retour</a>
+  </header>
 
   @if (loading()) {
     <p class="my-orders__hint">Chargement…</p>

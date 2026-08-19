@@ -1,0 +1,34 @@
+<main class="account">
+  <header class="account__header">
+    <ds-section-header
+      title="Mon compte"
+      subtitle="Gère ton compte et retrouve tes commandes."
+      align="left"
+    ></ds-section-header>
+
+    <ds-button variant="outline" size="sm" (pressed)="logout()">Se déconnecter</ds-button>
+  </header>
+
+  @if (currentUser(); as user) {
+    <section class="account__info">
+      <h2 class="account__info-title">Mes informations</h2>
+      <p class="account__info-line">{{ user.firstName }} {{ user.lastName }}</p>
+      <p class="account__info-line">{{ user.street }}, {{ user.postalCode }} {{ user.city }}</p>
+      <p class="account__info-line">{{ user.email }}</p>
+    </section>
+  }
+
+  <div class="account__cards">
+    <a class="account__card" routerLink="/my-orders">
+      <h3 class="account__card-title">Mes commandes</h3>
+      <p class="account__card-description">Retrouve l’historique de tes commandes.</p>
+    </a>
+
+    @if (isAdmin()) {
+      <a class="account__card" routerLink="/admin">
+        <h3 class="account__card-title">Administration</h3>
+        <p class="account__card-description">Gère le catalogue, les commandes et les droits.</p>
+      </a>
+    }
+  </div>
+</main>

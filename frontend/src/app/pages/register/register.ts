@@ -1,9 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
-import { HttpErrorResponse } from '@angular/common/http';
 import { email, form, FormRoot, minLength, required } from '@angular/forms/signals';
 import { firstValueFrom } from 'rxjs';
 
 import { AuthService } from '../../services/auth.service';
+import { apiErrorCode } from '../../shared/api-error';
 import { DsAuthCardComponent } from '../../design-system/components/ds-auth-card/ds-auth-card.component';
 import { DsButtonComponent } from '../../design-system/components/ds-button/ds-button.component';
 import { DsFormFieldComponent } from '../../design-system/components/ds-form-field/ds-form-field.component';
@@ -73,15 +73,14 @@ export class Register {
             await firstValueFrom(this.authService.register(this.fields()));
             this.registered.set(true);
           } catch (error: unknown) {
-            const code =
-              error instanceof HttpErrorResponse
-                ? (error.error as { code?: string })?.code
-                : undefined;
+            const code = apiErrorCode(error);
 
             this.submitError.set(
               code === 'EMAIL_ALREADY_REGISTERED'
                 ? 'Cette adresse email est déjà utilisée.'
-                : 'Une erreur est survenue, réessaie plus tard.',
+                : code === 'CSRF_INVALID'
+                  ? 'Ta session a expiré, recharge la page et réessaie.'
+                  : 'Une erreur est survenue, réessaie plus tard.',
             );
           } finally {
             this.submitting.set(false);

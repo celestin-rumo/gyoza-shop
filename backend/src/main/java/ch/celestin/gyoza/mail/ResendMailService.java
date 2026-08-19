@@ -1,16 +1,21 @@
 package ch.celestin.gyoza.mail;
 
 import ch.celestin.gyoza.user.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import java.util.Map;
 
 @Service
 @ConditionalOnProperty(prefix = "app.mail", name = "provider", havingValue = "resend")
 public class ResendMailService implements MailService {
+
+    private static final Logger log = LoggerFactory.getLogger(ResendMailService.class);
 
     private final RestClient restClient;
     private final MailProperties mailProperties;
@@ -51,15 +56,23 @@ public class ResendMailService implements MailService {
     }
 
     private void send(String to, String subject, String html) {
-        restClient.post()
-                .uri("/emails")
-                .body(Map.of(
-                        "from", mailProperties.fromAddress(),
-                        "to", to,
-                        "subject", subject,
-                        "html", html
-                ))
-                .retrieve()
-                .toBodilessEntity();
+        // Best-effort: a delivery failure (unverified domain, Resend outage,
+        // rate limit...) must never roll back the account action that
+        // triggered it — registration/password-reset already succeeded from
+        // the user's point of view by the time we get here.
+        try {
+            restClient.post()
+                    .uri("/emails")
+                    .body(Map.of(
+                            "from", mailProperties.fromAddress(),
+                            "to", to,
+                            "subject", subject,
+                            "html", html
+                    ))
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientException e) {
+            log.error("Failed to send email to {} via Resend: {}", to, e.getMessage());
+        }
     }
 }

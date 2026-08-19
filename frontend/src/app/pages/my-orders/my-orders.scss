@@ -11,6 +11,30 @@
   gap: var(--gz-space-8);
 }
 
+.my-orders__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--gz-space-4);
+  flex-wrap: wrap;
+}
+
+.my-orders__back-link {
+  color: var(--gz-text-secondary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--gz-text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--gz-accent-400);
+    outline-offset: 2px;
+  }
+}
+
 .my-orders__hint {
   margin: 0;
   color: var(--gz-text-secondary);

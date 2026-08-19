@@ -98,17 +98,26 @@ class AuthControllerIT extends AbstractIntegrationTest {
 
     @Test
     void postWithoutCsrfToken_isRejected() throws Exception {
+        // CSRF is rejected by the servlet filter chain, before Spring MVC's
+        // DispatcherServlet — without a dedicated accessDeniedHandler this would
+        // fall back to Spring Boot's generic {timestamp,status,error,path} body
+        // instead of the app's ApiError shape the frontend actually reads.
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email":"nobody@example.com","password":"whatever123"}
                                 """))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code", is("CSRF_INVALID")))
+                // Guards against writing this response with the servlet's default
+                // ISO-8859-1 encoding instead of UTF-8, which mangles accents.
+                .andExpect(jsonPath("$.message", is("Session invalide, merci de recharger la page et réessayer")));
     }
 
     @Test
     void me_whenNotAuthenticated_isUnauthorized() throws Exception {
         mockMvc.perform(get("/api/users/me"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code", is("UNAUTHENTICATED")));
     }
 }

@@ -6,7 +6,10 @@
       align="left"
     ></ds-section-header>
 
-    <ds-button variant="outline" size="sm" (pressed)="logout()">Se déconnecter</ds-button>
+    <div class="admin-home__header-actions">
+      <a class="admin-home__back-link" routerLink="/account">← Retour</a>
+      <ds-button variant="outline" size="sm" (pressed)="logout()">Se déconnecter</ds-button>
+    </div>
   </header>
 
   <div class="admin-home__cards">
