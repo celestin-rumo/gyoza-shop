@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
   pull_request:
     branches:
       - main
@@ -45,6 +47,12 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "release_tag=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
             echo "release_name=Release ${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+          elif [ "${{ startsWith(github.ref, 'refs/tags/') }}" = "true" ]; then
+            # Pushing a version tag (git tag vX.Y.Z && git push origin vX.Y.Z) runs the
+            # full pipeline under that same version — no manual workflow_dispatch needed.
+            echo "release_tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "release_name=Release ${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
             echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
           else
             echo "release_tag=main-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
