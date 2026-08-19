@@ -100,6 +100,39 @@ cd e2e && npm ci && npx playwright install --with-deps chromium && npm test
 docker compose -f docker-compose.e2e.yml down -v   # à la fin
 ```
 
+## Migrations de base de données
+
+Le schéma est géré par [Flyway](https://flywaydb.org/) (`backend/src/main/resources/db/migration/`), pas par `ddl-auto` — celui-ci reste sur `validate` : Hibernate vérifie juste que les entités correspondent au schéma, il ne le modifie jamais. Un changement de schéma = un nouveau fichier `V{N}__description.sql`, jamais une modification d'un fichier déjà appliqué. Les tests d'intégration (`mvn verify`) font tourner ces migrations pour de vrai contre un Postgres jetable (Testcontainers), donc une migration cassée se voit avant même d'arriver en CI.
+
+## Sauvegardes & rollback
+
+Deux workflows GitHub Actions tournent sur le runner self-hosted (`infra-edge`) et écrivent dans `/home/infra-edge/gyoza-shop/backups/` (dump `pg_dump` gzippé) :
+
+- **`backup-database.yml`** — quotidien (03:00 UTC), conserve les 14 derniers (`daily-*.sql.gz`).
+- **`deploy.yml`** — un backup juste avant chaque déploiement, conserve les 10 derniers (`predeploy-*.sql.gz`) — donc un déploiement qui tourne mal peut toujours être annulé sur l'état exact d'avant.
+
+### Restaurer un backup
+
+Sur le serveur de prod :
+
+```bash
+cd /home/infra-edge/gyoza-shop
+
+# Remplacement propre (efface l'état actuel avant de restaurer) :
+docker compose -f docker-compose.prod.yml exec -T database psql -U gyoza -d postgres \
+  -c "DROP DATABASE gyoza;" -c "CREATE DATABASE gyoza;"
+
+gunzip -c backups/<fichier>.sql.gz | \
+  docker compose -f docker-compose.prod.yml exec -T database psql -U gyoza -d gyoza
+```
+
+### Annuler un déploiement
+
+- **Code applicatif** : relancer le workflow **Deploy App on Server** manuellement (`workflow_dispatch`) avec le tag d'image voulu (`image_tag` — n'importe quel `main-N`, `vX.Y.Z` ou SHA déjà publié sur GHCR).
+- **Base de données** : si le déploiement contenait une migration Flyway à annuler, restaurer le `predeploy-*` correspondant (voir ci-dessus) **avant** de redéployer l'ancienne image — faire tourner l'ancien code contre le nouveau schéma (ou l'inverse) peut casser de façon imprévisible.
+
+⚠️ Ces backups vivent sur le même disque que la base en production — ils protègent contre une migration ratée ou une corruption applicative, pas contre une panne totale du serveur. Pour ça il faudrait copier les backups ailleurs (autre machine, stockage objet) ; je peux le mettre en place si tu as déjà un endroit où les envoyer.
+
 ## État du projet
 
-Voir [releases-notes/](releases-notes/) pour le détail des versions. Version actuelle : **v1.0.0** — comptes clients (inscription, vérification email, connexion par session, mot de passe oublié) et gestion des droits admin, en plus du socle CI/CD et tests automatisés déjà en place.
+Voir [releases-notes/](releases-notes/) pour le détail des versions. Version actuelle : **v1.2.1** — comptes clients, historique de commandes, page compte, migrations Flyway, et releases déclenchées directement par tag git.

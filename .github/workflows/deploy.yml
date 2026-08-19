@@ -81,6 +81,30 @@ jobs:
             -f "${{ env.COMPOSE_PROD_FILE }}" \
             pull "${{ env.FRONT_SERVICE_NAME }}" "${{ env.BACKEND_SERVICE_NAME }}" "${{ env.DATABASE_SERVICE_NAME }}"
 
+      - name: Backup database before deploying
+        shell: bash
+        run: |
+          cd "${{ env.DEPLOY_PATH }}"
+          mkdir -p backups
+
+          if ! docker compose -f "${{ env.COMPOSE_PROD_FILE }}" ps --status running --services \
+              | grep -qx "${{ env.DATABASE_SERVICE_NAME }}"; then
+            echo "Database container isn't running yet (first deploy?) — nothing to back up."
+            exit 0
+          fi
+
+          TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+          FILE="backups/predeploy-${TIMESTAMP}.sql.gz"
+
+          docker compose -f "${{ env.COMPOSE_PROD_FILE }}" exec -T "${{ env.DATABASE_SERVICE_NAME }}" \
+            sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' | gzip > "$FILE"
+
+          echo "Pre-deploy backup written: $FILE ($(du -h "$FILE" | cut -f1))"
+
+          # Keep the last 10 pre-deploy snapshots — enough to undo a run of bad
+          # deploys without the folder growing unbounded.
+          ls -1t backups/predeploy-*.sql.gz | tail -n +11 | xargs -r rm --
+
       - name: Deploy frontend, backend and database containers
         shell: bash
         run: |
