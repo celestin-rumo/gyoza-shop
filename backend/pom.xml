@@ -41,6 +41,17 @@
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
+        <!-- Schema migrations: Hibernate only validates entity mappings against
+             what Flyway creates (ddl-auto: validate), it never alters the schema. -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
         <!-- Security: protects the admin API -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
