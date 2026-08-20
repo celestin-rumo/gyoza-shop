@@ -1,0 +1,95 @@
+services:
+  frontend:
+    container_name: gyoza-staging-frontend
+    image: ghcr.io/celestin-rumo/gyoza-frontend:${IMAGE_TAG:-staging}
+
+    expose:
+      - "4000"
+
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gyoza-staging-frontend.rule=Host(`staging.gyoza.celestinrumo.ch`)"
+      - "traefik.http.routers.gyoza-staging-frontend.entrypoints=websecure"
+      - "traefik.http.routers.gyoza-staging-frontend.tls.certresolver=le"
+      - "traefik.http.routers.gyoza-staging-frontend.priority=1"
+      - "traefik.http.routers.gyoza-staging-frontend.middlewares=basic-auth@file"
+      - "traefik.http.services.gyoza-staging-frontend.loadbalancer.server.port=4000"
+
+    networks:
+      - traefik-proxy
+
+    restart: unless-stopped
+
+  backend:
+    container_name: gyoza-staging-backend
+    image: ghcr.io/celestin-rumo/gyoza-backend:${IMAGE_TAG:-staging}
+
+    expose:
+      - "8080"
+
+    environment:
+      DB_URL: jdbc:postgresql://database:5432/${POSTGRES_DB:-gyoza_staging}
+      DB_USERNAME: ${POSTGRES_USER:-gyoza_staging}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in the staging .env file}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?ADMIN_EMAIL must be set in the staging .env file}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD must be set in the staging .env file}
+      MAIL_PROVIDER: resend
+      RESEND_API_KEY: ${RESEND_API_KEY:?RESEND_API_KEY must be set in the staging .env file}
+      MAIL_FROM: no-reply@celestinrumo.ch
+      FRONTEND_BASE_URL: https://staging.gyoza.celestinrumo.ch
+
+    depends_on:
+      database:
+        condition: service_healthy
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-proxy"
+      - "traefik.http.routers.gyoza-staging-api.rule=Host(`staging.gyoza.celestinrumo.ch`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.gyoza-staging-api.entrypoints=websecure"
+      - "traefik.http.routers.gyoza-staging-api.tls.certresolver=le"
+      - "traefik.http.routers.gyoza-staging-api.priority=100"
+      - "traefik.http.routers.gyoza-staging-api.middlewares=basic-auth@file"
+      - "traefik.http.services.gyoza-staging-api.loadbalancer.server.port=8080"
+
+    networks:
+      - traefik-proxy
+      - app-internal
+
+    restart: unless-stopped
+
+  database:
+    container_name: gyoza-staging-database
+    image: postgres:17
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gyoza_staging}
+      POSTGRES_USER: ${POSTGRES_USER:-gyoza_staging}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in the staging .env file}
+
+    volumes:
+      - postgres_staging_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - app-internal
+
+    restart: unless-stopped
+
+volumes:
+  postgres_staging_data:
+
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+    external: true
+  app-internal:

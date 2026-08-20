@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
     tags:
       - "v*"
   pull_request:
@@ -39,6 +40,7 @@ jobs:
       release_name: ${{ steps.meta.outputs.release_name }}
       is_prerelease: ${{ steps.meta.outputs.is_prerelease }}
       is_promote: ${{ steps.meta.outputs.is_promote }}
+      is_staging: ${{ steps.meta.outputs.is_staging }}
     steps:
       - name: Compute release metadata
         id: meta
@@ -54,6 +56,10 @@ jobs:
             echo "release_tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
             echo "release_name=Release ${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
             echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.ref_name }}" = "dev" ]; then
+            echo "release_tag=dev-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+            echo "release_name=Dev build #${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
           else
             echo "release_tag=main-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
             echo "release_name=Main build #${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
@@ -64,6 +70,13 @@ jobs:
             echo "is_promote=true" >> "$GITHUB_OUTPUT"
           else
             echo "is_promote=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Dev pushes build & deploy to staging only — no GitHub tag/release is cut for them.
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref_name }}" = "dev" ]; then
+            echo "is_staging=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_staging=false" >> "$GITHUB_OUTPUT"
           fi
 
   test-frontend:
@@ -212,7 +225,8 @@ jobs:
         with:
           images: ${{ env.IMAGE_FRONTEND }}
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ needs.prepare-meta.outputs.is_staging != 'true' }}
+            type=raw,value=staging,enable=${{ needs.prepare-meta.outputs.is_staging == 'true' }}
             type=raw,value=${{ github.sha }}
             type=raw,value=${{ needs.prepare-meta.outputs.release_tag }}
 
@@ -255,7 +269,8 @@ jobs:
         with:
           images: ${{ env.IMAGE_BACKEND }}
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ needs.prepare-meta.outputs.is_staging != 'true' }}
+            type=raw,value=staging,enable=${{ needs.prepare-meta.outputs.is_staging == 'true' }}
             type=raw,value=${{ github.sha }}
             type=raw,value=${{ needs.prepare-meta.outputs.release_tag }}
 
@@ -352,6 +367,7 @@ jobs:
     if: >
       always() &&
       needs.prepare-meta.result == 'success' &&
+      needs.prepare-meta.outputs.is_staging != 'true' &&
       (
         needs.promote.result == 'success' ||
         (needs.build-frontend.result == 'success' && needs.build-backend.result == 'success' && needs.e2e.result == 'success')
@@ -398,6 +414,41 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build release body
+        id: body
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ needs.prepare-meta.outputs.release_tag }}
+          IS_PROMOTE: ${{ needs.prepare-meta.outputs.is_promote }}
+          RETAG_FROM: ${{ inputs.retag_from }}
+        run: |
+          notes_file="releases-notes/${RELEASE_TAG}"
+
+          retag_suffix=""
+          if [ "$IS_PROMOTE" = "true" ]; then
+            retag_suffix=" (retagged from \`${RETAG_FROM}\`)"
+          fi
+
+          {
+            if [ -f "$notes_file" ]; then
+              cat "$notes_file"
+              echo
+              echo "---"
+              echo
+            fi
+
+            echo "Docker images published for \`${RELEASE_TAG}\`${retag_suffix}"
+            echo
+            echo "Frontend:"
+            echo "- \`${IMAGE_FRONTEND}:${RELEASE_TAG}\`"
+            echo
+            echo "Backend:"
+            echo "- \`${IMAGE_BACKEND}:${RELEASE_TAG}\`"
+          } > release_body.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -406,11 +457,4 @@ jobs:
           generate_release_notes: true
           prerelease: ${{ needs.prepare-meta.outputs.is_prerelease == 'true' }}
           make_latest: ${{ needs.prepare-meta.outputs.is_prerelease != 'true' }}
-          body: |
-            Docker images published for `${{ needs.prepare-meta.outputs.release_tag }}`${{ needs.prepare-meta.outputs.is_promote == 'true' && format(' (retagged from `{0}`)', inputs.retag_from) || '' }}
-
-            Frontend:
-            - `${{ env.IMAGE_FRONTEND }}:${{ needs.prepare-meta.outputs.release_tag }}`
-
-            Backend:
-            - `${{ env.IMAGE_BACKEND }}:${{ needs.prepare-meta.outputs.release_tag }}`
+          body_path: release_body.md
