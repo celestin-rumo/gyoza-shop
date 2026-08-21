@@ -28,6 +28,13 @@
 
           <p class="order-card__date">{{ order.createdAt | date: 'dd.MM.yyyy HH:mm' }}</p>
 
+          <p class="order-card__fulfillment">
+            {{ fulfillmentLabels[order.fulfillmentMethod] }} — {{ slotLabel(order.fulfillmentMethod, order.slot) }}
+            <span class="order-card__content-badge order-card__content-badge--{{ order.contentType.toLowerCase() }}">
+              {{ order.contentType === 'FRESH' ? 'Frais' : 'Surgelé' }}
+            </span>
+          </p>
+
           <ul class="order-card__items">
             @for (item of order.items; track item.productName + item.packSize) {
               <li class="order-card__item">

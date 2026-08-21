@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { OrderService } from '../../services/order.service';
 import { Order, OrderStatus } from '../../models/order.model';
+import { FulfillmentMethod, slotLabel } from '../../models/fulfillment.model';
 import { DsSectionHeaderComponent } from '../../design-system/components/ds-section-header/ds-section-header.component';
 import { DsFormMessageComponent } from '../../design-system/components/ds-form-message/ds-form-message.component';
 import { DsPricePipe } from '../../design-system/pipes/ds-price.pipe';
@@ -17,6 +18,11 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   CANCELLED: 'Annulée',
 };
 
+const FULFILLMENT_LABELS: Record<FulfillmentMethod, string> = {
+  PICKUP: 'Retrait',
+  DELIVERY: 'Livraison',
+};
+
 @Component({
   selector: 'app-my-orders',
   imports: [DsSectionHeaderComponent, DsFormMessageComponent, DsPricePipe, DatePipe, RouterLink],
@@ -27,6 +33,8 @@ export class MyOrders implements OnInit {
   private readonly orderService = inject(OrderService);
 
   protected readonly statusLabels = STATUS_LABELS;
+  protected readonly fulfillmentLabels = FULFILLMENT_LABELS;
+  protected readonly slotLabel = slotLabel;
 
   protected readonly orders = signal<Order[]>([]);
   protected readonly loading = signal(true);

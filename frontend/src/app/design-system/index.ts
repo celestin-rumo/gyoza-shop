@@ -18,3 +18,4 @@ export * from './components/ds-pack-picker/ds-pack-picker.component';
 export * from './components/ds-product-card/ds-product-card.component';
 export * from './components/ds-recipe-card/ds-recipe-card.component';
 export * from './components/ds-section-header/ds-section-header.component';
+export * from './components/ds-stepper/ds-stepper.component';

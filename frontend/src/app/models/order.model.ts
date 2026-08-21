@@ -1,10 +1,12 @@
+import { ContentType, FulfillmentMethod } from './fulfillment.model';
+
 export type OrderStatus = 'RESERVED' | 'PREPARING' | 'READY' | 'DELIVERED' | 'CANCELLED';
 
 export interface OrderCustomer {
   firstName: string;
   lastName: string;
   email: string;
-  address: string;
+  address?: string;
 }
 
 export interface OrderItem {
@@ -21,4 +23,7 @@ export interface Order {
   createdAt: string;
   customer: OrderCustomer;
   items: OrderItem[];
+  fulfillmentMethod: FulfillmentMethod;
+  slot: string;
+  contentType: ContentType;
 }

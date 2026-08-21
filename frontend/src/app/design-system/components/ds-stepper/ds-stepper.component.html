@@ -1,0 +1,37 @@
+<nav class="ds-stepper" aria-label="Étapes de la commande">
+  <ol class="ds-stepper__list">
+    @for (step of steps(); track step.id; let i = $index) {
+      <li
+        class="ds-stepper__item ds-stepper__item--{{ stepState(i) }}"
+        [attr.aria-current]="i === currentIndex() ? 'step' : null"
+      >
+        <span class="ds-stepper__marker" aria-hidden="true">
+          @if (stepState(i) === 'done') {
+            ✓
+          } @else {
+            {{ i + 1 }}
+          }
+        </span>
+        <span class="ds-stepper__label">{{ step.label }}</span>
+      </li>
+    }
+  </ol>
+
+  <div class="ds-stepper__live" aria-live="polite">{{ liveMessage() }}</div>
+</nav>
+
+<div class="ds-stepper__actions">
+  @if (currentIndex() > 0) {
+    <ds-button type="button" variant="outline" size="md" (pressed)="back.emit()">Retour</ds-button>
+  }
+
+  <ds-button
+    type="button"
+    variant="primary"
+    size="md"
+    [disabled]="!canGoNext()"
+    (pressed)="next.emit()"
+  >
+    {{ nextLabel() }}
+  </ds-button>
+</div>

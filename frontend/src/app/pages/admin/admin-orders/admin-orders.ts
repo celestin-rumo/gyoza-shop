@@ -7,6 +7,7 @@ import { firstValueFrom } from 'rxjs';
 import { AdminOrderService } from '../../../services/admin-order.service';
 import { AuthService } from '../../../services/auth.service';
 import { Order, OrderStatus } from '../../../models/order.model';
+import { FULFILLMENT_METHOD_LABELS, slotLabel } from '../../../models/fulfillment.model';
 import { DsButtonComponent } from '../../../design-system/components/ds-button/ds-button.component';
 import { DsSectionHeaderComponent } from '../../../design-system/components/ds-section-header/ds-section-header.component';
 import { DsPricePipe } from '../../../design-system/pipes/ds-price.pipe';
@@ -58,6 +59,8 @@ export class AdminOrders implements OnInit {
 
   protected readonly statusLabels = STATUS_LABELS;
   protected readonly allStatuses = ALL_STATUSES;
+  protected readonly fulfillmentMethodLabels = FULFILLMENT_METHOD_LABELS;
+  protected readonly slotLabel = slotLabel;
 
   protected readonly orders = signal<Order[]>([]);
   protected readonly loading = signal(true);
@@ -102,11 +105,20 @@ export class AdminOrders implements OnInit {
     return counts;
   });
 
-  /** Total packs (by size) to prepare for each product, based on reserved orders. */
-  protected readonly prepSummary = computed<PrepProduct[]>(() => {
+  /** Total packs (by size) to prepare for each product, among FRESH reserved orders. */
+  protected readonly prepSummaryFresh = computed<PrepProduct[]>(() =>
+    this.groupByProductAndPack(this.reservedOrders().filter((order) => order.contentType === 'FRESH')),
+  );
+
+  /** Total packs (by size) to prepare for each product, among FROZEN reserved orders. */
+  protected readonly prepSummaryFrozen = computed<PrepProduct[]>(() =>
+    this.groupByProductAndPack(this.reservedOrders().filter((order) => order.contentType === 'FROZEN')),
+  );
+
+  private groupByProductAndPack(orders: Order[]): PrepProduct[] {
     const packsByProduct = new Map<string, Map<number, number>>();
 
-    for (const order of this.reservedOrders()) {
+    for (const order of orders) {
       for (const item of order.items) {
         const sizes = packsByProduct.get(item.productName) ?? new Map<number, number>();
         sizes.set(item.packSize, (sizes.get(item.packSize) ?? 0) + item.packQuantity);
@@ -125,7 +137,7 @@ export class AdminOrders implements OnInit {
         return { productName, totalUnits, packs };
       })
       .sort((a, b) => a.productName.localeCompare(b.productName, 'fr'));
-  });
+  }
 
   constructor() {
     // Safety net: if the current page becomes out of bounds (e.g. the last order

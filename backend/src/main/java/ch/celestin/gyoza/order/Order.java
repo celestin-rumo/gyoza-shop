@@ -40,6 +40,19 @@ public class Order {
     @Column(nullable = false)
     private BigDecimal totalPrice;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private FulfillmentMethod fulfillmentMethod;
+
+    // Stores the .name() of whichever enum applies — PickupSlot or DeliverySlot,
+    // disambiguated by fulfillmentMethod. See PickupSlot/DeliverySlot.
+    @Column(nullable = false)
+    private String slot;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "content_type", nullable = false)
+    private ContentType contentType;
+
     @OneToMany(
             mappedBy = "order",
             cascade = CascadeType.ALL,
@@ -50,16 +63,30 @@ public class Order {
     protected Order() {
     }
 
-    public Order(Customer customer, User user) {
+    public Order(
+            Customer customer,
+            User user,
+            FulfillmentMethod fulfillmentMethod,
+            String slot,
+            ContentType contentType
+    ) {
         this.customer = customer;
         this.user = user;
         this.status = OrderStatus.RESERVED;
         this.createdAt = LocalDateTime.now();
         this.totalPrice = BigDecimal.ZERO;
+        this.fulfillmentMethod = fulfillmentMethod;
+        this.slot = slot;
+        this.contentType = contentType;
     }
 
-    public Order(Customer customer) {
-        this(customer, null);
+    public Order(
+            Customer customer,
+            FulfillmentMethod fulfillmentMethod,
+            String slot,
+            ContentType contentType
+    ) {
+        this(customer, null, fulfillmentMethod, slot, contentType);
     }
 
     public void addItem(OrderItem item) {
@@ -107,6 +134,18 @@ public class Order {
 
     public List<OrderItem> getItems() {
         return items;
+    }
+
+    public FulfillmentMethod getFulfillmentMethod() {
+        return fulfillmentMethod;
+    }
+
+    public String getSlot() {
+        return slot;
+    }
+
+    public ContentType getContentType() {
+        return contentType;
     }
 
     private boolean canTransitionTo(

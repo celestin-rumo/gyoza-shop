@@ -1,5 +1,7 @@
 package ch.celestin.gyoza.order.dto;
 
+import ch.celestin.gyoza.order.ContentType;
+import ch.celestin.gyoza.order.FulfillmentMethod;
 import ch.celestin.gyoza.order.OrderStatus;
 
 import java.math.BigDecimal;
@@ -12,6 +14,9 @@ public record OrderResponse(
         BigDecimal totalPrice,
         LocalDateTime createdAt,
         OrderCustomerResponse customer,
-        List<OrderItemResponse> items
+        List<OrderItemResponse> items,
+        FulfillmentMethod fulfillmentMethod,
+        String slot,
+        ContentType contentType
 ) {
 }

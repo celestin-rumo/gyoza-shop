@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -61,12 +62,18 @@ class OrderControllerIT extends AbstractIntegrationTest {
                                     "email": "jean.dupont@example.com",
                                     "address": "1 rue du Test, Lausanne"
                                   },
-                                  "lines": [{"packId": %d, "quantity": 2}]
+                                  "lines": [{"packId": %d, "quantity": 2}],
+                                  "fulfillmentMethod": "DELIVERY",
+                                  "slot": "MARDI_18H_20H",
+                                  "contentType": "FROZEN"
                                 }
                                 """.formatted(sixPackOfChicken.getId())))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status", is("RESERVED")))
-                .andExpect(jsonPath("$.items", hasSize(1)));
+                .andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.fulfillmentMethod", is("DELIVERY")))
+                .andExpect(jsonPath("$.slot", is("MARDI_18H_20H")))
+                .andExpect(jsonPath("$.contentType", is("FROZEN")));
 
         Product reloaded = productRepository.findById(chicken.getId()).orElseThrow();
         assertThat(reloaded.getStockQuantity()).isEqualTo(stockBefore - 2 * sixPackOfChicken.getSize());
@@ -88,7 +95,10 @@ class OrderControllerIT extends AbstractIntegrationTest {
                                     "email": "jean.dupont@example.com",
                                     "address": "1 rue du Test, Lausanne"
                                   },
-                                  "lines": [{"packId": 999999, "quantity": 1}]
+                                  "lines": [{"packId": 999999, "quantity": 1}],
+                                  "fulfillmentMethod": "DELIVERY",
+                                  "slot": "MARDI_18H_20H",
+                                  "contentType": "FROZEN"
                                 }
                                 """))
                 .andExpect(status().isNotFound())
@@ -140,7 +150,10 @@ class OrderControllerIT extends AbstractIntegrationTest {
                                     "email": "%s",
                                     "address": "1 rue du Test, Lausanne"
                                   },
-                                  "lines": [{"packId": %d, "quantity": 1}]
+                                  "lines": [{"packId": %d, "quantity": 1}],
+                                  "fulfillmentMethod": "DELIVERY",
+                                  "slot": "MARDI_18H_20H",
+                                  "contentType": "FROZEN"
                                 }
                                 """.formatted(email, sixPackOfChicken.getId())))
                 .andExpect(status().isCreated());
@@ -149,5 +162,158 @@ class OrderControllerIT extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].customer.email", is(email)));
+    }
+
+    @Test
+    void createOrder_withDeliveryAndMissingAddress_isRejected() throws Exception {
+        PackOption sixPackOfChicken = packOptionRepository.findAll().stream()
+                .filter(pack -> pack.getSize() == 6 && pack.getProduct().getName().equals("Chicken"))
+                .findFirst()
+                .orElseThrow();
+
+        Cookie csrf = fetchCsrfCookie();
+
+        mockMvc.perform(post("/api/orders")
+                        .cookie(csrf)
+                        .header("X-XSRF-TOKEN", csrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "customer": {
+                                    "firstName": "Jean",
+                                    "lastName": "Dupont",
+                                    "email": "jean.dupont@example.com",
+                                    "address": ""
+                                  },
+                                  "lines": [{"packId": %d, "quantity": 1}],
+                                  "fulfillmentMethod": "DELIVERY",
+                                  "slot": "MARDI_18H_20H",
+                                  "contentType": "FROZEN"
+                                }
+                                """.formatted(sixPackOfChicken.getId())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code", is("INVALID_REQUEST")));
+    }
+
+    @Test
+    void createOrder_withMismatchedSlotForFulfillmentMethod_isRejected() throws Exception {
+        PackOption sixPackOfChicken = packOptionRepository.findAll().stream()
+                .filter(pack -> pack.getSize() == 6 && pack.getProduct().getName().equals("Chicken"))
+                .findFirst()
+                .orElseThrow();
+
+        Cookie csrf = fetchCsrfCookie();
+
+        mockMvc.perform(post("/api/orders")
+                        .cookie(csrf)
+                        .header("X-XSRF-TOKEN", csrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "customer": {
+                                    "firstName": "Jean",
+                                    "lastName": "Dupont",
+                                    "email": "jean.dupont@example.com",
+                                    "address": "1 rue du Test, Lausanne"
+                                  },
+                                  "lines": [{"packId": %d, "quantity": 1}],
+                                  "fulfillmentMethod": "PICKUP",
+                                  "slot": "MARDI_18H_20H",
+                                  "contentType": "FROZEN"
+                                }
+                                """.formatted(sixPackOfChicken.getId())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code", is("INVALID_REQUEST")));
+    }
+
+    @Test
+    void createOrder_withFreshContentType_whenWindowClosed_isRejected() throws Exception {
+        // Explicitly close the window rather than relying on the V2 migration's default
+        // seed value — test execution order across the class isn't guaranteed, and another
+        // test (createOrder_withFreshContentType_whenWindowOpen_succeeds) opens it.
+        MockHttpSession adminSession = loginAsAdmin();
+        Cookie csrfForAdminUpdate = fetchCsrfCookie();
+
+        mockMvc.perform(put("/api/admin/fresh-availability")
+                        .session(adminSession)
+                        .cookie(csrfForAdminUpdate)
+                        .header("X-XSRF-TOKEN", csrfForAdminUpdate.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"nextBatchDate": "2026-09-15", "orderWindowOpen": false}
+                                """))
+                .andExpect(status().isOk());
+
+        PackOption sixPackOfChicken = packOptionRepository.findAll().stream()
+                .filter(pack -> pack.getSize() == 6 && pack.getProduct().getName().equals("Chicken"))
+                .findFirst()
+                .orElseThrow();
+
+        Cookie csrf = fetchCsrfCookie();
+
+        mockMvc.perform(post("/api/orders")
+                        .cookie(csrf)
+                        .header("X-XSRF-TOKEN", csrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "customer": {
+                                    "firstName": "Jean",
+                                    "lastName": "Dupont",
+                                    "email": "jean.dupont@example.com",
+                                    "address": ""
+                                  },
+                                  "lines": [{"packId": %d, "quantity": 1}],
+                                  "fulfillmentMethod": "PICKUP",
+                                  "slot": "SAMEDI_10H_12H",
+                                  "contentType": "FRESH"
+                                }
+                                """.formatted(sixPackOfChicken.getId())))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code", is("FRESH_ORDER_WINDOW_CLOSED")));
+    }
+
+    @Test
+    void createOrder_withFreshContentType_whenWindowOpen_succeeds() throws Exception {
+        MockHttpSession adminSession = loginAsAdmin();
+        Cookie csrfForAdminUpdate = fetchCsrfCookie();
+
+        mockMvc.perform(put("/api/admin/fresh-availability")
+                        .session(adminSession)
+                        .cookie(csrfForAdminUpdate)
+                        .header("X-XSRF-TOKEN", csrfForAdminUpdate.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"nextBatchDate": "2026-09-15", "orderWindowOpen": true}
+                                """))
+                .andExpect(status().isOk());
+
+        PackOption sixPackOfChicken = packOptionRepository.findAll().stream()
+                .filter(pack -> pack.getSize() == 6 && pack.getProduct().getName().equals("Chicken"))
+                .findFirst()
+                .orElseThrow();
+
+        Cookie csrf = fetchCsrfCookie();
+
+        mockMvc.perform(post("/api/orders")
+                        .cookie(csrf)
+                        .header("X-XSRF-TOKEN", csrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "customer": {
+                                    "firstName": "Jean",
+                                    "lastName": "Dupont",
+                                    "email": "jean.dupont@example.com",
+                                    "address": ""
+                                  },
+                                  "lines": [{"packId": %d, "quantity": 1}],
+                                  "fulfillmentMethod": "PICKUP",
+                                  "slot": "SAMEDI_10H_12H",
+                                  "contentType": "FRESH"
+                                }
+                                """.formatted(sixPackOfChicken.getId())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.contentType", is("FRESH")));
     }
 }
