@@ -24,9 +24,9 @@ test('the checkout wizard has no AXE violations at any step', async ({ page }) =
   results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
 
-  await page.getByLabel('Livraison').check();
-  await page.getByLabel('Mardi 18h–20h').check();
-  await page.getByLabel('Surgelé').check();
+  await page.getByRole('radio', { name: 'Livraison' }).click();
+  await page.getByRole('radio', { name: 'Mardi 18h–20h' }).click();
+  await page.getByRole('radio', { name: 'Surgelé' }).click();
   await page.getByRole('button', { name: 'Continuer' }).click();
 
   // Step 3: Coordonnées

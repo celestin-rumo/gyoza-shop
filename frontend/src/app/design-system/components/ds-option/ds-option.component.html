@@ -1,0 +1,12 @@
+<button
+  type="button"
+  class="ds-option"
+  [class.ds-option--selected]="selected()"
+  [class.ds-option--disabled]="disabled()"
+  role="radio"
+  [attr.aria-checked]="selected()"
+  [attr.aria-disabled]="disabled() ? 'true' : null"
+  (click)="onClick()"
+>
+  <ng-content></ng-content>
+</button>

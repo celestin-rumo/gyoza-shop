@@ -1,5 +1,4 @@
-import { Component, computed, input, output } from '@angular/core';
-import { DsButtonComponent } from '../ds-button/ds-button.component';
+import { Component, computed, input } from '@angular/core';
 
 export interface DsStep {
   id: string;
@@ -7,28 +6,21 @@ export interface DsStep {
 }
 
 /**
- * <ds-stepper [steps]="steps" [currentIndex]="currentStepIndex()" [canGoNext]="canAdvance()"
- *             (back)="onBack()" (next)="onNext()"></ds-stepper>
+ * <ds-stepper [steps]="steps" [currentIndex]="currentStepIndex()"></ds-stepper>
  *
- * Used for: any multi-step wizard (currently checkout). Purely presentational —
- * it knows nothing about form validity or step content, the consuming page owns
- * that and decides whether `next` is allowed to advance via `canGoNext`.
+ * Used for: the progress indicator of any multi-step wizard (currently checkout).
+ * Purely presentational and display-only — it doesn't own navigation; the
+ * consuming page renders its own "Retour"/"Continuer" controls wherever they
+ * make sense for that step's layout (e.g. at the bottom of the step content).
  */
 @Component({
   selector: 'ds-stepper',
-  imports: [DsButtonComponent],
   templateUrl: './ds-stepper.component.html',
   styleUrl: './ds-stepper.component.scss',
 })
 export class DsStepperComponent {
   steps = input.required<DsStep[]>();
   currentIndex = input.required<number>();
-  canGoNext = input(true);
-  /** Label for the "next" action — the consuming page decides when this reads "Payer" vs "Continuer". */
-  nextLabel = input('Continuer');
-
-  back = output<void>();
-  next = output<void>();
 
   protected readonly liveMessage = computed(() => {
     const steps = this.steps();

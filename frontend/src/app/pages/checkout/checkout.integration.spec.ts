@@ -54,18 +54,15 @@ describe('Checkout (integration)', () => {
     input.dispatchEvent(new Event('input'));
   }
 
-  function checkRadio(name: string, value: string): void {
-    const radios: HTMLInputElement[] = Array.from(
-      fixture.nativeElement.querySelectorAll(`input[type="radio"][name="${name}"]`),
+  function chooseOption(value: string): void {
+    const buttons: HTMLButtonElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('button[role="radio"]'),
     );
-    const radio = radios.find((candidate) => {
-      const label = candidate.closest('label');
-      return label?.textContent?.includes(value);
-    });
-    if (!radio) {
-      throw new Error(`No radio found for ${name} = ${value}`);
+    const option = buttons.find((candidate) => candidate.textContent?.trim() === value);
+    if (!option) {
+      throw new Error(`No ds-option found for ${value}`);
     }
-    radio.click();
+    option.click();
   }
 
   async function goToFulfillmentStep(): Promise<void> {
@@ -76,11 +73,11 @@ describe('Checkout (integration)', () => {
   }
 
   async function fillFulfillmentStep(method: 'Retrait' | 'Livraison', slotText: string, content: 'Surgelé' | 'Frais'): Promise<void> {
-    checkRadio('fulfillmentMethod', method);
+    chooseOption(method);
     fixture.detectChanges();
-    checkRadio('slot', slotText);
+    chooseOption(slotText);
     fixture.detectChanges();
-    checkRadio('contentType', content);
+    chooseOption(content);
     fixture.detectChanges();
     clickButton('Continuer');
     await fixture.whenStable();
@@ -179,18 +176,18 @@ describe('Checkout (integration)', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    // Still on step 2 (Récupération) — the slot fieldset only appears once a method is chosen.
-    expect(fixture.nativeElement.querySelector('input[name="slot"]')).toBeNull();
+    // Still on step 2 (Récupération) — the slot group only appears once a method is chosen.
+    expect(fixture.nativeElement.textContent).not.toContain('Créneau');
   });
 
   it('disables the "Frais" option and shows a message when the order window is closed', async () => {
     await goToFulfillmentStep();
 
-    const freshRadio: HTMLInputElement | undefined = Array.from<HTMLInputElement>(
-      fixture.nativeElement.querySelectorAll('input[type="radio"][name="contentType"]'),
-    ).find((input) => input.closest('label')?.textContent?.includes('Frais'));
+    const freshOption: HTMLButtonElement | undefined = Array.from<HTMLButtonElement>(
+      fixture.nativeElement.querySelectorAll('button[role="radio"]'),
+    ).find((button) => button.textContent?.trim() === 'Frais');
 
-    expect(freshRadio?.getAttribute('aria-disabled')).toBe('true');
+    expect(freshOption?.getAttribute('aria-disabled')).toBe('true');
     expect(fixture.nativeElement.textContent).toContain('gyozas frais n’est pas ouverte');
   });
 });
