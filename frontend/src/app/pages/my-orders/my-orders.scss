@@ -114,6 +114,32 @@
   font-size: var(--gz-fs-xs);
 }
 
+.order-card__fulfillment {
+  display: flex;
+  align-items: center;
+  gap: var(--gz-space-2);
+  margin: 0;
+  color: var(--gz-text-secondary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-xs);
+}
+
+.order-card__content-badge {
+  padding: var(--gz-space-1) var(--gz-space-2);
+  border-radius: var(--gz-radius-pill);
+  background: var(--gz-bg-elevated);
+  color: var(--gz-text-muted);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-xs);
+  font-weight: var(--gz-fw-medium);
+  white-space: nowrap;
+
+  &--fresh {
+    background: rgba(169, 173, 140, 0.18);
+    color: var(--gz-text-primary);
+  }
+}
+
 .order-card__items {
   margin: 0;
   padding: var(--gz-space-3) 0;

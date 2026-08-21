@@ -32,6 +32,61 @@ describe('Checkout (integration)', () => {
     quantity: 2,
   };
 
+  function flushFreshAvailability(orderWindowOpen = false): void {
+    const req = httpMock.expectOne('/api/fresh-availability');
+    req.flush({ nextBatchDate: orderWindowOpen ? '2026-09-15' : null, orderWindowOpen });
+  }
+
+  function clickButton(name: RegExp | string): void {
+    const buttons: HTMLButtonElement[] = Array.from(fixture.nativeElement.querySelectorAll('button'));
+    const button = buttons.find((candidate) =>
+      typeof name === 'string' ? candidate.textContent?.trim() === name : name.test(candidate.textContent ?? ''),
+    );
+    if (!button) {
+      throw new Error(`No button found matching ${name}`);
+    }
+    button.click();
+  }
+
+  function setInputValue(id: string, value: string): void {
+    const input: HTMLInputElement = fixture.nativeElement.querySelector(`#${id}`);
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
+  }
+
+  function checkRadio(name: string, value: string): void {
+    const radios: HTMLInputElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll(`input[type="radio"][name="${name}"]`),
+    );
+    const radio = radios.find((candidate) => {
+      const label = candidate.closest('label');
+      return label?.textContent?.includes(value);
+    });
+    if (!radio) {
+      throw new Error(`No radio found for ${name} = ${value}`);
+    }
+    radio.click();
+  }
+
+  async function goToFulfillmentStep(): Promise<void> {
+    clickButton('Continuer');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
+
+  async function fillFulfillmentStep(method: 'Retrait' | 'Livraison', slotText: string, content: 'Surgelé' | 'Frais'): Promise<void> {
+    checkRadio('fulfillmentMethod', method);
+    fixture.detectChanges();
+    checkRadio('slot', slotText);
+    fixture.detectChanges();
+    checkRadio('contentType', content);
+    fixture.detectChanges();
+    clickButton('Continuer');
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
+
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [Checkout],
@@ -45,35 +100,38 @@ describe('Checkout (integration)', () => {
 
     fixture = TestBed.createComponent(Checkout);
     fixture.detectChanges();
+
+    flushFreshAvailability(false);
   });
 
   afterEach(() => httpMock.verify());
 
-  function setInputValue(id: string, value: string): void {
-    const input: HTMLInputElement = fixture.nativeElement.querySelector(`#${id}`);
-    input.value = value;
-    input.dispatchEvent(new Event('input'));
-  }
+  it('walks the 4 steps and submits the order at the end of the "Coordonnées" step', async () => {
+    await goToFulfillmentStep();
+    await fillFulfillmentStep('Livraison', 'Mardi 18h–20h', 'Surgelé');
 
-  it('submits the order, empties the cart and shows the confirmation', async () => {
     setInputValue('firstName', 'Jean');
     setInputValue('lastName', 'Dupont');
-    setInputValue('address', '1 rue du Test, Lausanne');
     setInputValue('email', 'jean.dupont@example.com');
+    setInputValue('address', '1 rue du Test, Lausanne');
     fixture.detectChanges();
 
-    const form: HTMLFormElement = fixture.nativeElement.querySelector('form');
-    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    clickButton('Payer');
+    fixture.detectChanges();
+    await fixture.whenStable();
 
     const req = httpMock.expectOne('/api/orders');
     expect(req.request.body).toEqual({
       customer: {
         firstName: 'Jean',
         lastName: 'Dupont',
-        address: '1 rue du Test, Lausanne',
         email: 'jean.dupont@example.com',
+        address: '1 rue du Test, Lausanne',
       },
       lines: [{ packId: 10, quantity: 2 }],
+      fulfillmentMethod: 'DELIVERY',
+      slot: 'MARDI_18H_20H',
+      contentType: 'FROZEN',
     });
 
     req.flush({
@@ -90,18 +148,49 @@ describe('Checkout (integration)', () => {
     expect(fixture.nativeElement.textContent).toContain('Commande envoyée');
   });
 
-  it('does not submit the order when a required field is left empty', async () => {
+  it('does not require an address for a pickup order', async () => {
+    await goToFulfillmentStep();
+    await fillFulfillmentStep('Retrait', 'Samedi 10h–12h', 'Surgelé');
+
     setInputValue('firstName', 'Jean');
-    // lastName / address / email left blank
+    setInputValue('lastName', 'Dupont');
+    setInputValue('email', 'jean.dupont@example.com');
     fixture.detectChanges();
 
-    const form: HTMLFormElement = fixture.nativeElement.querySelector('form');
-    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    expect(fixture.nativeElement.querySelector('#address')).toBeNull();
 
+    clickButton('Payer');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const req = httpMock.expectOne('/api/orders');
+    expect(req.request.body.fulfillmentMethod).toBe('PICKUP');
+    expect(req.request.body.slot).toBe('SAMEDI_10H_12H');
+    expect(req.request.body.customer.address).toBeUndefined();
+
+    req.flush({ id: 1, status: 'RESERVED', totalPrice: 24, createdAt: new Date().toISOString() });
+  });
+
+  it('blocks advancing past the "Récupération" step until a method, slot and content type are chosen', async () => {
+    await goToFulfillmentStep();
+
+    clickButton('Continuer');
+    fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
 
-    httpMock.expectNone('/api/orders');
-    expect(cart.lines()).toHaveLength(1);
+    // Still on step 2 (Récupération) — the slot fieldset only appears once a method is chosen.
+    expect(fixture.nativeElement.querySelector('input[name="slot"]')).toBeNull();
+  });
+
+  it('disables the "Frais" option and shows a message when the order window is closed', async () => {
+    await goToFulfillmentStep();
+
+    const freshRadio: HTMLInputElement | undefined = Array.from<HTMLInputElement>(
+      fixture.nativeElement.querySelectorAll('input[type="radio"][name="contentType"]'),
+    ).find((input) => input.closest('label')?.textContent?.includes('Frais'));
+
+    expect(freshRadio?.getAttribute('aria-disabled')).toBe('true');
+    expect(fixture.nativeElement.textContent).toContain('gyozas frais n’est pas ouverte');
   });
 });

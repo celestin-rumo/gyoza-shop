@@ -2,8 +2,11 @@ package ch.celestin.gyoza.order;
 
 import ch.celestin.gyoza.customer.Customer;
 import ch.celestin.gyoza.customer.CustomerRepository;
+import ch.celestin.gyoza.exception.FreshOrderWindowClosedException;
 import ch.celestin.gyoza.exception.OrderNotFoundException;
 import ch.celestin.gyoza.exception.PackNotFoundException;
+import ch.celestin.gyoza.freshavailability.FreshAvailability;
+import ch.celestin.gyoza.freshavailability.FreshAvailabilityRepository;
 import ch.celestin.gyoza.order.dto.*;
 import ch.celestin.gyoza.pack.PackOption;
 import ch.celestin.gyoza.pack.PackOptionRepository;
@@ -20,15 +23,18 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final CustomerRepository customerRepository;
     private final PackOptionRepository packOptionRepository;
+    private final FreshAvailabilityRepository freshAvailabilityRepository;
 
     public OrderServiceImpl(
             OrderRepository orderRepository,
             CustomerRepository customerRepository,
-            PackOptionRepository packOptionRepository
+            PackOptionRepository packOptionRepository,
+            FreshAvailabilityRepository freshAvailabilityRepository
     ) {
         this.orderRepository = orderRepository;
         this.customerRepository = customerRepository;
         this.packOptionRepository = packOptionRepository;
+        this.freshAvailabilityRepository = freshAvailabilityRepository;
     }
 
     @Override
@@ -37,6 +43,8 @@ public class OrderServiceImpl implements OrderService {
             CreateOrderRequest request,
             User currentUser
     ) {
+
+        validateFulfillment(request);
 
         Customer customer = new Customer(
                 request.customer().firstName(),
@@ -47,7 +55,13 @@ public class OrderServiceImpl implements OrderService {
 
         customerRepository.save(customer);
 
-        Order order = new Order(customer, currentUser);
+        Order order = new Order(
+                customer,
+                currentUser,
+                request.fulfillmentMethod(),
+                request.slot(),
+                request.contentType()
+        );
 
         for (CreateOrderItemRequest line : request.lines()) {
 
@@ -118,6 +132,38 @@ public class OrderServiceImpl implements OrderService {
         return toResponse(order);
     }
 
+    private void validateFulfillment(CreateOrderRequest request) {
+
+        try {
+            if (request.fulfillmentMethod() == FulfillmentMethod.PICKUP) {
+                PickupSlot.valueOf(request.slot());
+            } else {
+                DeliverySlot.valueOf(request.slot());
+            }
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException(
+                    "Le créneau \"" + request.slot() + "\" n'est pas valide pour " + request.fulfillmentMethod()
+            );
+        }
+
+        if (request.fulfillmentMethod() == FulfillmentMethod.DELIVERY
+                && (request.customer().address() == null || request.customer().address().isBlank())) {
+            throw new IllegalArgumentException(
+                    "L'adresse est requise pour une livraison"
+            );
+        }
+
+        if (request.contentType() == ContentType.FRESH) {
+            FreshAvailability freshAvailability = freshAvailabilityRepository
+                    .findById(FreshAvailability.SINGLETON_ID)
+                    .orElse(null);
+
+            if (freshAvailability == null || !freshAvailability.isOrderWindowOpen()) {
+                throw new FreshOrderWindowClosedException();
+            }
+        }
+    }
+
     private OrderResponse toResponse(Order order) {
         return new OrderResponse(
                 order.getId(),
@@ -125,7 +171,10 @@ public class OrderServiceImpl implements OrderService {
                 order.getTotalPrice(),
                 order.getCreatedAt(),
                 toCustomerResponse(order.getCustomer()),
-                order.getItems().stream().map(this::toItemResponse).toList()
+                order.getItems().stream().map(this::toItemResponse).toList(),
+                order.getFulfillmentMethod(),
+                order.getSlot(),
+                order.getContentType()
         );
     }
 

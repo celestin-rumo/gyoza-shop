@@ -21,7 +21,8 @@ public class Customer {
     @Column(nullable = false)
     private String email;
 
-    @Column(nullable = false)
+    // Nullable: only required for DELIVERY orders (validated in
+    // OrderServiceImpl), left unset for PICKUP.
     private String address;
 
     // Nullable: rows created before this field existed have no value.

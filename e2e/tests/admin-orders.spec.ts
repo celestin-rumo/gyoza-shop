@@ -38,6 +38,9 @@ test('an admin can log in, adjust stock, and move an order forward', async ({ pa
         address: '2 avenue du Test, Lausanne',
       },
       lines: [{ packId: sixPack.id, quantity: 1 }],
+      fulfillmentMethod: 'DELIVERY',
+      slot: 'MARDI_18H_20H',
+      contentType: 'FROZEN',
     },
   });
   expect(orderResponse.ok()).toBe(true);

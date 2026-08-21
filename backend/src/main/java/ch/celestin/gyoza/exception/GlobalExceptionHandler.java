@@ -110,6 +110,22 @@ public class GlobalExceptionHandler {
                 );
     }
 
+    @ExceptionHandler(FreshOrderWindowClosedException.class)
+    public ResponseEntity<ApiError> handleFreshOrderWindowClosed(
+            FreshOrderWindowClosedException ex
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(
+                        new ApiError(
+                                "FRESH_ORDER_WINDOW_CLOSED",
+                                ex.getMessage(),
+                                LocalDateTime.now()
+                        )
+                );
+    }
+
     @ExceptionHandler(InvalidOrderStatusException.class)
     public ResponseEntity<ApiError> handleInvalidOrderStatus(
             InvalidOrderStatusException ex

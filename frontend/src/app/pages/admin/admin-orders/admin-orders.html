@@ -20,13 +20,35 @@
     <p class="admin-orders__hint">Aucune commande pour le moment.</p>
   } @else {
     <section class="admin-orders__prep">
-      <h2 class="admin-orders__prep-title">Besoins en préparation</h2>
+      <h2 class="admin-orders__prep-title">Besoins en préparation — Frais</h2>
 
-      @if (prepSummary().length === 0) {
-        <p class="admin-orders__hint">Aucune commande réservée pour le moment.</p>
+      @if (prepSummaryFresh().length === 0) {
+        <p class="admin-orders__hint">Aucune commande frais réservée pour le moment.</p>
       } @else {
         <div class="admin-orders__prep-grid">
-          @for (product of prepSummary(); track product.productName) {
+          @for (product of prepSummaryFresh(); track product.productName) {
+            <article class="prep-tile">
+              <span class="prep-tile__label">{{ product.productName }}</span>
+              <span class="prep-tile__value">{{ product.totalUnits }} gyozas</span>
+              <ul class="prep-tile__packs">
+                @for (pack of product.packs; track pack.packSize) {
+                  <li>{{ pack.packQuantity }} × pack de {{ pack.packSize }}</li>
+                }
+              </ul>
+            </article>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="admin-orders__prep">
+      <h2 class="admin-orders__prep-title">Besoins en préparation — Surgelé</h2>
+
+      @if (prepSummaryFrozen().length === 0) {
+        <p class="admin-orders__hint">Aucune commande surgelé réservée pour le moment.</p>
+      } @else {
+        <div class="admin-orders__prep-grid">
+          @for (product of prepSummaryFrozen(); track product.productName) {
             <article class="prep-tile">
               <span class="prep-tile__label">{{ product.productName }}</span>
               <span class="prep-tile__value">{{ product.totalUnits }} gyozas</span>
@@ -100,6 +122,14 @@
                 <section class="admin-order__section">
                   <h4 class="admin-order__section-title">Passée le</h4>
                   <p class="admin-order__date">{{ order.createdAt | date: 'dd.MM.yyyy HH:mm' }}</p>
+                </section>
+
+                <section class="admin-order__section">
+                  <h4 class="admin-order__section-title">Récupération</h4>
+                  <p class="admin-order__customer">
+                    {{ fulfillmentMethodLabels[order.fulfillmentMethod] }} — {{ slotLabel(order.fulfillmentMethod, order.slot) }}<br />
+                    {{ order.contentType === 'FRESH' ? 'Frais' : 'Surgelé' }}
+                  </p>
                 </section>
 
                 <section class="admin-order__section">

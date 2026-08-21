@@ -64,6 +64,14 @@ export const routes: Routes = [
     canActivate: [adminGuard],
   },
   {
+    path: 'admin/fresh-availability',
+    loadComponent: () =>
+      import('./pages/admin/admin-fresh-availability/admin-fresh-availability').then(
+        (m) => m.AdminFreshAvailability,
+      ),
+    canActivate: [adminGuard],
+  },
+  {
     path: 'admin/analytics',
     loadComponent: () =>
       import('./pages/admin/admin-analytics/admin-analytics').then((m) => m.AdminAnalytics),
