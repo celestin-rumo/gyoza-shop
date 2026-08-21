@@ -1,4 +1,10 @@
 <div class="ds-section-header" [class.ds-section-header--left]="align === 'left'">
-  <h2 class="ds-section-header__title">{{ title }}</h2>
-  <p class="ds-section-header__subtitle" *ngIf="subtitle">{{ subtitle }}</p>
+  @if (level === 1) {
+    <h1 class="ds-section-header__title">{{ title }}</h1>
+  } @else {
+    <h2 class="ds-section-header__title">{{ title }}</h2>
+  }
+  @if (subtitle) {
+    <p class="ds-section-header__subtitle">{{ subtitle }}</p>
+  }
 </div>

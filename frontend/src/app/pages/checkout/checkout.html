@@ -4,6 +4,7 @@
       <ds-section-header
         title="Votre panier est vide"
         subtitle="Ajoutez quelques gyozas avant de passer commande."
+        [level]="1"
       ></ds-section-header>
       <ds-button variant="primary" size="md" (pressed)="goHome()">Découvrir nos gyozas</ds-button>
     </section>
@@ -12,6 +13,7 @@
       title="Finaliser la commande"
       subtitle="Suivez les étapes pour valider votre commande."
       align="left"
+      [level]="1"
     ></ds-section-header>
 
     @if (!orderPlaced()) {
