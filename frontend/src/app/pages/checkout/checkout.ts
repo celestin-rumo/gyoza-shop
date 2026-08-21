@@ -18,6 +18,7 @@ import {
   DsButtonComponent,
   DsCartAddEvent,
   DsCartItemComponent,
+  DsOptionComponent,
   DsPricePipe,
   DsSectionHeaderComponent,
   DsStep,
@@ -52,6 +53,7 @@ const STEPS: DsStep[] = [
     DsSectionHeaderComponent,
     DsCartItemComponent,
     DsButtonComponent,
+    DsOptionComponent,
     DsPricePipe,
     DsStepperComponent,
     FormField,
@@ -167,6 +169,14 @@ export class Checkout implements OnInit {
 
   protected goHome(): void {
     this.router.navigateByUrl('/');
+  }
+
+  protected goToShop(): void {
+    this.router.navigateByUrl('/nos-gyozas');
+  }
+
+  protected goToCartStep(): void {
+    this.currentStepIndex.set(CART_STEP);
   }
 
   protected goToLogin(): void {

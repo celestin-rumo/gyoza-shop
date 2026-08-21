@@ -17,20 +17,14 @@ describe('DsStepperComponent', () => {
     fixture = TestBed.createComponent(DsStepperComponent);
   });
 
-  function setInputs(overrides: Partial<{ currentIndex: number; canGoNext: boolean; nextLabel: string }>): void {
+  function setInputs(currentIndex: number): void {
     fixture.componentRef.setInput('steps', steps);
-    fixture.componentRef.setInput('currentIndex', overrides.currentIndex ?? 0);
-    if (overrides.canGoNext !== undefined) {
-      fixture.componentRef.setInput('canGoNext', overrides.canGoNext);
-    }
-    if (overrides.nextLabel !== undefined) {
-      fixture.componentRef.setInput('nextLabel', overrides.nextLabel);
-    }
+    fixture.componentRef.setInput('currentIndex', currentIndex);
     fixture.detectChanges();
   }
 
   it('marks only the current step with aria-current="step"', () => {
-    setInputs({ currentIndex: 1 });
+    setInputs(1);
 
     const items: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.ds-stepper__item'));
     const current = items.filter((item) => item.getAttribute('aria-current') === 'step');
@@ -39,49 +33,20 @@ describe('DsStepperComponent', () => {
     expect(current[0].textContent).toContain('Récupération');
   });
 
-  it('hides the "Retour" button on the first step', () => {
-    setInputs({ currentIndex: 0 });
+  it('marks earlier steps as done', () => {
+    setInputs(2);
 
-    const buttons: HTMLButtonElement[] = Array.from(fixture.nativeElement.querySelectorAll('button'));
-    expect(buttons.some((button) => button.textContent?.trim() === 'Retour')).toBe(false);
+    const items: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.ds-stepper__item'));
+    expect(items[0].classList).toContain('ds-stepper__item--done');
+    expect(items[1].classList).toContain('ds-stepper__item--done');
+    expect(items[2].classList).toContain('ds-stepper__item--current');
+    expect(items[3].classList).toContain('ds-stepper__item--upcoming');
   });
 
-  it('shows the "Retour" button after the first step', () => {
-    setInputs({ currentIndex: 1 });
+  it('announces the current step in the aria-live region', () => {
+    setInputs(0);
 
-    const buttons: HTMLButtonElement[] = Array.from(fixture.nativeElement.querySelectorAll('button'));
-    expect(buttons.some((button) => button.textContent?.trim() === 'Retour')).toBe(true);
-  });
-
-  it('uses the provided nextLabel for the next-step button', () => {
-    setInputs({ currentIndex: 2, nextLabel: 'Payer' });
-
-    const buttons: HTMLButtonElement[] = Array.from(fixture.nativeElement.querySelectorAll('button'));
-    expect(buttons.some((button) => button.textContent?.trim() === 'Payer')).toBe(true);
-  });
-
-  it('emits next and back when the corresponding buttons are pressed', () => {
-    setInputs({ currentIndex: 1 });
-
-    const nextSpy = vi.fn();
-    const backSpy = vi.fn();
-    fixture.componentInstance.next.subscribe(nextSpy);
-    fixture.componentInstance.back.subscribe(backSpy);
-
-    const buttons: HTMLButtonElement[] = Array.from(fixture.nativeElement.querySelectorAll('button'));
-    buttons.find((button) => button.textContent?.trim() === 'Retour')?.click();
-    buttons.find((button) => button.textContent?.trim() === 'Continuer')?.click();
-
-    expect(backSpy).toHaveBeenCalled();
-    expect(nextSpy).toHaveBeenCalled();
-  });
-
-  it('disables the next button when canGoNext is false', () => {
-    setInputs({ currentIndex: 1, canGoNext: false });
-
-    const buttons: HTMLButtonElement[] = Array.from(fixture.nativeElement.querySelectorAll('button'));
-    const nextButton = buttons.find((button) => button.textContent?.trim() === 'Continuer');
-
-    expect(nextButton?.disabled).toBe(true);
+    const live: HTMLElement = fixture.nativeElement.querySelector('.ds-stepper__live');
+    expect(live.textContent).toContain('Étape 1 sur 4 : Panier');
   });
 });

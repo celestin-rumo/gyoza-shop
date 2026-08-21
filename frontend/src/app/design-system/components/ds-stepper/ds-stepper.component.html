@@ -19,19 +19,3 @@
 
   <div class="ds-stepper__live" aria-live="polite">{{ liveMessage() }}</div>
 </nav>
-
-<div class="ds-stepper__actions">
-  @if (currentIndex() > 0) {
-    <ds-button type="button" variant="outline" size="md" (pressed)="back.emit()">Retour</ds-button>
-  }
-
-  <ds-button
-    type="button"
-    variant="primary"
-    size="md"
-    [disabled]="!canGoNext()"
-    (pressed)="next.emit()"
-  >
-    {{ nextLabel() }}
-  </ds-button>
-</div>
