@@ -1,0 +1,164 @@
+<main class="admin-slots">
+  <header class="admin-slots__header">
+    <ds-section-header
+      title="Créneaux"
+      subtitle="Créer et gérer les créneaux disponibles pour les commandes."
+      align="left"
+    ></ds-section-header>
+
+    <div class="admin-slots__header-actions">
+      <a class="admin-slots__back-link" routerLink="/admin">← Retour</a>
+      <ds-button variant="outline" size="sm" (pressed)="logout()">Se déconnecter</ds-button>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <p class="admin-slots__hint">Chargement…</p>
+  } @else if (loadError()) {
+    <p class="admin-slots__submit-error" role="alert">{{ loadError() }}</p>
+  } @else {
+    <section class="admin-slots__form-section">
+      <h2 class="admin-slots__section-title">{{ editingSlotId() ? 'Modifier le créneau' : 'Nouveau créneau' }}</h2>
+
+      <form [formRoot]="newSlotForm" class="admin-slots__form">
+        <div class="admin-slots__field">
+          <label for="slotDate">Date</label>
+          <input id="slotDate" type="date" [formField]="newSlotForm.date" />
+          @if (submitAttempted() && newSlotForm.date().invalid()) {
+            <p class="admin-slots__field-error">{{ newSlotForm.date().errors()[0]?.message }}</p>
+          }
+        </div>
+
+        <div class="admin-slots__field">
+          <span class="admin-slots__field-label">Mode</span>
+          <div class="admin-slots__options" role="radiogroup" aria-label="Choisir un mode de récupération">
+            <ds-option
+              [selected]="newSlot().fulfillmentMethod === 'PICKUP'"
+              (select)="selectNewSlotMethod('PICKUP')"
+            >
+              Retrait
+            </ds-option>
+            <ds-option
+              [selected]="newSlot().fulfillmentMethod === 'DELIVERY'"
+              (select)="selectNewSlotMethod('DELIVERY')"
+            >
+              Livraison
+            </ds-option>
+          </div>
+        </div>
+
+        <div class="admin-slots__time-fields">
+          <div class="admin-slots__field">
+            <label for="slotStartTime">Heure de début</label>
+            <input id="slotStartTime" type="time" [formField]="newSlotForm.startTime" />
+            @if (submitAttempted() && newSlotForm.startTime().invalid()) {
+              <p class="admin-slots__field-error">{{ newSlotForm.startTime().errors()[0]?.message }}</p>
+            }
+          </div>
+
+          <div class="admin-slots__field">
+            <label for="slotEndTime">Heure de fin</label>
+            <input id="slotEndTime" type="time" [formField]="newSlotForm.endTime" />
+            @if (submitAttempted() && newSlotForm.endTime().invalid()) {
+              <p class="admin-slots__field-error">{{ newSlotForm.endTime().errors()[0]?.message }}</p>
+            }
+          </div>
+        </div>
+
+        <div class="admin-slots__field">
+          <span class="admin-slots__field-label">Contenu</span>
+          <div class="admin-slots__options" role="radiogroup" aria-label="Choisir frais ou surgelé">
+            <ds-option
+              [selected]="newSlot().contentType === 'FRESH'"
+              (select)="selectNewContentType('FRESH')"
+            >
+              Frais
+            </ds-option>
+            <ds-option
+              [selected]="newSlot().contentType === 'FROZEN'"
+              (select)="selectNewContentType('FROZEN')"
+            >
+              Surgelé
+            </ds-option>
+          </div>
+        </div>
+
+        @if (slotFormError()) {
+          <p class="admin-slots__submit-error" role="alert">{{ slotFormError() }}</p>
+        }
+
+        <div class="admin-slots__form-actions">
+          <ds-button
+            type="submit"
+            variant="primary"
+            size="md"
+            [disabled]="savingSlot()"
+            (pressed)="submitAttempted.set(true)"
+          >
+            {{ savingSlot() ? 'Enregistrement…' : (editingSlotId() ? 'Enregistrer les modifications' : 'Créer le créneau') }}
+          </ds-button>
+          @if (editingSlotId()) {
+            <ds-button type="button" variant="outline" size="md" [disabled]="savingSlot()" (pressed)="cancelEdit()">
+              Annuler
+            </ds-button>
+          }
+        </div>
+      </form>
+    </section>
+
+    <section class="admin-slots__form-section">
+      <h2 class="admin-slots__section-title">Disponibilités</h2>
+
+      @if (slots().length === 0) {
+        <p class="admin-slots__hint">Aucun créneau créé pour le moment.</p>
+      } @else {
+        <ul class="admin-slots__list">
+          @for (slot of slots(); track slot.id) {
+            <li class="admin-slots__list-item">
+              <span class="admin-slots__list-item-label">
+                {{ fulfillmentMethodLabels[slot.fulfillmentMethod] }} — {{ formatTimeRange(slot.startTime, slot.endTime) }}
+                · {{ slot.date }} · {{ contentTypeLabels[slot.contentType] }}
+              </span>
+              <span class="admin-slots__status admin-slots__status--{{ slot.open ? 'open' : 'closed' }}">
+                {{ slot.open ? 'Ouvert' : 'Fermé' }}
+              </span>
+              <div class="admin-slots__list-item-actions">
+                <ds-button variant="outline" size="sm" (pressed)="startEdit(slot)">
+                  Modifier
+                </ds-button>
+                <ds-button
+                  variant="outline"
+                  size="sm"
+                  [disabled]="togglingSlotId() === slot.id"
+                  (pressed)="toggleSlot(slot)"
+                >
+                  {{ slot.open ? 'Fermer' : 'Ouvrir' }}
+                </ds-button>
+                <ds-button
+                  variant="ghost"
+                  size="sm"
+                  [disabled]="deletingSlotId() === slot.id"
+                  (pressed)="deleteSlot(slot)"
+                >
+                  Supprimer
+                </ds-button>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="admin-slots__calendar-section">
+      <h2 class="admin-slots__section-title">Vue d’ensemble</h2>
+      <p class="admin-slots__hint">
+        Cliquer sur une date préremplit le formulaire ci-dessus ; cliquer sur un créneau bascule son statut
+        ouvert/fermé ; glisser un événement dans le calendrier change sa date.
+      </p>
+      @if (moveError()) {
+        <p class="admin-slots__submit-error" role="alert">{{ moveError() }}</p>
+      }
+      <full-calendar [options]="calendarOptions()"></full-calendar>
+    </section>
+  }
+</main>

@@ -110,16 +110,16 @@ public class GlobalExceptionHandler {
                 );
     }
 
-    @ExceptionHandler(FreshOrderWindowClosedException.class)
-    public ResponseEntity<ApiError> handleFreshOrderWindowClosed(
-            FreshOrderWindowClosedException ex
+    @ExceptionHandler(SlotNotAvailableException.class)
+    public ResponseEntity<ApiError> handleSlotNotAvailable(
+            SlotNotAvailableException ex
     ) {
 
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(
                         new ApiError(
-                                "FRESH_ORDER_WINDOW_CLOSED",
+                                "SLOT_NOT_AVAILABLE",
                                 ex.getMessage(),
                                 LocalDateTime.now()
                         )
