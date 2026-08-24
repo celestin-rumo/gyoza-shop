@@ -123,8 +123,12 @@ export class AdminRawMaterialPurchases implements OnInit {
       this.store.set('');
       this.batchNumber.set('');
 
-      await this.loadPurchases(rawMaterialId);
-      this.rawMaterials.set(await firstValueFrom(this.adminRawMaterialService.getAllRawMaterials()));
+      await Promise.all([
+        this.loadPurchases(rawMaterialId),
+        firstValueFrom(this.adminRawMaterialService.getAllRawMaterials()).then((rawMaterials) =>
+          this.rawMaterials.set(rawMaterials),
+        ),
+      ]);
     } catch (error) {
       this.createPurchaseError.set(this.extractErrorMessage(error));
     } finally {
