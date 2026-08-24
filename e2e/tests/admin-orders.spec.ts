@@ -28,7 +28,10 @@ test('an admin can log in, adjust stock, and move an order forward', async ({ pa
   expect(loginResponse.ok()).toBe(true);
 
   // Seed an open delivery slot for a fixed future date — the order below needs one to exist.
-  // The slot itself now carries its content type directly.
+  // The slot itself now carries its content type directly. The time is deliberately
+  // *not* DataInitializer's default DELIVERY 18:00–20:00 (seeded for both content
+  // types) — reusing it would make storefront-checkout's generic slot locators
+  // ambiguous, since both slots would share the exact same accessible name.
   const slotDate = '2027-06-01';
   const csrfForSlot = await fetchCsrfToken(request);
   const slotResponse = await request.post('/api/admin/slots', {
@@ -36,8 +39,8 @@ test('an admin can log in, adjust stock, and move an order forward', async ({ pa
     data: {
       date: slotDate,
       fulfillmentMethod: 'DELIVERY',
-      startTime: '18:00',
-      endTime: '20:00',
+      startTime: '19:00',
+      endTime: '21:00',
       contentType: 'FROZEN',
     },
   });
@@ -66,8 +69,8 @@ test('an admin can log in, adjust stock, and move an order forward', async ({ pa
       lines: [{ packId: sixPack.id, quantity: 1 }],
       fulfillmentMethod: 'DELIVERY',
       date: slotDate,
-      startTime: '18:00',
-      endTime: '20:00',
+      startTime: '19:00',
+      endTime: '21:00',
       contentType: 'FROZEN',
     },
   });

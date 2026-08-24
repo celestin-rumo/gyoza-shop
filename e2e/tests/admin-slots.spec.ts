@@ -26,6 +26,9 @@ test('an admin can start editing a slot and save the changes', async ({ page, re
   });
   expect(loginResponse.ok()).toBe(true);
 
+  // Deliberately picked to not collide with DataInitializer's default seed data
+  // (DELIVERY 18:00–20:00 and PICKUP 10:00–12:00, seeded for both content types) —
+  // reusing one of those exact combinations makes list locators ambiguous.
   const slotDate = '2027-07-01';
   const csrfForSlot = await fetchCsrfToken(request);
   const slotResponse = await request.post('/api/admin/slots', {
@@ -33,8 +36,8 @@ test('an admin can start editing a slot and save the changes', async ({ page, re
     data: {
       date: slotDate,
       fulfillmentMethod: 'PICKUP',
-      startTime: '10:00',
-      endTime: '12:00',
+      startTime: '08:00',
+      endTime: '09:00',
       contentType: 'FROZEN',
     },
   });
@@ -49,7 +52,7 @@ test('an admin can start editing a slot and save the changes', async ({ page, re
 
   await page.goto('/admin/slots');
 
-  const slotRow = page.locator('.admin-slots__list-item', { hasText: '10h00–12h00' });
+  const slotRow = page.locator('.admin-slots__list-item', { hasText: '08h00–09h00' });
   await expect(slotRow).toBeVisible();
 
   await slotRow.getByRole('button', { name: 'Modifier' }).click();
@@ -57,8 +60,8 @@ test('an admin can start editing a slot and save the changes', async ({ page, re
   // The form prefills with the existing slot's values.
   await expect(page.getByRole('heading', { name: 'Modifier le créneau' })).toBeVisible();
   await expect(page.locator('#slotDate')).toHaveValue(slotDate);
-  await expect(page.locator('#slotStartTime')).toHaveValue('10:00');
-  await expect(page.locator('#slotEndTime')).toHaveValue('12:00');
+  await expect(page.locator('#slotStartTime')).toHaveValue('08:00');
+  await expect(page.locator('#slotEndTime')).toHaveValue('09:00');
 
   await page.locator('#slotStartTime').fill('14:00');
   await page.locator('#slotEndTime').fill('16:00');
@@ -71,5 +74,5 @@ test('an admin can start editing a slot and save the changes', async ({ page, re
   const updatedRow = page.locator('.admin-slots__list-item', { hasText: '14h00–16h00' });
   await expect(updatedRow).toBeVisible();
   await expect(updatedRow).toContainText('Livraison');
-  await expect(page.locator('.admin-slots__list-item', { hasText: '10h00–12h00' })).toHaveCount(0);
+  await expect(page.locator('.admin-slots__list-item', { hasText: '08h00–09h00' })).toHaveCount(0);
 });
