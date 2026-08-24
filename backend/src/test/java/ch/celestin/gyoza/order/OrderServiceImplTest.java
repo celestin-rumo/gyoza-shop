@@ -2,12 +2,10 @@ package ch.celestin.gyoza.order;
 
 import ch.celestin.gyoza.customer.Customer;
 import ch.celestin.gyoza.customer.CustomerRepository;
-import ch.celestin.gyoza.exception.FreshOrderWindowClosedException;
 import ch.celestin.gyoza.exception.InsufficientStockException;
 import ch.celestin.gyoza.exception.OrderNotFoundException;
 import ch.celestin.gyoza.exception.PackNotFoundException;
-import ch.celestin.gyoza.freshavailability.FreshAvailability;
-import ch.celestin.gyoza.freshavailability.FreshAvailabilityRepository;
+import ch.celestin.gyoza.exception.SlotNotAvailableException;
 import ch.celestin.gyoza.order.dto.CreateOrderCustomerRequest;
 import ch.celestin.gyoza.order.dto.CreateOrderItemRequest;
 import ch.celestin.gyoza.order.dto.CreateOrderRequest;
@@ -15,6 +13,8 @@ import ch.celestin.gyoza.order.dto.OrderResponse;
 import ch.celestin.gyoza.pack.PackOption;
 import ch.celestin.gyoza.pack.PackOptionRepository;
 import ch.celestin.gyoza.product.Product;
+import ch.celestin.gyoza.slot.SlotAvailability;
+import ch.celestin.gyoza.slot.SlotAvailabilityRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +22,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,6 +37,10 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class OrderServiceImplTest {
 
+    private static final LocalDate DATE = LocalDate.of(2026, 9, 8);
+    private static final LocalTime START = LocalTime.of(10, 0);
+    private static final LocalTime END = LocalTime.of(12, 0);
+
     @Mock
     private OrderRepository orderRepository;
 
@@ -45,19 +51,20 @@ class OrderServiceImplTest {
     private PackOptionRepository packOptionRepository;
 
     @Mock
-    private FreshAvailabilityRepository freshAvailabilityRepository;
+    private SlotAvailabilityRepository slotAvailabilityRepository;
 
     private OrderServiceImpl orderService;
 
     @BeforeEach
     void setUp() {
         orderService = new OrderServiceImpl(
-                orderRepository, customerRepository, packOptionRepository, freshAvailabilityRepository
+                orderRepository, customerRepository, packOptionRepository, slotAvailabilityRepository
         );
     }
 
     @Test
     void createOrder_decrementsStock_andReturnsTheCreatedOrder() {
+        stubOpenSlot(FulfillmentMethod.PICKUP, ContentType.FROZEN);
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Product chicken = new Product("Chicken", 200);
@@ -72,10 +79,14 @@ class OrderServiceImplTest {
         assertThat(response.status()).isEqualTo(OrderStatus.RESERVED);
         assertThat(response.totalPrice()).isEqualByComparingTo("24.00"); // 12.00 * 2
         assertThat(response.items()).hasSize(1);
+        assertThat(response.date()).isEqualTo(DATE);
+        assertThat(response.startTime()).isEqualTo(START);
+        assertThat(response.endTime()).isEqualTo(END);
     }
 
     @Test
     void createOrder_throwsPackNotFoundException_whenPackDoesNotExist() {
+        stubOpenSlot(FulfillmentMethod.PICKUP, ContentType.FROZEN);
         when(packOptionRepository.findById(404L)).thenReturn(Optional.empty());
 
         CreateOrderRequest request = createOrderRequest(404L, 1);
@@ -86,6 +97,8 @@ class OrderServiceImplTest {
 
     @Test
     void createOrder_propagatesInsufficientStockException_whenNotEnoughStock() {
+        stubOpenSlot(FulfillmentMethod.PICKUP, ContentType.FROZEN);
+
         Product chicken = new Product("Chicken", 5);
         PackOption sixPack = new PackOption(chicken, 6, new BigDecimal("12.00"));
         when(packOptionRepository.findById(1L)).thenReturn(Optional.of(sixPack));
@@ -101,7 +114,9 @@ class OrderServiceImplTest {
         Order order = new Order(
                 new Customer("Jean", "Dupont", "jean@example.com", "1 rue du Test"),
                 FulfillmentMethod.PICKUP,
-                PickupSlot.SAMEDI_10H_12H.name(),
+                DATE,
+                START,
+                END,
                 ContentType.FROZEN
         );
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
@@ -124,62 +139,81 @@ class OrderServiceImplTest {
     @Test
     void createOrder_withDeliveryAndNoAddress_throwsIllegalArgumentException() {
         CreateOrderRequest request = createOrderRequest(
-                1L, 1, FulfillmentMethod.DELIVERY, DeliverySlot.MARDI_18H_20H.name(), ContentType.FROZEN, ""
+                1L, 1, FulfillmentMethod.DELIVERY, START, END, ContentType.FROZEN, ""
         );
 
         assertThatThrownBy(() -> orderService.createOrder(request, null))
                 .isInstanceOf(IllegalArgumentException.class);
 
-        verifyNoInteractions(packOptionRepository);
+        verifyNoInteractions(packOptionRepository, slotAvailabilityRepository);
     }
 
     @Test
-    void createOrder_withDeliverySlotOnPickupMethod_throwsIllegalArgumentException() {
+    void createOrder_withStartTimeAfterEndTime_throwsIllegalArgumentException() {
         CreateOrderRequest request = createOrderRequest(
-                1L, 1, FulfillmentMethod.PICKUP, DeliverySlot.MARDI_18H_20H.name(), ContentType.FROZEN, "1 rue du Test"
+                1L, 1, FulfillmentMethod.PICKUP, LocalTime.of(12, 0), LocalTime.of(10, 0), ContentType.FROZEN, ""
         );
 
         assertThatThrownBy(() -> orderService.createOrder(request, null))
                 .isInstanceOf(IllegalArgumentException.class);
 
+        verifyNoInteractions(packOptionRepository, slotAvailabilityRepository);
+    }
+
+    @Test
+    void createOrder_withUnavailableSlot_throwsSlotNotAvailableException() {
+        when(slotAvailabilityRepository.findByDateAndFulfillmentMethodAndStartTimeAndEndTimeAndContentType(
+                any(), any(), any(), any(), any()
+        )).thenReturn(Optional.empty());
+
+        CreateOrderRequest request = createOrderRequest(1L, 1);
+
+        assertThatThrownBy(() -> orderService.createOrder(request, null))
+                .isInstanceOf(SlotNotAvailableException.class);
+
         verifyNoInteractions(packOptionRepository);
     }
 
     @Test
-    void createOrder_withPickupSlotOnDeliveryMethod_throwsIllegalArgumentException() {
+    void createOrder_withClosedSlot_throwsSlotNotAvailableException() {
+        SlotAvailability closedSlot =
+                new SlotAvailability(DATE, FulfillmentMethod.PICKUP, START, END, ContentType.FROZEN);
+        closedSlot.close();
+        when(slotAvailabilityRepository.findByDateAndFulfillmentMethodAndStartTimeAndEndTimeAndContentType(
+                any(), any(), any(), any(), any()
+        )).thenReturn(Optional.of(closedSlot));
+
+        CreateOrderRequest request = createOrderRequest(1L, 1);
+
+        assertThatThrownBy(() -> orderService.createOrder(request, null))
+                .isInstanceOf(SlotNotAvailableException.class);
+
+        verifyNoInteractions(packOptionRepository);
+    }
+
+    /**
+     * A slot with FROZEN content exists at this date/time/method, but the request asks for FRESH —
+     * content type is now part of the slot's identity, so this is indistinguishable from "no slot at all".
+     */
+    @Test
+    void createOrder_whenNoSlotMatchesTheRequestedContentType_throwsSlotNotAvailableException() {
+        when(slotAvailabilityRepository.findByDateAndFulfillmentMethodAndStartTimeAndEndTimeAndContentType(
+                DATE, FulfillmentMethod.PICKUP, START, END, ContentType.FRESH
+        )).thenReturn(Optional.empty());
+
         CreateOrderRequest request = createOrderRequest(
-                1L, 1, FulfillmentMethod.DELIVERY, PickupSlot.SAMEDI_10H_12H.name(), ContentType.FROZEN, "1 rue du Test"
+                1L, 1, FulfillmentMethod.PICKUP, START, END, ContentType.FRESH, ""
         );
 
         assertThatThrownBy(() -> orderService.createOrder(request, null))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(SlotNotAvailableException.class);
 
         verifyNoInteractions(packOptionRepository);
     }
 
     @Test
-    void createOrder_withFreshContentType_whenWindowClosed_throwsFreshOrderWindowClosedException() {
-        FreshAvailability closedWindow = new FreshAvailability();
-        closedWindow.update(null, false);
-        when(freshAvailabilityRepository.findById(FreshAvailability.SINGLETON_ID))
-                .thenReturn(Optional.of(closedWindow));
-
-        CreateOrderRequest request = createOrderRequest(
-                1L, 1, FulfillmentMethod.PICKUP, PickupSlot.SAMEDI_10H_12H.name(), ContentType.FRESH, ""
-        );
-
-        assertThatThrownBy(() -> orderService.createOrder(request, null))
-                .isInstanceOf(FreshOrderWindowClosedException.class);
-
-        verifyNoInteractions(packOptionRepository);
-    }
-
-    @Test
-    void createOrder_withFreshContentType_whenWindowOpen_succeeds() {
-        FreshAvailability openWindow = new FreshAvailability();
-        openWindow.update(null, true);
-        when(freshAvailabilityRepository.findById(FreshAvailability.SINGLETON_ID))
-                .thenReturn(Optional.of(openWindow));
+    void createOrder_withFreshContentType_whenAvailable_succeeds() {
+        stubOpenSlot(FulfillmentMethod.PICKUP, ContentType.FRESH);
 
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -188,7 +222,7 @@ class OrderServiceImplTest {
         when(packOptionRepository.findById(1L)).thenReturn(Optional.of(sixPack));
 
         CreateOrderRequest request = createOrderRequest(
-                1L, 2, FulfillmentMethod.PICKUP, PickupSlot.SAMEDI_10H_12H.name(), ContentType.FRESH, ""
+                1L, 2, FulfillmentMethod.PICKUP, START, END, ContentType.FRESH, ""
         );
 
         OrderResponse response = orderService.createOrder(request, null);
@@ -197,12 +231,20 @@ class OrderServiceImplTest {
         assertThat(response.fulfillmentMethod()).isEqualTo(FulfillmentMethod.PICKUP);
     }
 
+    private void stubOpenSlot(FulfillmentMethod fulfillmentMethod, ContentType contentType) {
+        SlotAvailability openSlot = new SlotAvailability(DATE, fulfillmentMethod, START, END, contentType);
+        when(slotAvailabilityRepository.findByDateAndFulfillmentMethodAndStartTimeAndEndTimeAndContentType(
+                DATE, fulfillmentMethod, START, END, contentType
+        )).thenReturn(Optional.of(openSlot));
+    }
+
     private CreateOrderRequest createOrderRequest(Long packId, int quantity) {
         return createOrderRequest(
                 packId,
                 quantity,
                 FulfillmentMethod.PICKUP,
-                PickupSlot.SAMEDI_10H_12H.name(),
+                START,
+                END,
                 ContentType.FROZEN,
                 "1 rue du Test"
         );
@@ -212,7 +254,8 @@ class OrderServiceImplTest {
             Long packId,
             int quantity,
             FulfillmentMethod fulfillmentMethod,
-            String slot,
+            LocalTime startTime,
+            LocalTime endTime,
             ContentType contentType,
             String address
     ) {
@@ -220,7 +263,9 @@ class OrderServiceImplTest {
                 new CreateOrderCustomerRequest("Jean", "Dupont", "jean@example.com", address),
                 List.of(new CreateOrderItemRequest(packId, quantity)),
                 fulfillmentMethod,
-                slot,
+                DATE,
+                startTime,
+                endTime,
                 contentType
         );
     }

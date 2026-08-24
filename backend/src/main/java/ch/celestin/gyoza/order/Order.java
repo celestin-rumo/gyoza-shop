@@ -6,7 +6,9 @@ import ch.celestin.gyoza.user.User;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,10 +46,17 @@ public class Order {
     @Column(nullable = false)
     private FulfillmentMethod fulfillmentMethod;
 
-    // Stores the .name() of whichever enum applies — PickupSlot or DeliverySlot,
-    // disambiguated by fulfillmentMethod. See PickupSlot/DeliverySlot.
-    @Column(nullable = false)
-    private String slot;
+    // The calendar date of the SlotAvailability instance the customer picked
+    // (see ch.celestin.gyoza.slot.SlotAvailability) — not just the recurring
+    // weekly label below.
+    @Column(name = "fulfillment_date", nullable = false)
+    private LocalDate date;
+
+    @Column(name = "start_time", nullable = false)
+    private LocalTime startTime;
+
+    @Column(name = "end_time", nullable = false)
+    private LocalTime endTime;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "content_type", nullable = false)
@@ -67,7 +76,9 @@ public class Order {
             Customer customer,
             User user,
             FulfillmentMethod fulfillmentMethod,
-            String slot,
+            LocalDate date,
+            LocalTime startTime,
+            LocalTime endTime,
             ContentType contentType
     ) {
         this.customer = customer;
@@ -76,17 +87,21 @@ public class Order {
         this.createdAt = LocalDateTime.now();
         this.totalPrice = BigDecimal.ZERO;
         this.fulfillmentMethod = fulfillmentMethod;
-        this.slot = slot;
+        this.date = date;
+        this.startTime = startTime;
+        this.endTime = endTime;
         this.contentType = contentType;
     }
 
     public Order(
             Customer customer,
             FulfillmentMethod fulfillmentMethod,
-            String slot,
+            LocalDate date,
+            LocalTime startTime,
+            LocalTime endTime,
             ContentType contentType
     ) {
-        this(customer, null, fulfillmentMethod, slot, contentType);
+        this(customer, null, fulfillmentMethod, date, startTime, endTime, contentType);
     }
 
     public void addItem(OrderItem item) {
@@ -140,8 +155,16 @@ public class Order {
         return fulfillmentMethod;
     }
 
-    public String getSlot() {
-        return slot;
+    public LocalDate getDate() {
+        return date;
+    }
+
+    public LocalTime getStartTime() {
+        return startTime;
+    }
+
+    public LocalTime getEndTime() {
+        return endTime;
     }
 
     public ContentType getContentType() {

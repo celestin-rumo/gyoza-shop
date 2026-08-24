@@ -24,6 +24,8 @@ export interface Order {
   customer: OrderCustomer;
   items: OrderItem[];
   fulfillmentMethod: FulfillmentMethod;
-  slot: string;
+  date: string;
+  startTime: string;
+  endTime: string;
   contentType: ContentType;
 }

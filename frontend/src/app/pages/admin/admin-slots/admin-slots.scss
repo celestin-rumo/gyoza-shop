@@ -1,0 +1,238 @@
+:host {
+  display: block;
+}
+
+.admin-slots {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--gz-space-12) var(--gz-space-4) var(--gz-space-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gz-space-8);
+}
+
+.admin-slots__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--gz-space-4);
+  flex-wrap: wrap;
+}
+
+.admin-slots__header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gz-space-4);
+}
+
+.admin-slots__back-link {
+  color: var(--gz-text-secondary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--gz-text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--gz-accent-400);
+    outline-offset: 2px;
+  }
+}
+
+.admin-slots__section-title {
+  margin: 0 0 var(--gz-space-4);
+  color: var(--gz-text-primary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-lg);
+  font-weight: var(--gz-fw-semibold);
+}
+
+.admin-slots__calendar-section,
+.admin-slots__form-section {
+  padding: var(--gz-space-6);
+  background: var(--gz-surface);
+  border: 1px solid var(--gz-border-soft);
+  border-radius: var(--gz-radius-lg);
+}
+
+.admin-slots__calendar-section {
+  // FullCalendar's DOM is rendered by third-party JS, outside Angular's template —
+  // custom properties still cascade down to it (unlike class-selector rules, which
+  // would need ::ng-deep), so this is enough to theme it without piercing encapsulation.
+  --fc-border-color: var(--gz-border-soft);
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: var(--gz-bg-elevated);
+  --fc-list-event-hover-bg-color: var(--gz-surface-hover);
+  --fc-today-bg-color: rgba(230, 166, 140, 0.08);
+  --fc-button-bg-color: var(--gz-bg-elevated);
+  --fc-button-border-color: var(--gz-border-soft);
+  --fc-button-hover-bg-color: var(--gz-surface-hover);
+  --fc-button-hover-border-color: var(--gz-border);
+  --fc-button-active-bg-color: var(--gz-accent-400);
+  --fc-button-active-border-color: var(--gz-accent-400);
+  --fc-event-bg-color: var(--gz-accent-400);
+  --fc-event-border-color: var(--gz-accent-400);
+  --fc-event-text-color: var(--gz-text-on-accent);
+
+  font-family: var(--gz-font-family);
+  color: var(--gz-text-primary);
+
+  // classNames added via calendarOptions() land on elements FullCalendar renders itself,
+  // outside Angular's template — Angular's emulated encapsulation never tags them with an
+  // _ngcontent attribute, so a plain scoped selector wouldn't match; ::ng-deep is required here.
+  ::ng-deep .admin-slots__event--fresh {
+    background-color: var(--gz-accent-400) !important;
+    border-color: var(--gz-accent-400) !important;
+  }
+
+  ::ng-deep .admin-slots__event--frozen {
+    background-color: var(--gz-sage-500) !important;
+    border-color: var(--gz-sage-500) !important;
+  }
+
+  ::ng-deep .admin-slots__event--closed {
+    opacity: 0.5;
+  }
+}
+
+.admin-slots__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gz-space-4);
+  align-items: flex-start;
+  margin-bottom: var(--gz-space-6);
+}
+
+.admin-slots__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gz-space-2);
+  width: 100%;
+}
+
+.admin-slots__form-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gz-space-3);
+}
+
+.admin-slots__time-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gz-space-4);
+  width: 100%;
+
+  .admin-slots__field {
+    width: auto;
+    flex: 1 1 160px;
+  }
+}
+
+.admin-slots__field-label,
+.admin-slots__field label {
+  color: var(--gz-text-secondary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+  font-weight: var(--gz-fw-medium);
+}
+
+.admin-slots__field input {
+  padding: var(--gz-space-3) var(--gz-space-4);
+  background: var(--gz-bg-elevated);
+  border: 1px solid var(--gz-border-soft);
+  border-radius: var(--gz-radius-sm);
+  color: var(--gz-text-primary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+
+  &:focus-visible {
+    outline: 2px solid var(--gz-accent-400);
+    outline-offset: 2px;
+  }
+}
+
+.admin-slots__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gz-space-2);
+}
+
+.admin-slots__field-error {
+  margin: 0;
+  color: var(--gz-accent-500);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-xs);
+}
+
+.admin-slots__submit-error {
+  margin: 0;
+  padding: var(--gz-space-3) var(--gz-space-4);
+  background: rgba(230, 166, 140, 0.12);
+  border: 1px solid var(--gz-accent-400);
+  border-radius: var(--gz-radius-sm);
+  color: var(--gz-text-primary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+}
+
+.admin-slots__hint {
+  color: var(--gz-text-secondary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+}
+
+.admin-slots__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gz-space-2);
+}
+
+.admin-slots__list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--gz-space-3);
+  padding: var(--gz-space-3) var(--gz-space-4);
+  background: var(--gz-bg-elevated);
+  border: 1px solid var(--gz-border-soft);
+  border-radius: var(--gz-radius-sm);
+}
+
+.admin-slots__list-item-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gz-space-2);
+}
+
+.admin-slots__list-item-label {
+  color: var(--gz-text-primary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+}
+
+.admin-slots__status {
+  padding: var(--gz-space-1) var(--gz-space-3);
+  border-radius: var(--gz-radius-pill);
+  background: var(--gz-bg-elevated);
+  color: var(--gz-text-muted);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-xs);
+  font-weight: var(--gz-fw-medium);
+  white-space: nowrap;
+
+  &--open {
+    background: rgba(169, 173, 140, 0.18);
+    color: var(--gz-text-primary);
+  }
+
+  &--closed {
+    background: rgba(230, 166, 140, 0.12);
+    color: var(--gz-text-secondary);
+  }
+}

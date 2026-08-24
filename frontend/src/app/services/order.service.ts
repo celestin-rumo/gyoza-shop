@@ -29,13 +29,17 @@ export interface OrderRequest {
   customer: OrderCustomer;
   lines: OrderLineRequest[];
   fulfillmentMethod: FulfillmentMethod;
-  slot: string;
+  date: string;
+  startTime: string;
+  endTime: string;
   contentType: ContentType;
 }
 
 export interface OrderFulfillment {
   fulfillmentMethod: FulfillmentMethod;
-  slot: string;
+  date: string;
+  startTime: string;
+  endTime: string;
   contentType: ContentType;
 }
 
@@ -56,7 +60,9 @@ export class OrderService {
         quantity: line.quantity,
       })),
       fulfillmentMethod: fulfillment.fulfillmentMethod,
-      slot: fulfillment.slot,
+      date: fulfillment.date,
+      startTime: fulfillment.startTime,
+      endTime: fulfillment.endTime,
       contentType: fulfillment.contentType,
     };
 

@@ -7,7 +7,12 @@ import { firstValueFrom } from 'rxjs';
 import { AdminOrderService } from '../../../services/admin-order.service';
 import { AuthService } from '../../../services/auth.service';
 import { Order, OrderStatus } from '../../../models/order.model';
-import { FULFILLMENT_METHOD_LABELS, slotLabel } from '../../../models/fulfillment.model';
+import {
+  CONTENT_TYPE_LABELS,
+  FULFILLMENT_METHOD_LABELS,
+  FulfillmentMethod,
+  formatTimeRange,
+} from '../../../models/fulfillment.model';
 import { DsButtonComponent } from '../../../design-system/components/ds-button/ds-button.component';
 import { DsSectionHeaderComponent } from '../../../design-system/components/ds-section-header/ds-section-header.component';
 import { DsPricePipe } from '../../../design-system/pipes/ds-price.pipe';
@@ -32,8 +37,16 @@ const NEXT_STATUSES: Record<OrderStatus, OrderStatus[]> = {
 const ALL_STATUSES: OrderStatus[] = ['RESERVED', 'PREPARING', 'READY', 'DELIVERED', 'CANCELLED'];
 
 type StatusFilter = OrderStatus | 'ALL';
+type SlotFilter = string | 'ALL';
 
 const PAGE_SIZE = 8;
+
+interface DistinctSlot {
+  key: string;
+  label: string;
+  date: string;
+  startTime: string;
+}
 
 interface PrepPack {
   packSize: number;
@@ -44,6 +57,14 @@ interface PrepProduct {
   productName: string;
   totalUnits: number;
   packs: PrepPack[];
+}
+
+interface PrepSlotGroup {
+  date: string;
+  fulfillmentMethod: FulfillmentMethod;
+  startTime: string;
+  endTime: string;
+  products: PrepProduct[];
 }
 
 @Component({
@@ -60,7 +81,8 @@ export class AdminOrders implements OnInit {
   protected readonly statusLabels = STATUS_LABELS;
   protected readonly allStatuses = ALL_STATUSES;
   protected readonly fulfillmentMethodLabels = FULFILLMENT_METHOD_LABELS;
-  protected readonly slotLabel = slotLabel;
+  protected readonly contentTypeLabels = CONTENT_TYPE_LABELS;
+  protected readonly formatTimeRange = formatTimeRange;
 
   protected readonly orders = signal<Order[]>([]);
   protected readonly loading = signal(true);
@@ -69,17 +91,46 @@ export class AdminOrders implements OnInit {
   protected readonly statusErrors = signal<Record<number, string>>({});
 
   protected readonly statusFilter = signal<StatusFilter>('ALL');
+  protected readonly slotFilter = signal<SlotFilter>('ALL');
   protected readonly expandedOrderIds = signal<ReadonlySet<number>>(new Set());
   protected readonly currentPage = signal(1);
 
   protected readonly filteredOrders = computed(() => {
-    const filter = this.statusFilter();
+    const statusF = this.statusFilter();
+    const slotF = this.slotFilter();
 
-    if (filter === 'ALL') {
-      return this.orders();
+    return this.orders().filter((order) => {
+      if (statusF !== 'ALL' && order.status !== statusF) {
+        return false;
+      }
+
+      if (slotF !== 'ALL' && this.slotKey(order) !== slotF) {
+        return false;
+      }
+
+      return true;
+    });
+  });
+
+  /** Distinct date+créneau combinations present among the loaded orders, for the créneau filter. */
+  protected readonly distinctSlots = computed<DistinctSlot[]>(() => {
+    const byKey = new Map<string, DistinctSlot>();
+
+    for (const order of this.orders()) {
+      const key = this.slotKey(order);
+      if (!byKey.has(key)) {
+        byKey.set(key, {
+          key,
+          label: `${this.fulfillmentMethodLabels[order.fulfillmentMethod]} · ${formatTimeRange(order.startTime, order.endTime)} · ${this.formatDateLabel(order.date)}`,
+          date: order.date,
+          startTime: order.startTime,
+        });
+      }
     }
 
-    return this.orders().filter((order) => order.status === filter);
+    return Array.from(byKey.values()).sort(
+      (a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime),
+    );
   });
 
   protected readonly reservedOrders = computed(() =>
@@ -105,15 +156,36 @@ export class AdminOrders implements OnInit {
     return counts;
   });
 
-  /** Total packs (by size) to prepare for each product, among FRESH reserved orders. */
-  protected readonly prepSummaryFresh = computed<PrepProduct[]>(() =>
-    this.groupByProductAndPack(this.reservedOrders().filter((order) => order.contentType === 'FRESH')),
+  /** Packs to prepare per date+créneau, by product, among FRESH reserved orders. */
+  protected readonly prepSummaryFreshBySlot = computed<PrepSlotGroup[]>(() =>
+    this.groupBySlot(this.reservedOrders().filter((order) => order.contentType === 'FRESH')),
   );
 
-  /** Total packs (by size) to prepare for each product, among FROZEN reserved orders. */
-  protected readonly prepSummaryFrozen = computed<PrepProduct[]>(() =>
-    this.groupByProductAndPack(this.reservedOrders().filter((order) => order.contentType === 'FROZEN')),
+  /** Packs to prepare per date+créneau, by product, among FROZEN reserved orders. */
+  protected readonly prepSummaryFrozenBySlot = computed<PrepSlotGroup[]>(() =>
+    this.groupBySlot(this.reservedOrders().filter((order) => order.contentType === 'FROZEN')),
   );
+
+  private groupBySlot(orders: Order[]): PrepSlotGroup[] {
+    const buckets = new Map<string, Order[]>();
+
+    for (const order of orders) {
+      const key = this.slotKey(order);
+      const bucket = buckets.get(key);
+      if (bucket) {
+        bucket.push(order);
+      } else {
+        buckets.set(key, [order]);
+      }
+    }
+
+    return Array.from(buckets.values())
+      .map((bucketOrders) => {
+        const { date, fulfillmentMethod, startTime, endTime } = bucketOrders[0];
+        return { date, fulfillmentMethod, startTime, endTime, products: this.groupByProductAndPack(bucketOrders) };
+      })
+      .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
+  }
 
   private groupByProductAndPack(orders: Order[]): PrepProduct[] {
     const packsByProduct = new Map<string, Map<number, number>>();
@@ -169,6 +241,11 @@ export class AdminOrders implements OnInit {
 
   protected setStatusFilter(filter: StatusFilter): void {
     this.statusFilter.set(filter);
+    this.currentPage.set(1);
+  }
+
+  protected setSlotFilter(filter: SlotFilter): void {
+    this.slotFilter.set(filter);
     this.currentPage.set(1);
   }
 
@@ -244,6 +321,16 @@ export class AdminOrders implements OnInit {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  private slotKey(order: Order): string {
+    return `${order.date}__${order.fulfillmentMethod}__${order.startTime}__${order.endTime}`;
+  }
+
+  /** "2027-01-05" → "05.01.2027", consistent with the `dd.MM.yyyy` DatePipe format used elsewhere in this page. */
+  private formatDateLabel(date: string): string {
+    const [year, month, day] = date.split('-');
+    return `${day}.${month}.${year}`;
   }
 
   private extractErrorMessage(error: unknown): string {

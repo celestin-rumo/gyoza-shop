@@ -79,56 +79,61 @@
               <p class="checkout-form__error">{{ checkoutForm.fulfillmentMethod().errors()[0]?.message }}</p>
             }
 
-            @if (slotOptions().length > 0) {
+            @if (checkoutModel().fulfillmentMethod) {
               <fieldset class="checkout-form__fieldset">
-                <legend class="checkout-form__legend">Créneau</legend>
+                <legend class="checkout-form__legend">Contenu</legend>
 
-                <div class="checkout-form__options" role="radiogroup" aria-label="Choisir un créneau">
-                  @for (option of slotOptions(); track option.value) {
-                    <ds-option
-                      [selected]="checkoutModel().slot === option.value"
-                      (select)="selectSlot(option.value)"
-                    >
-                      {{ option.label }}
-                    </ds-option>
-                  }
+                <div class="checkout-form__options" role="radiogroup" aria-label="Choisir frais ou surgelé">
+                  <ds-option
+                    [selected]="checkoutModel().contentType === 'FROZEN'"
+                    [disabled]="frozenDisabled()"
+                    (select)="selectContentType('FROZEN')"
+                  >
+                    Surgelé
+                  </ds-option>
+                  <ds-option
+                    [selected]="checkoutModel().contentType === 'FRESH'"
+                    [disabled]="freshDisabled()"
+                    (select)="selectContentType('FRESH')"
+                  >
+                    Frais
+                  </ds-option>
                 </div>
               </fieldset>
-              @if (checkoutForm.slot().touched() && checkoutForm.slot().invalid()) {
-                <p class="checkout-form__error">{{ checkoutForm.slot().errors()[0]?.message }}</p>
+
+              @if (freshDisabled()) {
+                <p class="checkout-form__hint">La commande de gyozas frais n’est pas ouverte actuellement.</p>
+              }
+              @if (frozenDisabled()) {
+                <p class="checkout-form__hint">La commande de gyozas surgelés n’est pas ouverte actuellement.</p>
+              }
+              @if (checkoutForm.contentType().touched() && checkoutForm.contentType().invalid()) {
+                <p class="checkout-form__error">{{ checkoutForm.contentType().errors()[0]?.message }}</p>
               }
             }
 
-            <fieldset class="checkout-form__fieldset">
-              <legend class="checkout-form__legend">Contenu</legend>
+            @if (checkoutModel().fulfillmentMethod && checkoutModel().contentType) {
+              <fieldset class="checkout-form__fieldset">
+                <legend class="checkout-form__legend">Créneau</legend>
 
-              <div class="checkout-form__options" role="radiogroup" aria-label="Choisir frais ou surgelé">
-                <ds-option
-                  [selected]="checkoutModel().contentType === 'FROZEN'"
-                  (select)="selectContentType('FROZEN')"
-                >
-                  Surgelé
-                </ds-option>
-                <ds-option
-                  [selected]="checkoutModel().contentType === 'FRESH'"
-                  [disabled]="freshDisabled()"
-                  (select)="selectContentType('FRESH')"
-                >
-                  Frais
-                </ds-option>
-              </div>
-            </fieldset>
-
-            @if (freshDisabled()) {
-              <p class="checkout-form__hint">
-                La commande de gyozas frais n’est pas ouverte actuellement.
-                @if (freshAvailability()?.nextBatchDate; as date) {
-                  Prochain lot disponible le {{ date }}.
+                @if (slotOptions().length > 0) {
+                  <div class="checkout-form__options" role="radiogroup" aria-label="Choisir un créneau">
+                    @for (option of slotOptions(); track option.id) {
+                      <ds-option
+                        [selected]="checkoutModel().startTime === option.startTime && checkoutModel().date === option.date"
+                        (select)="selectSlot(option)"
+                      >
+                        {{ formatTimeRange(option.startTime, option.endTime) }} · {{ option.date | date: 'dd.MM.yyyy' }}
+                      </ds-option>
+                    }
+                  </div>
+                } @else {
+                  <p class="checkout-form__hint">Aucun créneau disponible pour ce choix.</p>
                 }
-              </p>
-            }
-            @if (checkoutForm.contentType().touched() && checkoutForm.contentType().invalid()) {
-              <p class="checkout-form__error">{{ checkoutForm.contentType().errors()[0]?.message }}</p>
+              </fieldset>
+              @if (checkoutForm.startTime().touched() && checkoutForm.startTime().invalid()) {
+                <p class="checkout-form__error">{{ checkoutForm.startTime().errors()[0]?.message }}</p>
+              }
             }
           </section>
         }

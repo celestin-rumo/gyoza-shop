@@ -2,15 +2,15 @@ package ch.celestin.gyoza.order;
 
 import ch.celestin.gyoza.customer.Customer;
 import ch.celestin.gyoza.customer.CustomerRepository;
-import ch.celestin.gyoza.exception.FreshOrderWindowClosedException;
 import ch.celestin.gyoza.exception.OrderNotFoundException;
 import ch.celestin.gyoza.exception.PackNotFoundException;
-import ch.celestin.gyoza.freshavailability.FreshAvailability;
-import ch.celestin.gyoza.freshavailability.FreshAvailabilityRepository;
+import ch.celestin.gyoza.exception.SlotNotAvailableException;
 import ch.celestin.gyoza.order.dto.*;
 import ch.celestin.gyoza.pack.PackOption;
 import ch.celestin.gyoza.pack.PackOptionRepository;
 import ch.celestin.gyoza.product.Product;
+import ch.celestin.gyoza.slot.SlotAvailability;
+import ch.celestin.gyoza.slot.SlotAvailabilityRepository;
 import ch.celestin.gyoza.user.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,18 +23,18 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final CustomerRepository customerRepository;
     private final PackOptionRepository packOptionRepository;
-    private final FreshAvailabilityRepository freshAvailabilityRepository;
+    private final SlotAvailabilityRepository slotAvailabilityRepository;
 
     public OrderServiceImpl(
             OrderRepository orderRepository,
             CustomerRepository customerRepository,
             PackOptionRepository packOptionRepository,
-            FreshAvailabilityRepository freshAvailabilityRepository
+            SlotAvailabilityRepository slotAvailabilityRepository
     ) {
         this.orderRepository = orderRepository;
         this.customerRepository = customerRepository;
         this.packOptionRepository = packOptionRepository;
-        this.freshAvailabilityRepository = freshAvailabilityRepository;
+        this.slotAvailabilityRepository = slotAvailabilityRepository;
     }
 
     @Override
@@ -59,7 +59,9 @@ public class OrderServiceImpl implements OrderService {
                 customer,
                 currentUser,
                 request.fulfillmentMethod(),
-                request.slot(),
+                request.date(),
+                request.startTime(),
+                request.endTime(),
                 request.contentType()
         );
 
@@ -134,16 +136,9 @@ public class OrderServiceImpl implements OrderService {
 
     private void validateFulfillment(CreateOrderRequest request) {
 
-        try {
-            if (request.fulfillmentMethod() == FulfillmentMethod.PICKUP) {
-                PickupSlot.valueOf(request.slot());
-            } else {
-                DeliverySlot.valueOf(request.slot());
-            }
-        } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException(
-                    "Le créneau \"" + request.slot() + "\" n'est pas valide pour " + request.fulfillmentMethod()
-            );
+        if (request.startTime() == null || request.endTime() == null
+                || !request.startTime().isBefore(request.endTime())) {
+            throw new IllegalArgumentException("Créneau horaire invalide");
         }
 
         if (request.fulfillmentMethod() == FulfillmentMethod.DELIVERY
@@ -153,14 +148,16 @@ public class OrderServiceImpl implements OrderService {
             );
         }
 
-        if (request.contentType() == ContentType.FRESH) {
-            FreshAvailability freshAvailability = freshAvailabilityRepository
-                    .findById(FreshAvailability.SINGLETON_ID)
-                    .orElse(null);
+        boolean slotOpen = slotAvailabilityRepository
+                .findByDateAndFulfillmentMethodAndStartTimeAndEndTimeAndContentType(
+                        request.date(), request.fulfillmentMethod(), request.startTime(), request.endTime(),
+                        request.contentType()
+                )
+                .map(SlotAvailability::isOpen)
+                .orElse(false);
 
-            if (freshAvailability == null || !freshAvailability.isOrderWindowOpen()) {
-                throw new FreshOrderWindowClosedException();
-            }
+        if (!slotOpen) {
+            throw new SlotNotAvailableException();
         }
     }
 
@@ -173,7 +170,9 @@ public class OrderServiceImpl implements OrderService {
                 toCustomerResponse(order.getCustomer()),
                 order.getItems().stream().map(this::toItemResponse).toList(),
                 order.getFulfillmentMethod(),
-                order.getSlot(),
+                order.getDate(),
+                order.getStartTime(),
+                order.getEndTime(),
                 order.getContentType()
         );
     }

@@ -64,11 +64,9 @@ export const routes: Routes = [
     canActivate: [adminGuard],
   },
   {
-    path: 'admin/fresh-availability',
+    path: 'admin/slots',
     loadComponent: () =>
-      import('./pages/admin/admin-fresh-availability/admin-fresh-availability').then(
-        (m) => m.AdminFreshAvailability,
-      ),
+      import('./pages/admin/admin-slots/admin-slots').then((m) => m.AdminSlots),
     canActivate: [adminGuard],
   },
   {

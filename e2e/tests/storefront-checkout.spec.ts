@@ -18,11 +18,12 @@ test('a customer can walk the checkout wizard and place an order', async ({ page
   await page.getByRole('button', { name: 'Continuer' }).click();
 
   // Step 2: Récupération — choosing Surgelé sidesteps the fresh-availability
-  // window state, which is admin-controlled and not guaranteed open here.
+  // window state, which is admin-controlled and not guaranteed open here. The
+  // slot group only appears once both a method and a content type are chosen.
   await expect(page.getByRole('heading', { name: 'Récupération' })).toBeVisible();
   await page.getByRole('radio', { name: 'Livraison' }).click();
-  await page.getByRole('radio', { name: 'Mardi 18h–20h' }).click();
   await page.getByRole('radio', { name: 'Surgelé' }).click();
+  await page.getByRole('radio', { name: '18h00–20h00' }).click();
   await page.getByRole('button', { name: 'Continuer' }).click();
 
   // Step 3: Coordonnées
@@ -51,8 +52,8 @@ test('a pickup order does not require an address', async ({ page }) => {
   await page.getByRole('button', { name: 'Continuer' }).click();
 
   await page.getByRole('radio', { name: 'Retrait' }).click();
-  await page.getByRole('radio', { name: 'Samedi 10h–12h' }).click();
   await page.getByRole('radio', { name: 'Surgelé' }).click();
+  await page.getByRole('radio', { name: '10h00–12h00' }).click();
   await page.getByRole('button', { name: 'Continuer' }).click();
 
   await expect(page.getByLabel('Adresse')).toHaveCount(0);
