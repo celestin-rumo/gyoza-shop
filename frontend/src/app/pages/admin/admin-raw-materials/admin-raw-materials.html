@@ -1,0 +1,80 @@
+<main class="admin-raw-materials">
+  <header class="admin-raw-materials__header">
+    <ds-section-header
+      title="Matières premières"
+      subtitle="Catalogue des matières premières et de leur coût de référence."
+      align="left"
+    ></ds-section-header>
+
+    <div class="admin-raw-materials__header-actions">
+      <a class="admin-raw-materials__back-link" routerLink="/admin">← Retour</a>
+      <ds-button variant="outline" size="sm" (pressed)="logout()">Se déconnecter</ds-button>
+    </div>
+  </header>
+
+  <section class="admin-raw-materials__new">
+    <h2 class="admin-raw-materials__section-title">Ajouter une matière première</h2>
+
+    <form [formRoot]="newRawMaterialForm" class="admin-raw-materials__new-form">
+      <div class="admin-raw-materials__field">
+        <label for="rawMaterialName">Nom</label>
+        <input
+          id="rawMaterialName"
+          type="text"
+          placeholder="Farine"
+          [formField]="newRawMaterialForm.name"
+        />
+        @if (newRawMaterialForm.name().touched() && newRawMaterialForm.name().invalid()) {
+          <p class="admin-raw-materials__field-error">
+            {{ newRawMaterialForm.name().errors()[0]?.message }}
+          </p>
+        }
+      </div>
+
+      <div class="admin-raw-materials__field">
+        <label for="rawMaterialUnit">Unité</label>
+        <input
+          id="rawMaterialUnit"
+          type="text"
+          placeholder="kg"
+          [formField]="newRawMaterialForm.unit"
+        />
+        @if (newRawMaterialForm.unit().touched() && newRawMaterialForm.unit().invalid()) {
+          <p class="admin-raw-materials__field-error">
+            {{ newRawMaterialForm.unit().errors()[0]?.message }}
+          </p>
+        }
+      </div>
+
+      @if (createError()) {
+        <p class="admin-raw-materials__submit-error" role="alert">{{ createError() }}</p>
+      }
+
+      <ds-button type="submit" variant="primary" size="md" [disabled]="creating()">
+        {{ creating() ? 'Création…' : 'Ajouter' }}
+      </ds-button>
+    </form>
+  </section>
+
+  <section class="admin-raw-materials__list">
+    <h2 class="admin-raw-materials__section-title">Catalogue</h2>
+
+    @if (loading()) {
+      <p class="admin-raw-materials__hint">Chargement…</p>
+    } @else if (loadError()) {
+      <p class="admin-raw-materials__submit-error" role="alert">{{ loadError() }}</p>
+    } @else if (rawMaterials().length === 0) {
+      <p class="admin-raw-materials__hint">Aucune matière première pour le moment.</p>
+    } @else {
+      <div class="admin-raw-materials__items">
+        @for (rawMaterial of rawMaterials(); track rawMaterial.id) {
+          <app-admin-raw-material-row
+            [rawMaterial]="rawMaterial"
+            (rawMaterialUpdated)="onRawMaterialUpdated($event)"
+            (rawMaterialDeleted)="onRawMaterialDeleted($event)"
+          ></app-admin-raw-material-row>
+        }
+      </div>
+    }
+  </section>
+</main>

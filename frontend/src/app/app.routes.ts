@@ -81,4 +81,20 @@ export const routes: Routes = [
       import('./pages/admin/admin-users/admin-users').then((m) => m.AdminUsers),
     canActivate: [adminGuard],
   },
+  {
+    path: 'admin/raw-materials',
+    loadComponent: () =>
+      import('./pages/admin/admin-raw-materials/admin-raw-materials').then(
+        (m) => m.AdminRawMaterials,
+      ),
+    canActivate: [adminGuard],
+  },
+  {
+    path: 'admin/raw-material-purchases',
+    loadComponent: () =>
+      import('./pages/admin/admin-raw-material-purchases/admin-raw-material-purchases').then(
+        (m) => m.AdminRawMaterialPurchases,
+      ),
+    canActivate: [adminGuard],
+  },
 ];

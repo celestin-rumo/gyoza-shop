@@ -205,4 +205,20 @@ public class GlobalExceptionHandler {
                         )
                 );
     }
+
+    @ExceptionHandler(RawMaterialNotFoundException.class)
+    public ResponseEntity<ApiError> handleRawMaterialNotFound(
+            RawMaterialNotFoundException ex
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(
+                        new ApiError(
+                                "RAW_MATERIAL_NOT_FOUND",
+                                ex.getMessage(),
+                                LocalDateTime.now()
+                        )
+                );
+    }
 }
