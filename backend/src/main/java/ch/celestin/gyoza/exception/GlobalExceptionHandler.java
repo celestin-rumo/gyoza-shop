@@ -221,4 +221,20 @@ public class GlobalExceptionHandler {
                         )
                 );
     }
+
+    @ExceptionHandler(ProductionSessionNotFoundException.class)
+    public ResponseEntity<ApiError> handleProductionSessionNotFound(
+            ProductionSessionNotFoundException ex
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(
+                        new ApiError(
+                                "PRODUCTION_SESSION_NOT_FOUND",
+                                ex.getMessage(),
+                                LocalDateTime.now()
+                        )
+                );
+    }
 }

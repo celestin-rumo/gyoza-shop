@@ -97,4 +97,12 @@ export const routes: Routes = [
       ),
     canActivate: [adminGuard],
   },
+  {
+    path: 'admin/production-sessions',
+    loadComponent: () =>
+      import('./pages/admin/admin-production-sessions/admin-production-sessions').then(
+        (m) => m.AdminProductionSessions,
+      ),
+    canActivate: [adminGuard],
+  },
 ];
