@@ -235,6 +235,31 @@
   }
 }
 
+.admin-production-sessions__purchase-draft {
+  padding: var(--gz-space-4);
+  background: var(--gz-bg-elevated);
+  border: 1px solid var(--gz-border-soft);
+  border-radius: var(--gz-radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gz-space-3);
+}
+
+.admin-production-sessions__purchase-draft-title {
+  margin: 0;
+  color: var(--gz-text-secondary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-xs);
+  font-weight: var(--gz-fw-medium);
+}
+
+.admin-production-sessions__purchase-draft-fields {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--gz-space-3);
+  flex-wrap: wrap;
+}
+
 .admin-production-sessions__submit-error {
   margin: 0;
   padding: var(--gz-space-3) var(--gz-space-4);

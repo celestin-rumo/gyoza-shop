@@ -49,14 +49,17 @@
   font-weight: var(--gz-fw-semibold);
 }
 
-.admin-raw-materials__new {
+.admin-raw-materials__new,
+.admin-raw-materials__picker,
+.admin-raw-materials__purchase-new {
   padding: var(--gz-space-6);
   background: var(--gz-surface);
   border: 1px solid var(--gz-border-soft);
   border-radius: var(--gz-radius-lg);
 }
 
-.admin-raw-materials__new-form {
+.admin-raw-materials__new-form,
+.admin-raw-materials__purchase-form {
   display: flex;
   align-items: flex-end;
   gap: var(--gz-space-4);
@@ -68,6 +71,10 @@
   flex-direction: column;
   gap: var(--gz-space-2);
   min-width: 180px;
+  color: var(--gz-text-secondary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+  font-weight: var(--gz-fw-medium);
 
   label {
     color: var(--gz-text-secondary);
@@ -75,20 +82,21 @@
     font-size: var(--gz-fs-sm);
     font-weight: var(--gz-fw-medium);
   }
+}
 
-  input {
-    padding: var(--gz-space-3) var(--gz-space-4);
-    background: var(--gz-bg-elevated);
-    border: 1px solid var(--gz-border-soft);
-    border-radius: var(--gz-radius-sm);
-    color: var(--gz-text-primary);
-    font-family: var(--gz-font-family);
-    font-size: var(--gz-fs-sm);
+.admin-raw-materials__input,
+.admin-raw-materials__select {
+  padding: var(--gz-space-3) var(--gz-space-4);
+  background: var(--gz-bg-elevated);
+  border: 1px solid var(--gz-border-soft);
+  border-radius: var(--gz-radius-sm);
+  color: var(--gz-text-primary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
 
-    &:focus-visible {
-      outline: 2px solid var(--gz-accent-400);
-      outline-offset: 2px;
-    }
+  &:focus-visible {
+    outline: 2px solid var(--gz-accent-400);
+    outline-offset: 2px;
   }
 }
 
@@ -114,10 +122,42 @@
   color: var(--gz-text-secondary);
   font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
+
+  a {
+    color: var(--gz-accent-400);
+  }
 }
 
 .admin-raw-materials__items {
   display: flex;
   flex-direction: column;
   gap: var(--gz-space-4);
+}
+
+.admin-raw-materials__table-wrapper {
+  overflow-x: auto;
+}
+
+.admin-raw-materials__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+
+  th,
+  td {
+    padding: var(--gz-space-3) var(--gz-space-4);
+    text-align: left;
+    border-bottom: 1px solid var(--gz-border-soft);
+    white-space: nowrap;
+  }
+
+  th {
+    color: var(--gz-text-secondary);
+    font-weight: var(--gz-fw-medium);
+  }
+
+  td {
+    color: var(--gz-text-primary);
+  }
 }

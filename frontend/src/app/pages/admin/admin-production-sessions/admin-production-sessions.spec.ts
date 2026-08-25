@@ -328,6 +328,109 @@ describe('AdminProductionSessions', () => {
     expect(fixture.nativeElement.querySelectorAll('.admin-production-sessions__line').length).toBe(1);
   });
 
+  it('keeps the "+ Achat" button disabled until a raw material is selected for the line', async () => {
+    await flushInit();
+    openWizardToRawMaterialsStep();
+
+    expect(findButton('+ Achat').disabled).toBe(true);
+
+    setSelectValue('select', '1');
+
+    expect(findButton('+ Achat').disabled).toBe(false);
+  });
+
+  it('toggles the inline purchase draft form open and closed', async () => {
+    await flushInit();
+    openWizardToRawMaterialsStep();
+    setSelectValue('select', '1');
+
+    clickButton('+ Achat');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Enregistrer l’achat correspondant');
+
+    clickButton('Annuler l’achat');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Enregistrer l’achat correspondant');
+  });
+
+  it('logs a purchase for the raw material directly from the wizard, independently of the session', async () => {
+    await flushInit();
+    openWizardToRawMaterialsStep();
+    setSelectValue('select', '1');
+
+    clickButton('+ Achat');
+    fixture.detectChanges();
+
+    const draft: HTMLElement = fixture.nativeElement.querySelector(
+      '.admin-production-sessions__purchase-draft',
+    );
+
+    const dateInput: HTMLInputElement = draft.querySelector('input[type="date"]')!;
+    dateInput.value = '2026-08-20';
+    dateInput.dispatchEvent(new Event('input'));
+
+    const quantityInput: HTMLInputElement = draft.querySelector(
+      'input[aria-label="la quantité achetée"]',
+    )!;
+    quantityInput.value = '5';
+    quantityInput.dispatchEvent(new Event('input'));
+
+    const priceInput: HTMLInputElement = draft.querySelector('input[aria-label="le prix payé"]')!;
+    priceInput.value = '15';
+    priceInput.dispatchEvent(new Event('input'));
+
+    const textInputs: HTMLInputElement[] = Array.from(draft.querySelectorAll('input[type="text"]'));
+    textInputs[0].value = 'Suisse';
+    textInputs[0].dispatchEvent(new Event('input'));
+    textInputs[1].value = 'Coop';
+    textInputs[1].dispatchEvent(new Event('input'));
+
+    fixture.detectChanges();
+
+    clickButton('Enregistrer l’achat');
+
+    const req = httpMock.expectOne('/api/admin/raw-material-purchases');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({
+      rawMaterialId: 1,
+      date: '2026-08-20',
+      quantityPurchased: 5,
+      totalPricePaid: 15,
+      source: 'MANUAL',
+      originCountry: 'Suisse',
+      store: 'Coop',
+      batchNumber: null,
+    });
+
+    req.flush({
+      id: 99,
+      rawMaterialId: 1,
+      rawMaterialName: 'Farine',
+      date: '2026-08-20',
+      quantityPurchased: 5,
+      totalPricePaid: 15,
+      unitPrice: 3,
+      source: 'MANUAL',
+      originCountry: 'Suisse',
+      store: 'Coop',
+      batchNumber: null,
+    });
+    await fixture.whenStable();
+
+    httpMock.expectOne('/api/admin/raw-materials').flush(rawMaterials);
+
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // The draft form closes on success; the wizard stays open on the same step, and
+    // nothing was posted to the production-sessions endpoint.
+    expect(fixture.nativeElement.textContent).not.toContain('Enregistrer l’achat correspondant');
+    expect(fixture.nativeElement.querySelector('.admin-production-sessions__modal')).not.toBeNull();
+    httpMock.expectNone('/api/admin/production-sessions');
+  });
+
   it('adjusts the session duration via the +/- stepper buttons', async () => {
     await flushInit();
     openWizard();

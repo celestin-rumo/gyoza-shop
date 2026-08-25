@@ -1,5 +1,4 @@
 import { Component, computed, inject, input, output, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { AdminRawMaterialService } from '../../../services/admin-raw-material.service';
@@ -9,7 +8,7 @@ import { DsPricePipe } from '../../../design-system/pipes/ds-price.pipe';
 
 @Component({
   selector: 'app-admin-raw-material-row',
-  imports: [DsButtonComponent, DsPricePipe, RouterLink],
+  imports: [DsButtonComponent, DsPricePipe],
   templateUrl: './admin-raw-material-row.html',
   styleUrl: './admin-raw-material-row.scss',
 })
@@ -19,6 +18,7 @@ export class AdminRawMaterialRow {
   rawMaterial = input.required<RawMaterial>();
   rawMaterialUpdated = output<RawMaterial>();
   rawMaterialDeleted = output<number>();
+  viewHistory = output<number>();
 
   protected readonly editing = signal(false);
   protected readonly name = signal('');

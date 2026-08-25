@@ -49,13 +49,13 @@
       </div>
 
       <div class="admin-raw-material__actions">
-        <a
+        <button
+          type="button"
           class="admin-raw-material__history-link"
-          routerLink="/admin/raw-material-purchases"
-          [queryParams]="{ rawMaterialId: rawMaterial().id }"
+          (click)="viewHistory.emit(rawMaterial().id)"
         >
           Historique des achats
-        </a>
+        </button>
         <ds-button variant="outline" size="sm" (pressed)="startEditing()">Modifier</ds-button>
         <ds-button variant="ghost" size="sm" [disabled]="deleting()" (pressed)="delete()">
           {{ deleting() ? 'Suppression…' : 'Supprimer' }}

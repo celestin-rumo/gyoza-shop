@@ -90,14 +90,6 @@ export const routes: Routes = [
     canActivate: [adminGuard],
   },
   {
-    path: 'admin/raw-material-purchases',
-    loadComponent: () =>
-      import('./pages/admin/admin-raw-material-purchases/admin-raw-material-purchases').then(
-        (m) => m.AdminRawMaterialPurchases,
-      ),
-    canActivate: [adminGuard],
-  },
-  {
     path: 'admin/production-sessions',
     loadComponent: () =>
       import('./pages/admin/admin-production-sessions/admin-production-sessions').then(
