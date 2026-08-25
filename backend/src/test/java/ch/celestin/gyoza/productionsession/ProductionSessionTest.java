@@ -18,8 +18,10 @@ class ProductionSessionTest {
 
     @Test
     void addRawMaterialUsage_appendsItAndLinksItBack() {
-        ProductionSession session = new ProductionSession(date, "L20260824-01", new BigDecimal("3"), null);
-        RawMaterialUsage usage = new RawMaterialUsage(new RawMaterial("Farine", "kg"), BigDecimal.TEN);
+        ProductionSession session = new ProductionSession(date, "L20260824-01", new BigDecimal("3"), null, null);
+        RawMaterialUsage usage = new RawMaterialUsage(
+                new RawMaterial("Farine", "kg"), BigDecimal.TEN, BigDecimal.ONE, null
+        );
 
         session.addRawMaterialUsage(usage);
 
@@ -28,7 +30,7 @@ class ProductionSessionTest {
 
     @Test
     void addParticipant_appendsItAndLinksItBack() {
-        ProductionSession session = new ProductionSession(date, "L20260824-01", new BigDecimal("3"), null);
+        ProductionSession session = new ProductionSession(date, "L20260824-01", new BigDecimal("3"), null, null);
         User user = new User(
                 "cook@example.com", "hash", "Cel", "Nino",
                 "Rue 1", "1000", "Lausanne", Role.ADMIN, true
@@ -42,8 +44,8 @@ class ProductionSessionTest {
 
     @Test
     void addOutput_appendsItAndLinksItBack() {
-        ProductionSession session = new ProductionSession(date, "L20260824-01", new BigDecimal("3"), null);
-        ProductOutput output = new ProductOutput(new Product("Chicken", 100), 50);
+        ProductionSession session = new ProductionSession(date, "L20260824-01", new BigDecimal("3"), null, null);
+        ProductOutput output = new ProductOutput(new Product("Chicken", 100), 50, BigDecimal.ONE);
 
         session.addOutput(output);
 
@@ -51,26 +53,59 @@ class ProductionSessionTest {
     }
 
     @Test
-    void getters_exposeDateBatchNumberDurationAndNotes() {
+    void getters_exposeDateBatchNumberDurationNotesAndOtherCosts() {
         ProductionSession session = new ProductionSession(
-                date, "L20260824-01", new BigDecimal("3.5"), "Session du samedi"
+                date, "L20260824-01", new BigDecimal("3.5"), "Session du samedi", new BigDecimal("12")
         );
 
         assertThat(session.getDate()).isEqualTo(date);
         assertThat(session.getBatchNumber()).isEqualTo("L20260824-01");
         assertThat(session.getDurationHours()).isEqualByComparingTo("3.5");
         assertThat(session.getNotes()).isEqualTo("Session du samedi");
+        assertThat(session.getOtherCosts()).isEqualByComparingTo("12");
+    }
+
+    @Test
+    void constructor_defaultsOtherCostsToZero_whenNull() {
+        ProductionSession session = new ProductionSession(date, "L20260824-01", new BigDecimal("3"), null, null);
+
+        assertThat(session.getOtherCosts()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     @Test
     void constructor_rejectsNonPositiveDuration() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new ProductionSession(date, "L20260824-01", BigDecimal.ZERO, null));
+                .isThrownBy(() -> new ProductionSession(date, "L20260824-01", BigDecimal.ZERO, null, null));
     }
 
     @Test
     void constructor_rejectsNullDuration() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new ProductionSession(date, "L20260824-01", null, null));
+                .isThrownBy(() -> new ProductionSession(date, "L20260824-01", null, null, null));
+    }
+
+    @Test
+    void constructor_rejectsNegativeOtherCosts() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new ProductionSession(
+                        date, "L20260824-01", new BigDecimal("3"), null, new BigDecimal("-1")
+                ));
+    }
+
+    @Test
+    void changeOtherCosts_updatesValue() {
+        ProductionSession session = new ProductionSession(date, "L20260824-01", new BigDecimal("3"), null, null);
+
+        session.changeOtherCosts(new BigDecimal("5"));
+
+        assertThat(session.getOtherCosts()).isEqualByComparingTo("5");
+    }
+
+    @Test
+    void changeOtherCosts_rejectsNegativeValue() {
+        ProductionSession session = new ProductionSession(date, "L20260824-01", new BigDecimal("3"), null, null);
+
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> session.changeOtherCosts(new BigDecimal("-1")));
     }
 }

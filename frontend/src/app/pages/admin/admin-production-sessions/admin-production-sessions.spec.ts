@@ -29,9 +29,56 @@ describe('AdminProductionSessions', () => {
     batchNumber: 'L20260810-01',
     durationHours: 4,
     notes: 'Session du samedi',
-    rawMaterialUsages: [{ rawMaterialId: 1, rawMaterialName: 'Farine', unit: 'kg', quantityUsed: 3.5 }],
+    otherCosts: 0,
+    rawMaterialUsages: [
+      {
+        rawMaterialId: 1,
+        rawMaterialName: 'Farine',
+        unit: 'kg',
+        quantityUsed: 3.5,
+        unitCost: 2.5,
+        lineCost: 8.75,
+        targetProductId: null,
+        targetProductName: null,
+      },
+    ],
     participants: [{ userId: 'user-1', userName: 'Cel Nino' }],
-    outputs: [{ productId: 1, productName: 'Chicken', quantityProduced: 80 }],
+    outputs: [
+      {
+        productId: 1,
+        productName: 'Chicken',
+        quantityProduced: 80,
+        unitSalePrice: 2,
+        revenue: 160,
+        materialCost: 8.75,
+        costPerGyoza: 0.11,
+        unitsSold: 0,
+        unitsRemaining: 80,
+        actualRevenue: 0,
+      },
+    ],
+    costSummary: {
+      totalMaterialCost: 8.75,
+      totalGyozaProduced: 80,
+      materialCostPerGyoza: 0.11,
+      totalSessionHours: 4,
+      timePerGyoza: 0.05,
+      theoreticalRevenue: 160,
+      grossProfit: 151.25,
+      otherCosts: 0,
+      netProfit: 151.25,
+      hourlyRevenue: 37.81,
+      roi: 1728.57,
+    },
+    actualSummary: {
+      unitsSold: 0,
+      unitsRemaining: 80,
+      actualRevenue: 0,
+      actualGrossProfit: -8.75,
+      actualNetProfit: -8.75,
+      actualHourlyRevenue: -2.1875,
+      actualRoi: -100,
+    },
   };
 
   /**
@@ -139,6 +186,9 @@ describe('AdminProductionSessions', () => {
     expect(cardText).toContain('Chicken');
     expect(cardText).toContain('+80');
     expect(cardText).toContain('4 h');
+    // The hourly revenue is highlighted even while the card is collapsed.
+    expect(cardText).toContain('Revenu horaire');
+    expect(cardText).toContain('CHF 37.81/h');
 
     // Collapsed by default: only the batch/date/output/duration summary is visible.
     expect(cardText).not.toContain('Session du samedi');
@@ -500,7 +550,8 @@ describe('AdminProductionSessions', () => {
       date: '2026-08-20',
       durationHours: 4,
       notes: null,
-      rawMaterialUsages: [{ rawMaterialId: 1, quantityUsed: 3.5 }],
+      otherCosts: 0,
+      rawMaterialUsages: [{ rawMaterialId: 1, quantityUsed: 3.5, targetProductId: null }],
       participants: [{ userId: 'user-1' }],
       outputs: [{ productId: 1, quantityProduced: 80 }],
     });
@@ -511,9 +562,56 @@ describe('AdminProductionSessions', () => {
       batchNumber: 'L20260820-01',
       durationHours: 4,
       notes: null,
-      rawMaterialUsages: [{ rawMaterialId: 1, rawMaterialName: 'Farine', unit: 'kg', quantityUsed: 3.5 }],
+      otherCosts: 0,
+      rawMaterialUsages: [
+        {
+          rawMaterialId: 1,
+          rawMaterialName: 'Farine',
+          unit: 'kg',
+          quantityUsed: 3.5,
+          unitCost: 2.5,
+          lineCost: 8.75,
+          targetProductId: null,
+          targetProductName: null,
+        },
+      ],
       participants: [{ userId: 'user-1', userName: 'Cel Nino' }],
-      outputs: [{ productId: 1, productName: 'Chicken', quantityProduced: 80 }],
+      outputs: [
+        {
+          productId: 1,
+          productName: 'Chicken',
+          quantityProduced: 80,
+          unitSalePrice: 2,
+          revenue: 160,
+          materialCost: 8.75,
+          costPerGyoza: 0.11,
+          unitsSold: 0,
+          unitsRemaining: 80,
+          actualRevenue: 0,
+        },
+      ],
+      costSummary: {
+        totalMaterialCost: 8.75,
+        totalGyozaProduced: 80,
+        materialCostPerGyoza: 0.11,
+        totalSessionHours: 4,
+        timePerGyoza: 0.05,
+        theoreticalRevenue: 160,
+        grossProfit: 151.25,
+        otherCosts: 0,
+        netProfit: 151.25,
+        hourlyRevenue: 37.81,
+        roi: 1728.57,
+      },
+      actualSummary: {
+        unitsSold: 0,
+        unitsRemaining: 80,
+        actualRevenue: 0,
+        actualGrossProfit: -8.75,
+        actualNetProfit: -8.75,
+        actualHourlyRevenue: -2.1875,
+        actualRoi: -100,
+      },
     });
 
     // Creating a session increments stock, so the catalog is refreshed.
@@ -559,5 +657,90 @@ describe('AdminProductionSessions', () => {
 
     expect(fixture.nativeElement.querySelector('.admin-production-sessions__modal')).not.toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Matière première introuvable : 1');
+  });
+
+  it('tags a raw material usage with a target flavor, included in the submitted payload', async () => {
+    await flushInit([]);
+    openWizard();
+
+    setInputValue('input[type="date"]', '2026-08-20');
+    goToNextStep();
+
+    const selects: HTMLSelectElement[] = Array.from(fixture.nativeElement.querySelectorAll('select'));
+    setSelectValue('select', '1'); // raw material
+    setInputValue('.ds-number-stepper__input', '3.5');
+    selects[1].value = '1'; // target product ("Chicken")
+    selects[1].dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    goToNextStep();
+
+    setSelectValue('select', 'user-1');
+    goToNextStep();
+
+    setSelectValue('select', '1');
+    setInputValue('input[type="number"]', '80');
+    goToNextStep();
+
+    setInputValue('.ds-number-stepper__input', '4');
+    clickButton('Enregistrer');
+
+    const req = httpMock.expectOne('/api/admin/production-sessions');
+    expect(req.request.body.rawMaterialUsages).toEqual([
+      { rawMaterialId: 1, quantityUsed: 3.5, targetProductId: 1 },
+    ]);
+
+    req.flush({
+      ...existingSession,
+      id: 2,
+      date: '2026-08-20',
+      batchNumber: 'L20260820-01',
+      rawMaterialUsages: [
+        {
+          rawMaterialId: 1,
+          rawMaterialName: 'Farine',
+          unit: 'kg',
+          quantityUsed: 3.5,
+          unitCost: 2.5,
+          lineCost: 8.75,
+          targetProductId: 1,
+          targetProductName: 'Chicken',
+        },
+      ],
+    });
+
+    httpMock.expectOne('/api/products').flush([]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+  });
+
+  it('edits the other costs of an existing session via the inline control', async () => {
+    await flushInit();
+
+    const toggle: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '.admin-production-session__toggle',
+    );
+    toggle.click();
+    fixture.detectChanges();
+
+    clickButton('Modifier');
+    fixture.detectChanges();
+
+    const increment: HTMLButtonElement = fixture.nativeElement.querySelector(
+      'button[aria-label="Augmenter les autres charges"]',
+    );
+    increment.click();
+    fixture.detectChanges();
+
+    clickButton('Enregistrer');
+
+    const req = httpMock.expectOne('/api/admin/production-sessions/1/other-costs');
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({ otherCosts: 1 });
+
+    req.flush({ ...existingSession, otherCosts: 1 });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Autres charges : CHF 1.00');
   });
 });

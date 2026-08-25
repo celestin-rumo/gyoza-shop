@@ -30,6 +30,11 @@ public class ProductionSession {
 
     private String notes;
 
+    // Free-form additional costs (packaging, transport, ...) — 0 by default, editable after
+    // creation via changeOtherCosts since these are often only known after the fact.
+    @Column(name = "other_costs", nullable = false)
+    private BigDecimal otherCosts;
+
     @OneToMany(
             mappedBy = "productionSession",
             cascade = CascadeType.ALL,
@@ -54,10 +59,22 @@ public class ProductionSession {
     protected ProductionSession() {
     }
 
-    public ProductionSession(LocalDate date, String batchNumber, BigDecimal durationHours, String notes) {
+    public ProductionSession(
+            LocalDate date,
+            String batchNumber,
+            BigDecimal durationHours,
+            String notes,
+            BigDecimal otherCosts
+    ) {
         if (durationHours == null || durationHours.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException(
                     "La durée de la session doit être supérieure à 0"
+            );
+        }
+
+        if (otherCosts != null && otherCosts.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException(
+                    "Les autres charges ne peuvent pas être négatives"
             );
         }
 
@@ -65,6 +82,17 @@ public class ProductionSession {
         this.batchNumber = batchNumber;
         this.durationHours = durationHours;
         this.notes = notes;
+        this.otherCosts = otherCosts != null ? otherCosts : BigDecimal.ZERO;
+    }
+
+    public void changeOtherCosts(BigDecimal otherCosts) {
+        if (otherCosts == null || otherCosts.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException(
+                    "Les autres charges ne peuvent pas être négatives"
+            );
+        }
+
+        this.otherCosts = otherCosts;
     }
 
     public void addRawMaterialUsage(RawMaterialUsage usage) {
@@ -100,6 +128,10 @@ public class ProductionSession {
 
     public String getNotes() {
         return notes;
+    }
+
+    public BigDecimal getOtherCosts() {
+        return otherCosts;
     }
 
     public List<RawMaterialUsage> getRawMaterialUsages() {

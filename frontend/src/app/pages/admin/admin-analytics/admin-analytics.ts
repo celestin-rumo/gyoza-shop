@@ -30,7 +30,7 @@ import {
 import { AdminAnalyticsService } from '../../../services/admin-analytics.service';
 import { AuthService } from '../../../services/auth.service';
 import { CurrencyService } from '../../../services/currency.service';
-import { Analytics, AnalyticsTimeSeries } from '../../../models/analytics.model';
+import { Analytics, AnalyticsTimeSeries, ProductionAnalytics } from '../../../models/analytics.model';
 import { OrderStatus } from '../../../models/order.model';
 import { DsButtonComponent } from '../../../design-system/components/ds-button/ds-button.component';
 import { DsSectionHeaderComponent } from '../../../design-system/components/ds-section-header/ds-section-header.component';
@@ -136,12 +136,16 @@ export class AdminAnalytics implements OnInit, OnDestroy {
   private readonly ordersCanvas = viewChild<ElementRef<HTMLCanvasElement>>('ordersChart');
   private readonly customersCanvas = viewChild<ElementRef<HTMLCanvasElement>>('customersChart');
   private readonly gyozaCanvas = viewChild<ElementRef<HTMLCanvasElement>>('gyozaChart');
+  private readonly sessionCostCanvas = viewChild<ElementRef<HTMLCanvasElement>>('sessionCostChart');
+  private readonly flavorCostCanvas = viewChild<ElementRef<HTMLCanvasElement>>('flavorCostChart');
 
   private statusChart: Chart | null = null;
   private revenueChart: Chart | null = null;
   private ordersChart: Chart | null = null;
   private customersChart: Chart | null = null;
   private gyozaChart: Chart | null = null;
+  private sessionCostChart: Chart | null = null;
+  private flavorCostChart: Chart | null = null;
 
   protected readonly statusOrder = STATUS_ORDER;
   protected readonly allProducts = ALL_PRODUCTS;
@@ -156,6 +160,10 @@ export class AdminAnalytics implements OnInit, OnDestroy {
   protected readonly timeSeries = signal<AnalyticsTimeSeries | null>(null);
   protected readonly timeSeriesLoading = signal(true);
   protected readonly timeSeriesLoadError = signal<string | null>(null);
+
+  protected readonly productionAnalytics = signal<ProductionAnalytics | null>(null);
+  protected readonly productionAnalyticsLoading = signal(true);
+  protected readonly productionAnalyticsLoadError = signal<string | null>(null);
 
   protected readonly rangeInvalid = computed(() => this.startDate() > this.endDate());
 
@@ -216,6 +224,34 @@ export class AdminAnalytics implements OnInit, OnDestroy {
     return map;
   });
 
+  protected readonly productionStatTiles = computed<StatTile[]>(() => {
+    const data = this.productionAnalytics();
+
+    if (!data) {
+      return [];
+    }
+
+    return [
+      { label: 'Coût matière première total', value: this.currencyService.format(data.totalMaterialCost) },
+      { label: 'Bénéfice net total (théorique)', value: this.currencyService.format(data.totalNetProfit) },
+      { label: 'Coût matière / gyoza (moyen)', value: this.currencyService.format(data.averageMaterialCostPerGyoza) },
+      // "Réel" — only counts orders that reached DELIVERED, unlike the totals above which are
+      // frozen catalog-based estimates. See ProductionSessionCostCalculator.actualSummary.
+      { label: 'CA réel (commandes livrées)', value: this.currencyService.format(data.totalActualRevenue) },
+      { label: 'Bénéfice net réel', value: this.currencyService.format(data.totalActualNetProfit) },
+    ];
+  });
+
+  protected readonly flavorNames = computed(() =>
+    Object.keys(this.productionAnalytics()?.averageCostPerGyozaByFlavor ?? {}).sort((a, b) =>
+      a.localeCompare(b, 'fr'),
+    ),
+  );
+
+  private flavorColorFor(index: number): string {
+    return PRODUCT_COLORS[index % PRODUCT_COLORS.length];
+  }
+
   constructor() {
     effect(() => {
       const counts = this.statusCounts();
@@ -261,11 +297,30 @@ export class AdminAnalytics implements OnInit, OnDestroy {
         this.renderGyozaChart(canvas, days);
       }
     });
+
+    effect(() => {
+      const sessions = this.productionAnalytics()?.sessions;
+      const canvas = this.sessionCostCanvas()?.nativeElement;
+
+      if (canvas && sessions) {
+        this.renderSessionCostChart(canvas, sessions);
+      }
+    });
+
+    effect(() => {
+      const data = this.productionAnalytics();
+      const canvas = this.flavorCostCanvas()?.nativeElement;
+
+      if (canvas && data) {
+        this.renderFlavorCostChart(canvas, this.flavorNames(), data.averageCostPerGyozaByFlavor);
+      }
+    });
   }
 
   ngOnInit(): void {
     this.loadAnalytics();
     this.loadTimeSeries();
+    this.loadProductionAnalytics();
   }
 
   ngOnDestroy(): void {
@@ -274,6 +329,8 @@ export class AdminAnalytics implements OnInit, OnDestroy {
     this.ordersChart?.destroy();
     this.customersChart?.destroy();
     this.gyozaChart?.destroy();
+    this.sessionCostChart?.destroy();
+    this.flavorCostChart?.destroy();
   }
 
   protected logout(): void {
@@ -331,6 +388,20 @@ export class AdminAnalytics implements OnInit, OnDestroy {
       this.timeSeriesLoadError.set(this.extractErrorMessage(error));
     } finally {
       this.timeSeriesLoading.set(false);
+    }
+  }
+
+  private async loadProductionAnalytics(): Promise<void> {
+    this.productionAnalyticsLoading.set(true);
+    this.productionAnalyticsLoadError.set(null);
+
+    try {
+      const data = await firstValueFrom(this.analyticsService.getProductionAnalytics());
+      this.productionAnalytics.set(data);
+    } catch {
+      this.productionAnalyticsLoadError.set('Impossible de charger la rentabilité de production.');
+    } finally {
+      this.productionAnalyticsLoading.set(false);
     }
   }
 
@@ -650,6 +721,119 @@ export class AdminAnalytics implements OnInit, OnDestroy {
             beginAtZero: true,
             ticks: { color: theme.textSecondary, precision: 0 },
             grid: { color: theme.gridline },
+          },
+        },
+      },
+    });
+  }
+
+  private renderSessionCostChart(canvas: HTMLCanvasElement, sessions: ProductionAnalytics['sessions']): void {
+    const theme = this.chartTheme();
+    const labels = sessions.map((session) => session.batchNumber);
+    const values = sessions.map((session) => session.materialCost);
+
+    if (this.sessionCostChart) {
+      this.sessionCostChart.data.labels = labels;
+      this.sessionCostChart.data.datasets[0].data = values;
+      this.sessionCostChart.update();
+      return;
+    }
+
+    this.sessionCostChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            data: values,
+            backgroundColor: theme.accent,
+            borderRadius: 4,
+            maxBarThickness: 24,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            ...this.tooltipBase(theme),
+            displayColors: false,
+            callbacks: {
+              label: (context: TooltipItem<'bar'>) => ` ${this.currencyService.format(context.parsed.y ?? 0)}`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: theme.textSecondary, autoSkip: true, maxTicksLimit: 8 },
+            grid: { display: false },
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: theme.textSecondary },
+            grid: { color: theme.gridline },
+          },
+        },
+      },
+    });
+  }
+
+  private renderFlavorCostChart(
+    canvas: HTMLCanvasElement,
+    flavorNames: string[],
+    averageCostPerGyozaByFlavor: Record<string, number>,
+  ): void {
+    const theme = this.chartTheme();
+    const values = flavorNames.map((name) => averageCostPerGyozaByFlavor[name] ?? 0);
+    const colors = flavorNames.map((_, index) => this.flavorColorFor(index));
+
+    if (this.flavorCostChart) {
+      this.flavorCostChart.data.labels = flavorNames;
+      this.flavorCostChart.data.datasets[0].data = values;
+      this.flavorCostChart.data.datasets[0].backgroundColor = colors;
+      this.flavorCostChart.update();
+      return;
+    }
+
+    this.flavorCostChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: flavorNames,
+        datasets: [
+          {
+            data: values,
+            backgroundColor: colors,
+            borderRadius: 4,
+            maxBarThickness: 40,
+          },
+        ],
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            ...this.tooltipBase(theme),
+            displayColors: false,
+            callbacks: {
+              label: (context: TooltipItem<'bar'>) => ` ${this.currencyService.format(context.parsed.x ?? 0)}/gyoza`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: { color: theme.textSecondary },
+            grid: { color: theme.gridline },
+          },
+          y: {
+            ticks: { color: theme.textSecondary },
+            grid: { display: false },
           },
         },
       },

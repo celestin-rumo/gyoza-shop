@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -19,6 +20,10 @@ public record CreateProductionSessionRequest(
         BigDecimal durationHours,
 
         String notes,
+
+        // Free-form additional costs (packaging, transport, ...); defaults to 0 when absent.
+        @PositiveOrZero
+        BigDecimal otherCosts,
 
         @Valid
         @NotEmpty

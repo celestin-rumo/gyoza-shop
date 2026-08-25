@@ -3,12 +3,17 @@ package ch.celestin.gyoza.analytics;
 import ch.celestin.gyoza.analytics.dto.AnalyticsDayPoint;
 import ch.celestin.gyoza.analytics.dto.AnalyticsResponse;
 import ch.celestin.gyoza.analytics.dto.AnalyticsTimeSeriesResponse;
+import ch.celestin.gyoza.analytics.dto.ProductionAnalyticsResponse;
 import ch.celestin.gyoza.customer.Customer;
 import ch.celestin.gyoza.customer.CustomerRepository;
 import ch.celestin.gyoza.order.Order;
 import ch.celestin.gyoza.order.OrderItem;
 import ch.celestin.gyoza.order.OrderRepository;
 import ch.celestin.gyoza.order.OrderStatus;
+import ch.celestin.gyoza.productionsession.ProductOutput;
+import ch.celestin.gyoza.productionsession.ProductionSession;
+import ch.celestin.gyoza.productionsession.ProductionSessionCostCalculator;
+import ch.celestin.gyoza.productionsession.ProductionSessionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,13 +35,16 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     private final CustomerRepository customerRepository;
     private final OrderRepository orderRepository;
+    private final ProductionSessionRepository productionSessionRepository;
 
     public AnalyticsServiceImpl(
             CustomerRepository customerRepository,
-            OrderRepository orderRepository
+            OrderRepository orderRepository,
+            ProductionSessionRepository productionSessionRepository
     ) {
         this.customerRepository = customerRepository;
         this.orderRepository = orderRepository;
+        this.productionSessionRepository = productionSessionRepository;
     }
 
     @Override
@@ -164,6 +172,75 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 orders.stream()
                         .filter(order -> order.getCreatedAt().isAfter(since))
                         .toList()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProductionAnalyticsResponse getProductionAnalytics() {
+        List<ProductionSession> sessions = productionSessionRepository.findAllByOrderByDateDesc();
+
+        BigDecimal totalMaterialCost = BigDecimal.ZERO;
+        BigDecimal totalNetProfit = BigDecimal.ZERO;
+        BigDecimal totalActualRevenue = BigDecimal.ZERO;
+        BigDecimal totalActualNetProfit = BigDecimal.ZERO;
+        int totalGyoza = 0;
+
+        // Blended approximation: a shared-flavor session's overall cost/gyoza is counted
+        // toward every flavor it produced, since raw material usage isn't tracked per output.
+        Map<String, List<BigDecimal>> costPerGyozaByFlavor = new LinkedHashMap<>();
+        List<ProductionAnalyticsResponse.SessionCostPoint> points = new ArrayList<>();
+
+        for (ProductionSession session : sessions) {
+            ProductionSessionCostCalculator.Summary summary = ProductionSessionCostCalculator.summary(session);
+            ProductionSessionCostCalculator.ActualSummary actualSummary =
+                    ProductionSessionCostCalculator.actualSummary(session);
+
+            totalMaterialCost = totalMaterialCost.add(summary.totalMaterialCost());
+            totalNetProfit = totalNetProfit.add(summary.netProfit());
+            totalActualRevenue = totalActualRevenue.add(actualSummary.actualRevenue());
+            totalActualNetProfit = totalActualNetProfit.add(actualSummary.actualNetProfit());
+            totalGyoza += summary.totalGyozaProduced();
+
+            for (ProductOutput output : session.getOutputs()) {
+                BigDecimal costPerGyoza = ProductionSessionCostCalculator.costPerGyozaForOutput(session, output);
+                costPerGyozaByFlavor
+                        .computeIfAbsent(output.getProduct().getName(), name -> new ArrayList<>())
+                        .add(costPerGyoza);
+            }
+
+            points.add(new ProductionAnalyticsResponse.SessionCostPoint(
+                    session.getDate(),
+                    session.getBatchNumber(),
+                    summary.totalMaterialCost(),
+                    summary.netProfit(),
+                    actualSummary.actualNetProfit()
+            ));
+        }
+
+        Map<String, BigDecimal> averageCostPerGyozaByFlavor = new LinkedHashMap<>();
+        for (Map.Entry<String, List<BigDecimal>> entry : costPerGyozaByFlavor.entrySet()) {
+            BigDecimal sum = entry.getValue().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+            averageCostPerGyozaByFlavor.put(
+                    entry.getKey(),
+                    sum.divide(BigDecimal.valueOf(entry.getValue().size()), 4, RoundingMode.HALF_UP)
+            );
+        }
+
+        BigDecimal averageMaterialCostPerGyoza = totalGyoza > 0
+                ? totalMaterialCost.divide(BigDecimal.valueOf(totalGyoza), 4, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
+        return new ProductionAnalyticsResponse(
+                totalMaterialCost,
+                totalNetProfit,
+                averageMaterialCostPerGyoza,
+                averageCostPerGyozaByFlavor,
+                totalActualRevenue,
+                totalActualNetProfit,
+                // Chronological order for the "cost per session" bar chart, unlike the
+                // date-descending order used elsewhere in this admin section.
+                points.reversed()
         );
     }
 }

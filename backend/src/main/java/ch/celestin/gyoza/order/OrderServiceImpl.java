@@ -9,6 +9,7 @@ import ch.celestin.gyoza.order.dto.*;
 import ch.celestin.gyoza.pack.PackOption;
 import ch.celestin.gyoza.pack.PackOptionRepository;
 import ch.celestin.gyoza.product.Product;
+import ch.celestin.gyoza.productionsession.ProductOutputAllocationService;
 import ch.celestin.gyoza.slot.SlotAvailability;
 import ch.celestin.gyoza.slot.SlotAvailabilityRepository;
 import ch.celestin.gyoza.user.User;
@@ -24,17 +25,20 @@ public class OrderServiceImpl implements OrderService {
     private final CustomerRepository customerRepository;
     private final PackOptionRepository packOptionRepository;
     private final SlotAvailabilityRepository slotAvailabilityRepository;
+    private final ProductOutputAllocationService productOutputAllocationService;
 
     public OrderServiceImpl(
             OrderRepository orderRepository,
             CustomerRepository customerRepository,
             PackOptionRepository packOptionRepository,
-            SlotAvailabilityRepository slotAvailabilityRepository
+            SlotAvailabilityRepository slotAvailabilityRepository,
+            ProductOutputAllocationService productOutputAllocationService
     ) {
         this.orderRepository = orderRepository;
         this.customerRepository = customerRepository;
         this.packOptionRepository = packOptionRepository;
         this.slotAvailabilityRepository = slotAvailabilityRepository;
+        this.productOutputAllocationService = productOutputAllocationService;
     }
 
     @Override
@@ -88,6 +92,11 @@ public class OrderServiceImpl implements OrderService {
             );
 
             order.addItem(orderItem);
+
+            // Attributes these gyoza back to the production batch(es) they came from
+            // (FIFO) so a session's actual revenue can later be computed from real sales —
+            // see ProductionSessionCostCalculator.actualSummary.
+            productOutputAllocationService.allocate(product, requiredGyozas, orderItem);
         }
 
         Order savedOrder =

@@ -382,3 +382,59 @@
     font-weight: var(--gz-fw-semibold);
   }
 }
+
+.admin-production-session__pill-sub {
+  margin-left: var(--gz-space-1);
+  color: var(--gz-text-secondary);
+}
+
+.admin-production-session__hourly-revenue {
+  margin: 0;
+  color: var(--gz-text-secondary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+
+  strong {
+    margin-left: var(--gz-space-2);
+    color: var(--gz-accent-400);
+    font-size: var(--gz-fs-lg);
+    font-weight: var(--gz-fw-semibold);
+  }
+}
+
+.admin-production-session__cost-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--gz-space-3);
+  margin: 0 0 var(--gz-space-3);
+}
+
+.admin-production-session__cost-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gz-space-1);
+
+  dt {
+    color: var(--gz-text-secondary);
+    font-family: var(--gz-font-family);
+    font-size: var(--gz-fs-xs);
+  }
+
+  dd {
+    margin: 0;
+    color: var(--gz-text-primary);
+    font-family: var(--gz-font-family);
+    font-size: var(--gz-fs-sm);
+    font-weight: var(--gz-fw-semibold);
+  }
+}
+
+.admin-production-session__other-costs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--gz-space-3);
+  color: var(--gz-text-secondary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+}

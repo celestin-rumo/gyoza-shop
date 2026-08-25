@@ -13,6 +13,7 @@ import ch.celestin.gyoza.order.dto.OrderResponse;
 import ch.celestin.gyoza.pack.PackOption;
 import ch.celestin.gyoza.pack.PackOptionRepository;
 import ch.celestin.gyoza.product.Product;
+import ch.celestin.gyoza.productionsession.ProductOutputAllocationService;
 import ch.celestin.gyoza.slot.SlotAvailability;
 import ch.celestin.gyoza.slot.SlotAvailabilityRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +32,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -53,12 +56,16 @@ class OrderServiceImplTest {
     @Mock
     private SlotAvailabilityRepository slotAvailabilityRepository;
 
+    @Mock
+    private ProductOutputAllocationService productOutputAllocationService;
+
     private OrderServiceImpl orderService;
 
     @BeforeEach
     void setUp() {
         orderService = new OrderServiceImpl(
-                orderRepository, customerRepository, packOptionRepository, slotAvailabilityRepository
+                orderRepository, customerRepository, packOptionRepository, slotAvailabilityRepository,
+                productOutputAllocationService
         );
     }
 
@@ -82,6 +89,10 @@ class OrderServiceImplTest {
         assertThat(response.date()).isEqualTo(DATE);
         assertThat(response.startTime()).isEqualTo(START);
         assertThat(response.endTime()).isEqualTo(END);
+
+        // Attributes the consumed gyoza back to their production batch(es) — see
+        // ProductOutputAllocationService.
+        verify(productOutputAllocationService).allocate(eq(chicken), eq(12), any(OrderItem.class));
     }
 
     @Test
