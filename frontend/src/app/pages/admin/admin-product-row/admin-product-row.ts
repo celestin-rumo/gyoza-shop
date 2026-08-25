@@ -5,13 +5,14 @@ import { AdminProductService } from '../../../services/admin-product.service';
 import { Product } from '../../../models/product.model';
 import { Pack } from '../../../models/pack.model';
 import { DsButtonComponent } from '../../../design-system/components/ds-button/ds-button.component';
+import { DsNumberStepperComponent } from '../../../design-system';
 import { AdminPackRow } from '../admin-pack-row/admin-pack-row';
 
 const QUICK_STOCK_STEPS = [10, 50, 100];
 
 @Component({
   selector: 'app-admin-product-row',
-  imports: [DsButtonComponent, AdminPackRow],
+  imports: [DsButtonComponent, DsNumberStepperComponent, AdminPackRow],
   templateUrl: './admin-product-row.html',
   styleUrl: './admin-product-row.scss',
 })

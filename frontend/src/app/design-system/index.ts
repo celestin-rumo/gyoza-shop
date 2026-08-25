@@ -13,6 +13,7 @@ export * from './components/ds-form-field/ds-form-field.component';
 export * from './components/ds-form-message/ds-form-message.component';
 export * from './components/ds-icon-button/ds-icon-button.component';
 export * from './components/ds-navbar/ds-navbar.component';
+export * from './components/ds-number-stepper/ds-number-stepper.component';
 export * from './components/ds-option/ds-option.component';
 export * from './components/ds-origin-card/ds-origin-card.component';
 export * from './components/ds-pack-picker/ds-pack-picker.component';

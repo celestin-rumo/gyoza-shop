@@ -51,29 +51,25 @@
           />
         </label>
 
-        <label class="admin-raw-material-purchases__field">
-          Quantité ({{ material.unit }})
-          <input
-            type="number"
-            min="0.001"
-            step="0.001"
-            class="admin-raw-material-purchases__input"
-            [value]="quantityPurchased()"
-            (input)="quantityPurchased.set($any($event.target).valueAsNumber || 0)"
-          />
-        </label>
+        <div class="admin-raw-material-purchases__field">
+          <span>Quantité ({{ material.unit }})</span>
+          <ds-number-stepper
+            [(value)]="quantityPurchased"
+            [step]="0.1"
+            [min]="0"
+            label="la quantité"
+          ></ds-number-stepper>
+        </div>
 
-        <label class="admin-raw-material-purchases__field">
-          Prix payé (CHF)
-          <input
-            type="number"
-            min="0.01"
-            step="0.01"
-            class="admin-raw-material-purchases__input"
-            [value]="totalPricePaid()"
-            (input)="totalPricePaid.set($any($event.target).valueAsNumber || 0)"
-          />
-        </label>
+        <div class="admin-raw-material-purchases__field">
+          <span>Prix payé (CHF)</span>
+          <ds-number-stepper
+            [(value)]="totalPricePaid"
+            [step]="1"
+            [min]="0"
+            label="le prix payé"
+          ></ds-number-stepper>
+        </div>
 
         <label class="admin-raw-material-purchases__field">
           Mode de saisie

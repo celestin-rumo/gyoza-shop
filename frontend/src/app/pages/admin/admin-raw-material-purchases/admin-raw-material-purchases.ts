@@ -10,10 +10,11 @@ import { PurchaseSource, RawMaterialPurchase } from '../../../models/raw-materia
 import { DsButtonComponent } from '../../../design-system/components/ds-button/ds-button.component';
 import { DsSectionHeaderComponent } from '../../../design-system/components/ds-section-header/ds-section-header.component';
 import { DsPricePipe } from '../../../design-system/pipes/ds-price.pipe';
+import { DsNumberStepperComponent } from '../../../design-system';
 
 @Component({
   selector: 'app-admin-raw-material-purchases',
-  imports: [DsSectionHeaderComponent, DsButtonComponent, DsPricePipe, RouterLink],
+  imports: [DsSectionHeaderComponent, DsButtonComponent, DsPricePipe, DsNumberStepperComponent, RouterLink],
   templateUrl: './admin-raw-material-purchases.html',
   styleUrl: './admin-raw-material-purchases.scss',
 })

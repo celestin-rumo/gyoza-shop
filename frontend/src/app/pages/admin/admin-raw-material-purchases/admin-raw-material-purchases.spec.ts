@@ -126,6 +126,31 @@ describe('AdminRawMaterialPurchases', () => {
     expect(fixture.nativeElement.textContent).toContain('Aucun achat enregistré pour cette matière première.');
   });
 
+  it('adjusts quantity and price via the +/- stepper buttons', async () => {
+    setup('1');
+    await flushRawMaterials();
+    httpMock.expectOne('/api/admin/raw-material-purchases?rawMaterialId=1').flush([]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const quantityInput: HTMLInputElement = fixture.nativeElement.querySelector(
+      'input[aria-label="la quantité"]',
+    );
+    const priceInput: HTMLInputElement = fixture.nativeElement.querySelector(
+      'input[aria-label="le prix payé"]',
+    );
+    expect(quantityInput.value).toBe('0');
+    expect(priceInput.value).toBe('0');
+
+    (fixture.nativeElement.querySelector('button[aria-label="Augmenter la quantité"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(quantityInput.value).toBe('0.1');
+
+    (fixture.nativeElement.querySelector('button[aria-label="Augmenter le prix payé"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(priceInput.value).toBe('1');
+  });
+
   it('submits a new purchase with all fields and refreshes the history and catalog', async () => {
     setup('1');
     await flushRawMaterials();

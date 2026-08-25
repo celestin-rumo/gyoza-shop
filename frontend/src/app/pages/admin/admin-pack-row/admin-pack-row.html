@@ -1,27 +1,14 @@
 @if (editing()) {
   <div class="admin-pack-row admin-pack-row--editing">
-    <label class="admin-pack-row__field">
-      Quantité
-      <input
-        type="number"
-        min="1"
-        class="admin-pack-row__input"
-        [value]="size()"
-        (input)="size.set($any($event.target).valueAsNumber || 0)"
-      />
-    </label>
+    <div class="admin-pack-row__field">
+      <span>Quantité</span>
+      <ds-number-stepper [(value)]="size" [step]="1" [min]="1" label="la quantité de ce pack"></ds-number-stepper>
+    </div>
 
-    <label class="admin-pack-row__field">
-      Prix (CHF)
-      <input
-        type="number"
-        min="0.01"
-        step="0.01"
-        class="admin-pack-row__input"
-        [value]="price()"
-        (input)="price.set($any($event.target).valueAsNumber || 0)"
-      />
-    </label>
+    <div class="admin-pack-row__field">
+      <span>Prix (CHF)</span>
+      <ds-number-stepper [(value)]="price" [step]="1" [min]="0" label="le prix de ce pack"></ds-number-stepper>
+    </div>
 
     <div class="admin-pack-row__actions">
       <ds-button variant="primary" size="sm" [disabled]="!canSave() || saving()" (pressed)="save()">

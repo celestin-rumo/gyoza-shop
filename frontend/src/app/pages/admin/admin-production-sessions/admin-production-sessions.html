@@ -98,35 +98,13 @@
                       }
                     </select>
 
-                    <div class="admin-production-sessions__stepper">
-                      <button
-                        type="button"
-                        class="admin-production-sessions__stepper-btn"
-                        aria-label="Diminuer la quantité"
-                        (click)="adjustRawMaterialQuantity($index, -1)"
-                      >
-                        −
-                      </button>
-
-                      <input
-                        type="number"
-                        min="0.001"
-                        step="0.001"
-                        placeholder="Quantité"
-                        class="admin-production-sessions__input admin-production-sessions__input--sm admin-production-sessions__stepper-input"
-                        [value]="line.quantityUsed"
-                        (input)="updateLine(rawMaterialLines, $index, { quantityUsed: $any($event.target).valueAsNumber || 0 })"
-                      />
-
-                      <button
-                        type="button"
-                        class="admin-production-sessions__stepper-btn"
-                        aria-label="Augmenter la quantité"
-                        (click)="adjustRawMaterialQuantity($index, 1)"
-                      >
-                        +
-                      </button>
-                    </div>
+                    <ds-number-stepper
+                      [value]="line.quantityUsed"
+                      (valueChange)="updateLine(rawMaterialLines, $index, { quantityUsed: $event })"
+                      [step]="0.1"
+                      [min]="0"
+                      label="la quantité"
+                    ></ds-number-stepper>
 
                     <ds-button variant="ghost" size="sm" (pressed)="removeLine(rawMaterialLines, $index)">
                       Retirer
@@ -192,34 +170,13 @@
                       }
                     </select>
 
-                    <div class="admin-production-sessions__stepper">
-                      <button
-                        type="button"
-                        class="admin-production-sessions__stepper-btn"
-                        aria-label="Diminuer la quantité produite"
-                        (click)="adjustOutputQuantity($index, -1)"
-                      >
-                        −
-                      </button>
-
-                      <input
-                        type="number"
-                        min="1"
-                        placeholder="Quantité"
-                        class="admin-production-sessions__input admin-production-sessions__input--sm admin-production-sessions__stepper-input"
-                        [value]="line.quantityProduced"
-                        (input)="updateLine(outputLines, $index, { quantityProduced: $any($event.target).valueAsNumber || 0 })"
-                      />
-
-                      <button
-                        type="button"
-                        class="admin-production-sessions__stepper-btn"
-                        aria-label="Augmenter la quantité produite"
-                        (click)="adjustOutputQuantity($index, 1)"
-                      >
-                        +
-                      </button>
-                    </div>
+                    <ds-number-stepper
+                      [value]="line.quantityProduced"
+                      (valueChange)="updateLine(outputLines, $index, { quantityProduced: $event })"
+                      [step]="1"
+                      [min]="0"
+                      label="la quantité produite"
+                    ></ds-number-stepper>
 
                     <ds-button variant="ghost" size="sm" (pressed)="removeLine(outputLines, $index)">
                       Retirer
@@ -240,35 +197,7 @@
 
               <div class="admin-production-sessions__field">
                 <span>Nombre d'heures</span>
-                <div class="admin-production-sessions__stepper">
-                  <button
-                    type="button"
-                    class="admin-production-sessions__stepper-btn"
-                    aria-label="Diminuer la durée"
-                    (click)="adjustDurationHours(-1)"
-                  >
-                    −
-                  </button>
-
-                  <input
-                    type="number"
-                    min="0.5"
-                    step="0.5"
-                    aria-label="Nombre d'heures"
-                    class="admin-production-sessions__input admin-production-sessions__stepper-input"
-                    [value]="durationHours()"
-                    (input)="durationHours.set($any($event.target).valueAsNumber || 0)"
-                  />
-
-                  <button
-                    type="button"
-                    class="admin-production-sessions__stepper-btn"
-                    aria-label="Augmenter la durée"
-                    (click)="adjustDurationHours(1)"
-                  >
-                    +
-                  </button>
-                </div>
+                <ds-number-stepper [(value)]="durationHours" [step]="0.5" [min]="0" label="la durée"></ds-number-stepper>
               </div>
             }
           }

@@ -235,62 +235,6 @@
   }
 }
 
-.admin-production-sessions__stepper {
-  display: flex;
-  align-items: stretch;
-}
-
-.admin-production-sessions__stepper-btn {
-  width: 36px;
-  background: var(--gz-bg-elevated);
-  border: 1px solid var(--gz-border-soft);
-  color: var(--gz-text-primary);
-  font-family: var(--gz-font-family);
-  font-size: var(--gz-fs-base);
-  line-height: 1;
-  cursor: pointer;
-
-  &:first-child {
-    border-radius: var(--gz-radius-sm) 0 0 var(--gz-radius-sm);
-    border-right: none;
-  }
-
-  &:last-child {
-    border-radius: 0 var(--gz-radius-sm) var(--gz-radius-sm) 0;
-    border-left: none;
-  }
-
-  &:hover {
-    background: var(--gz-border-soft);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--gz-accent-400);
-    outline-offset: 2px;
-  }
-}
-
-.admin-production-sessions__stepper-input {
-  width: 90px;
-  text-align: center;
-  border-radius: 0;
-  // Custom +/- buttons replace the native stepper; hide the browser's own arrows.
-  appearance: textfield;
-  -moz-appearance: textfield;
-
-  &::-webkit-inner-spin-button,
-  &::-webkit-outer-spin-button {
-    appearance: none;
-    -webkit-appearance: none;
-    margin: 0;
-  }
-
-  &:focus-visible {
-    position: relative;
-    z-index: 1;
-  }
-}
-
 .admin-production-sessions__submit-error {
   margin: 0;
   padding: var(--gz-space-3) var(--gz-space-4);

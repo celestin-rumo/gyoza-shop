@@ -106,7 +106,7 @@ describe('AdminProductionSessions', () => {
   function openWizardToOutputsStep(): void {
     openWizardToRawMaterialsStep();
     setSelectValue('select', '1');
-    setInputValue('.admin-production-sessions__stepper-input', '1');
+    setInputValue('.ds-number-stepper__input', '1');
     goToNextStep();
     setSelectValue('select', 'user-1');
     goToNextStep();
@@ -230,7 +230,7 @@ describe('AdminProductionSessions', () => {
     openWizardToRawMaterialsStep();
 
     const quantityInput: HTMLInputElement = fixture.nativeElement.querySelector(
-      '.admin-production-sessions__stepper-input',
+      '.ds-number-stepper__input',
     );
     expect(quantityInput.value).toBe('0');
 
@@ -264,7 +264,7 @@ describe('AdminProductionSessions', () => {
     fixture.detectChanges();
 
     const quantityInput: HTMLInputElement = fixture.nativeElement.querySelector(
-      '.admin-production-sessions__stepper-input',
+      '.ds-number-stepper__input',
     );
     expect(quantityInput.value).toBe('0');
   });
@@ -274,7 +274,7 @@ describe('AdminProductionSessions', () => {
     openWizardToOutputsStep();
 
     const quantityInput: HTMLInputElement = fixture.nativeElement.querySelector(
-      '.admin-production-sessions__stepper-input',
+      '.ds-number-stepper__input',
     );
     expect(quantityInput.value).toBe('0');
 
@@ -306,7 +306,7 @@ describe('AdminProductionSessions', () => {
     fixture.detectChanges();
 
     const quantityInput: HTMLInputElement = fixture.nativeElement.querySelector(
-      '.admin-production-sessions__stepper-input',
+      '.ds-number-stepper__input',
     );
     expect(quantityInput.value).toBe('0');
   });
@@ -334,7 +334,7 @@ describe('AdminProductionSessions', () => {
 
     goToNextStep(); // date -> raw materials
     setSelectValue('select', '1');
-    setInputValue('.admin-production-sessions__stepper-input', '1');
+    setInputValue('.ds-number-stepper__input', '1');
     goToNextStep(); // -> participants
     setSelectValue('select', 'user-1');
     goToNextStep(); // -> products
@@ -343,7 +343,7 @@ describe('AdminProductionSessions', () => {
     goToNextStep(); // -> duration
 
     const durationInput: HTMLInputElement = fixture.nativeElement.querySelector(
-      '.admin-production-sessions__stepper-input',
+      '.ds-number-stepper__input',
     );
     expect(durationInput.value).toBe('0');
 
@@ -374,7 +374,7 @@ describe('AdminProductionSessions', () => {
 
     // Step 2: raw materials.
     setSelectValue('select', '1');
-    setInputValue('.admin-production-sessions__stepper-input', '3.5');
+    setInputValue('.ds-number-stepper__input', '3.5');
     goToNextStep();
 
     // Step 3: participants (names only).
@@ -387,7 +387,7 @@ describe('AdminProductionSessions', () => {
     goToNextStep();
 
     // Step 5: session duration.
-    setInputValue('.admin-production-sessions__stepper-input', '4');
+    setInputValue('.ds-number-stepper__input', '4');
 
     clickButton('Enregistrer');
 
@@ -433,7 +433,7 @@ describe('AdminProductionSessions', () => {
     goToNextStep();
 
     setSelectValue('select', '1');
-    setInputValue('.admin-production-sessions__stepper-input', '1');
+    setInputValue('.ds-number-stepper__input', '1');
     goToNextStep();
 
     setSelectValue('select', 'user-1');
@@ -443,7 +443,7 @@ describe('AdminProductionSessions', () => {
     setInputValue('input[type="number"]', '1');
     goToNextStep();
 
-    setInputValue('.admin-production-sessions__stepper-input', '1');
+    setInputValue('.ds-number-stepper__input', '1');
 
     clickButton('Enregistrer');
 

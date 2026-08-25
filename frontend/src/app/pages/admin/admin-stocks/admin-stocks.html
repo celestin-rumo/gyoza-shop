@@ -30,17 +30,14 @@
       </div>
 
       <div class="admin-stocks__field">
-        <label for="productStock">Stock initial</label>
-        <input
-          id="productStock"
-          type="number"
-          [formField]="newProductForm.initialStock"
-        />
-        @if (newProductForm.initialStock().touched() && newProductForm.initialStock().invalid()) {
-          <p class="admin-stocks__field-error">
-            {{ newProductForm.initialStock().errors()[0]?.message }}
-          </p>
-        }
+        <label>Stock initial</label>
+        <ds-number-stepper
+          [value]="newProduct().initialStock"
+          (valueChange)="setInitialStock($event)"
+          [step]="1"
+          [min]="0"
+          label="le stock initial"
+        ></ds-number-stepper>
       </div>
 
       @if (createProductError()) {

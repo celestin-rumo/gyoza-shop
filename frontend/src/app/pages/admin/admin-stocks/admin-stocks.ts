@@ -2,13 +2,14 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { FormField, FormRoot, form, min, required } from '@angular/forms/signals';
+import { FormField, FormRoot, form, required } from '@angular/forms/signals';
 
 import { AdminProductService } from '../../../services/admin-product.service';
 import { AuthService } from '../../../services/auth.service';
 import { Product } from '../../../models/product.model';
 import { DsButtonComponent } from '../../../design-system/components/ds-button/ds-button.component';
 import { DsSectionHeaderComponent } from '../../../design-system/components/ds-section-header/ds-section-header.component';
+import { DsNumberStepperComponent } from '../../../design-system';
 import { AdminProductRow } from '../admin-product-row/admin-product-row';
 
 interface NewProduct {
@@ -18,7 +19,15 @@ interface NewProduct {
 
 @Component({
   selector: 'app-admin-stocks',
-  imports: [DsSectionHeaderComponent, DsButtonComponent, FormField, FormRoot, RouterLink, AdminProductRow],
+  imports: [
+    DsSectionHeaderComponent,
+    DsButtonComponent,
+    DsNumberStepperComponent,
+    FormField,
+    FormRoot,
+    RouterLink,
+    AdminProductRow,
+  ],
   templateUrl: './admin-stocks.html',
   styleUrl: './admin-stocks.scss',
 })
@@ -40,7 +49,6 @@ export class AdminStocks implements OnInit {
     this.newProduct,
     (path) => {
       required(path.name, { message: 'Le nom du produit est requis.' });
-      min(path.initialStock, 0, { message: 'Le stock initial ne peut pas être négatif.' });
     },
     {
       submission: {
@@ -68,6 +76,10 @@ export class AdminStocks implements OnInit {
 
   ngOnInit(): void {
     this.loadProducts();
+  }
+
+  protected setInitialStock(initialStock: number): void {
+    this.newProduct.update((product) => ({ ...product, initialStock }));
   }
 
   protected onProductUpdated(updated: Product): void {
