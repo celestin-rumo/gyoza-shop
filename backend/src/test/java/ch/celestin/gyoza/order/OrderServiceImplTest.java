@@ -3,6 +3,7 @@ package ch.celestin.gyoza.order;
 import ch.celestin.gyoza.customer.Customer;
 import ch.celestin.gyoza.customer.CustomerRepository;
 import ch.celestin.gyoza.exception.InsufficientStockException;
+import ch.celestin.gyoza.exception.OrderItemsNotValidatedException;
 import ch.celestin.gyoza.exception.OrderNotFoundException;
 import ch.celestin.gyoza.exception.PackNotFoundException;
 import ch.celestin.gyoza.exception.SlotNotAvailableException;
@@ -16,6 +17,7 @@ import ch.celestin.gyoza.product.Product;
 import ch.celestin.gyoza.productionsession.ProductOutputAllocationService;
 import ch.celestin.gyoza.slot.SlotAvailability;
 import ch.celestin.gyoza.slot.SlotAvailabilityRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -145,6 +147,77 @@ class OrderServiceImplTest {
                 .isInstanceOf(OrderNotFoundException.class);
 
         verifyNoInteractions(customerRepository);
+    }
+
+    @Test
+    void updateStatus_toReady_throwsOrderItemsNotValidatedException_whenAnItemIsNotValidated() {
+        Order order = orderInPreparingWithOneItem();
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.updateStatus(1L, OrderStatus.READY))
+                .isInstanceOf(OrderItemsNotValidatedException.class);
+    }
+
+    @Test
+    void updateStatus_toReady_succeeds_onceAllItemsAreValidated() {
+        Order order = orderInPreparingWithOneItem();
+        order.getItems().get(0).setBatchValidated(true);
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+
+        OrderResponse response = orderService.updateStatus(1L, OrderStatus.READY);
+
+        assertThat(response.status()).isEqualTo(OrderStatus.READY);
+    }
+
+    @Test
+    void validateItemBatch_marksTheItemAsValidated() {
+        Order order = orderInPreparingWithOneItem();
+        Long itemId = 42L;
+        setItemId(order.getItems().get(0), itemId);
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+
+        OrderResponse response = orderService.validateItemBatch(1L, itemId, true);
+
+        assertThat(response.items().get(0).batchValidated()).isTrue();
+    }
+
+    @Test
+    void validateItemBatch_throwsEntityNotFoundException_whenItemDoesNotBelongToTheOrder() {
+        Order order = orderInPreparingWithOneItem();
+        setItemId(order.getItems().get(0), 42L);
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.validateItemBatch(1L, 999L, true))
+                .isInstanceOf(EntityNotFoundException.class);
+    }
+
+    /** Order in PREPARING with a single unvalidated item — the state just before a READY attempt. */
+    private Order orderInPreparingWithOneItem() {
+        Order order = new Order(
+                new Customer("Jean", "Dupont", "jean@example.com", "1 rue du Test"),
+                FulfillmentMethod.PICKUP,
+                DATE,
+                START,
+                END,
+                ContentType.FROZEN
+        );
+        order.changeStatus(OrderStatus.PREPARING);
+
+        Product chicken = new Product("Chicken", 200);
+        order.addItem(new OrderItem(chicken, 6, 2, new BigDecimal("12.00")));
+
+        return order;
+    }
+
+    /** OrderItem.id is JPA-assigned; tests that target a specific item need to fake it via reflection. */
+    private void setItemId(OrderItem item, Long id) {
+        try {
+            var field = OrderItem.class.getDeclaredField("id");
+            field.setAccessible(true);
+            field.set(item, id);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test

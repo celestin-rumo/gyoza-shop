@@ -181,10 +181,40 @@
                   <h4 class="admin-order__section-title">Articles</h4>
 
                   <ul class="admin-order__items">
-                    @for (item of order.items; track item.productName + item.packSize) {
+                    @for (item of order.items; track item.id) {
                       <li class="admin-order__item">
-                        <span>{{ item.packQuantity }} × {{ item.productName }} (pack de {{ item.packSize }})</span>
-                        <span>{{ item.unitPackPrice | dsPrice }}</span>
+                        <div class="admin-order__item-row">
+                          <span>{{ item.packQuantity }} × {{ item.productName }} (pack de {{ item.packSize }})</span>
+                          <span>{{ item.unitPackPrice | dsPrice }}</span>
+                        </div>
+
+                        <div class="admin-order__item-batches">
+                          @for (batch of item.batches; track $index) {
+                            @if (batch.batchNumber) {
+                              <span class="admin-order__batch-badge">
+                                Lot {{ batch.batchNumber }} : {{ batch.quantity }}
+                              </span>
+                            } @else {
+                              <span class="admin-order__batch-badge admin-order__batch-badge--warning">
+                                Provenance non traçable : {{ batch.quantity }}
+                              </span>
+                            }
+                          }
+                        </div>
+
+                        <label class="admin-order__batch-check">
+                          <input
+                            type="checkbox"
+                            [checked]="item.batchValidated"
+                            [disabled]="validatingItemId() === item.id"
+                            (change)="toggleItemBatchValidation(order, item)"
+                          />
+                          Numéro(s) de lot vérifié(s)
+                        </label>
+
+                        @if (itemValidationErrorFor(item.id); as itemError) {
+                          <p class="admin-order__error" role="alert">{{ itemError }}</p>
+                        }
                       </li>
                     }
                   </ul>
@@ -204,13 +234,19 @@
                         <ds-button
                           [variant]="status === 'CANCELLED' ? 'ghost' : 'outline'"
                           size="sm"
-                          [disabled]="updatingOrderId() === order.id"
+                          [disabled]="updatingOrderId() === order.id || !canApplyStatus(order, status)"
                           (pressed)="setStatus(order, status)"
                         >
                           {{ statusLabels[status] }}
                         </ds-button>
                       }
                     </div>
+
+                    @if (nextStatuses(order.status).includes('READY') && !allItemsValidated(order)) {
+                      <p class="admin-order__hint">
+                        Vérifiez le(s) numéro(s) de lot de chaque article avant de passer la commande à Prête.
+                      </p>
+                    }
 
                     @if (statusErrorFor(order.id); as error) {
                       <p class="admin-order__error" role="alert">{{ error }}</p>

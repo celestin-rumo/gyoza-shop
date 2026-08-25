@@ -344,7 +344,7 @@
 .admin-order__items {
   display: flex;
   flex-direction: column;
-  gap: var(--gz-space-1);
+  gap: var(--gz-space-3);
   margin: 0 0 var(--gz-space-3);
   padding: 0;
   list-style: none;
@@ -352,12 +352,53 @@
 
 .admin-order__item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--gz-space-3);
+  flex-direction: column;
+  gap: var(--gz-space-1);
   color: var(--gz-text-primary);
   font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
+}
+
+.admin-order__item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gz-space-3);
+}
+
+.admin-order__item-batches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gz-space-1);
+}
+
+.admin-order__batch-badge {
+  padding: var(--gz-space-1) var(--gz-space-2);
+  background: var(--gz-bg-elevated);
+  border: 1px solid var(--gz-border-soft);
+  border-radius: var(--gz-radius-pill);
+  color: var(--gz-text-secondary);
+  font-size: var(--gz-fs-xs);
+}
+
+.admin-order__batch-badge--warning {
+  border-color: var(--gz-accent-500);
+  color: var(--gz-accent-500);
+}
+
+.admin-order__batch-check {
+  display: flex;
+  align-items: center;
+  gap: var(--gz-space-2);
+  color: var(--gz-text-secondary);
+  font-size: var(--gz-fs-xs);
+}
+
+.admin-order__hint {
+  margin: var(--gz-space-2) 0 0;
+  color: var(--gz-text-secondary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-xs);
 }
 
 .admin-order__total {
