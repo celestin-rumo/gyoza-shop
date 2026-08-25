@@ -2,6 +2,7 @@ package ch.celestin.gyoza.order;
 
 import ch.celestin.gyoza.customer.Customer;
 import ch.celestin.gyoza.exception.InvalidOrderStatusException;
+import ch.celestin.gyoza.exception.OrderItemsNotValidatedException;
 import ch.celestin.gyoza.user.User;
 import jakarta.persistence.*;
 
@@ -120,6 +121,12 @@ public class Order {
             );
         }
 
+        // Food traceability: every item's production batch must be manually checked before
+        // the order is considered ready for pickup/delivery.
+        if (newStatus == OrderStatus.READY && !allItemsValidated()) {
+            throw new OrderItemsNotValidatedException();
+        }
+
         this.status = newStatus;
     }
 
@@ -192,5 +199,9 @@ public class Order {
             case DELIVERED, CANCELLED ->
                     false;
         };
+    }
+
+    private boolean allItemsValidated() {
+        return items.stream().allMatch(OrderItem::isBatchValidated);
     }
 }

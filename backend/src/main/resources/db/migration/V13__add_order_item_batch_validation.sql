@@ -1,0 +1,2 @@
+ALTER TABLE order_items
+    ADD COLUMN batch_validated BOOLEAN NOT NULL DEFAULT FALSE;

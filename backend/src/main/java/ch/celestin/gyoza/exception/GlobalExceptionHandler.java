@@ -142,6 +142,22 @@ public class GlobalExceptionHandler {
                 );
     }
 
+    @ExceptionHandler(OrderItemsNotValidatedException.class)
+    public ResponseEntity<ApiError> handleOrderItemsNotValidated(
+            OrderItemsNotValidatedException ex
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(
+                        new ApiError(
+                                "ORDER_ITEMS_NOT_VALIDATED",
+                                ex.getMessage(),
+                                LocalDateTime.now()
+                        )
+                );
+    }
+
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity<ApiError> handleDisabledAccount(
             DisabledException ex

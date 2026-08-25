@@ -6,7 +6,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { AdminOrderService } from '../../../services/admin-order.service';
 import { AuthService } from '../../../services/auth.service';
-import { Order, OrderStatus } from '../../../models/order.model';
+import { Order, OrderItem, OrderStatus } from '../../../models/order.model';
 import {
   CONTENT_TYPE_LABELS,
   FULFILLMENT_METHOD_LABELS,
@@ -89,6 +89,9 @@ export class AdminOrders implements OnInit {
   protected readonly loadError = signal<string | null>(null);
   protected readonly updatingOrderId = signal<number | null>(null);
   protected readonly statusErrors = signal<Record<number, string>>({});
+
+  protected readonly validatingItemId = signal<number | null>(null);
+  protected readonly itemValidationErrors = signal<Record<number, string>>({});
 
   protected readonly statusFilter = signal<StatusFilter>('ALL');
   protected readonly slotFilter = signal<SlotFilter>('ALL');
@@ -231,8 +234,21 @@ export class AdminOrders implements OnInit {
     return NEXT_STATUSES[status];
   }
 
+  /** READY specifically requires every item's production batch to have been checked off. */
+  protected canApplyStatus(order: Order, status: OrderStatus): boolean {
+    return status !== 'READY' || this.allItemsValidated(order);
+  }
+
+  protected allItemsValidated(order: Order): boolean {
+    return order.items.every((item) => item.batchValidated);
+  }
+
   protected statusErrorFor(orderId: number): string | null {
     return this.statusErrors()[orderId] ?? null;
+  }
+
+  protected itemValidationErrorFor(itemId: number): string | null {
+    return this.itemValidationErrors()[itemId] ?? null;
   }
 
   protected countFor(status: OrderStatus): number {
@@ -289,8 +305,42 @@ export class AdminOrders implements OnInit {
     }
   }
 
+  protected async toggleItemBatchValidation(order: Order, item: OrderItem): Promise<void> {
+    this.validatingItemId.set(item.id);
+    this.clearItemValidationError(item.id);
+
+    try {
+      const updated = await firstValueFrom(
+        this.adminOrderService.validateItemBatch(order.id, item.id, !item.batchValidated),
+      );
+      this.orders.update((orders) =>
+        orders.map((existing) => (existing.id === updated.id ? updated : existing)),
+      );
+    } catch (error) {
+      this.setItemValidationError(item.id, this.extractErrorMessage(error));
+    } finally {
+      this.validatingItemId.set(null);
+    }
+  }
+
   protected logout(): void {
     this.authService.logout().subscribe(() => this.router.navigateByUrl('/login'));
+  }
+
+  private setItemValidationError(itemId: number, message: string): void {
+    this.itemValidationErrors.update((errors) => ({ ...errors, [itemId]: message }));
+  }
+
+  private clearItemValidationError(itemId: number): void {
+    this.itemValidationErrors.update((errors) => {
+      if (!(itemId in errors)) {
+        return errors;
+      }
+
+      const next = { ...errors };
+      delete next[itemId];
+      return next;
+    });
   }
 
   private setStatusError(orderId: number, message: string): void {

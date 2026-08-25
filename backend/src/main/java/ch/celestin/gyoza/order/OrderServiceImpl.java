@@ -9,10 +9,12 @@ import ch.celestin.gyoza.order.dto.*;
 import ch.celestin.gyoza.pack.PackOption;
 import ch.celestin.gyoza.pack.PackOptionRepository;
 import ch.celestin.gyoza.product.Product;
+import ch.celestin.gyoza.productionsession.ProductOutputAllocation;
 import ch.celestin.gyoza.productionsession.ProductOutputAllocationService;
 import ch.celestin.gyoza.slot.SlotAvailability;
 import ch.celestin.gyoza.slot.SlotAvailabilityRepository;
 import ch.celestin.gyoza.user.User;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -143,6 +145,32 @@ public class OrderServiceImpl implements OrderService {
         return toResponse(order);
     }
 
+    @Override
+    @Transactional
+    public OrderResponse validateItemBatch(
+            Long orderId,
+            Long itemId,
+            boolean validated
+    ) {
+
+        Order order = orderRepository
+                .findById(orderId)
+                .orElseThrow(
+                        () -> new OrderNotFoundException(orderId)
+                );
+
+        OrderItem item = order.getItems().stream()
+                .filter(candidate -> candidate.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Article de commande introuvable : " + itemId
+                ));
+
+        item.setBatchValidated(validated);
+
+        return toResponse(order);
+    }
+
     private void validateFulfillment(CreateOrderRequest request) {
 
         if (request.startTime() == null || request.endTime() == null
@@ -197,10 +225,21 @@ public class OrderServiceImpl implements OrderService {
 
     private OrderItemResponse toItemResponse(OrderItem item) {
         return new OrderItemResponse(
+                item.getId(),
                 item.getProduct().getName(),
                 item.getPackSize(),
                 item.getPackQuantity(),
-                item.getUnitPackPrice()
+                item.getUnitPackPrice(),
+                item.isBatchValidated(),
+                item.getAllocations().stream().map(this::toBatchResponse).toList()
         );
+    }
+
+    private OrderItemResponse.OrderItemBatchResponse toBatchResponse(ProductOutputAllocation allocation) {
+        String batchNumber = allocation.getProductOutput() != null
+                ? allocation.getProductOutput().getProductionSession().getBatchNumber()
+                : null;
+
+        return new OrderItemResponse.OrderItemBatchResponse(batchNumber, allocation.getQuantity());
     }
 }

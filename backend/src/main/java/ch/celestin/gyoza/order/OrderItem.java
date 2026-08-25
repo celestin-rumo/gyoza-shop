@@ -33,6 +33,11 @@ public class OrderItem {
     @Column(nullable = false)
     private BigDecimal unitPackPrice;
 
+    // Manually confirmed by whoever preps the order — see Order.changeStatus, which blocks
+    // the PREPARING -> READY transition until every item on the order is validated.
+    @Column(name = "batch_validated", nullable = false)
+    private boolean batchValidated = false;
+
     // Owning/cascading side: allocation rows must persist together with this item (it has no
     // id yet at order-creation time), via the same Order -> OrderItem cascade chain — see
     // ProductOutputAllocationService.
@@ -63,14 +68,26 @@ public class OrderItem {
         allocation.setOrderItem(this);
     }
 
+    public void setBatchValidated(boolean batchValidated) {
+        this.batchValidated = batchValidated;
+    }
+
     public BigDecimal getTotalPrice() {
         return unitPackPrice.multiply(
                 BigDecimal.valueOf(packQuantity)
         );
     }
 
+    public Long getId() {
+        return id;
+    }
+
     public Order getOrder() {
         return order;
+    }
+
+    public boolean isBatchValidated() {
+        return batchValidated;
     }
 
     public List<ProductOutputAllocation> getAllocations() {
