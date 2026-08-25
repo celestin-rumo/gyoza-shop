@@ -5,10 +5,11 @@ import { AdminProductService } from '../../../services/admin-product.service';
 import { Pack } from '../../../models/pack.model';
 import { DsButtonComponent } from '../../../design-system/components/ds-button/ds-button.component';
 import { DsPricePipe } from '../../../design-system/pipes/ds-price.pipe';
+import { DsNumberStepperComponent } from '../../../design-system';
 
 @Component({
   selector: 'app-admin-pack-row',
-  imports: [DsButtonComponent, DsPricePipe],
+  imports: [DsButtonComponent, DsPricePipe, DsNumberStepperComponent],
   templateUrl: './admin-pack-row.html',
   styleUrl: './admin-pack-row.scss',
 })

@@ -18,7 +18,7 @@ import { RawMaterial } from '../../../models/raw-material.model';
 import { Product } from '../../../models/product.model';
 import { DsButtonComponent } from '../../../design-system/components/ds-button/ds-button.component';
 import { DsSectionHeaderComponent } from '../../../design-system/components/ds-section-header/ds-section-header.component';
-import { DsStep, DsStepperComponent } from '../../../design-system';
+import { DsNumberStepperComponent, DsStep, DsStepperComponent } from '../../../design-system';
 
 interface RawMaterialUsageLine {
   rawMaterialId: number | null;
@@ -33,10 +33,6 @@ interface OutputLine {
   productId: number | null;
   quantityProduced: number;
 }
-
-const RAW_MATERIAL_QUANTITY_STEP = 0.1;
-const OUTPUT_QUANTITY_STEP = 1;
-const DURATION_HOURS_STEP = 0.5;
 
 const DATE_STEP = 0;
 const RAW_MATERIALS_STEP = 1;
@@ -54,7 +50,7 @@ const WIZARD_STEPS: DsStep[] = [
 
 @Component({
   selector: 'app-admin-production-sessions',
-  imports: [DsSectionHeaderComponent, DsButtonComponent, DsStepperComponent, RouterLink],
+  imports: [DsSectionHeaderComponent, DsButtonComponent, DsStepperComponent, DsNumberStepperComponent, RouterLink],
   templateUrl: './admin-production-sessions.html',
   styleUrl: './admin-production-sessions.scss',
   host: {
@@ -167,26 +163,6 @@ export class AdminProductionSessions implements OnInit {
 
   protected emptyOutputLine(): OutputLine {
     return { productId: null, quantityProduced: 0 };
-  }
-
-  protected adjustRawMaterialQuantity(index: number, direction: 1 | -1): void {
-    const current = this.rawMaterialLines()[index]?.quantityUsed ?? 0;
-    const next = Math.max(0, current + direction * RAW_MATERIAL_QUANTITY_STEP);
-
-    // Avoid floating-point drift (e.g. 0.1 + 0.2) from repeated clicks.
-    this.updateLine(this.rawMaterialLines, index, { quantityUsed: Math.round(next * 1000) / 1000 });
-  }
-
-  protected adjustOutputQuantity(index: number, direction: 1 | -1): void {
-    const current = this.outputLines()[index]?.quantityProduced ?? 0;
-    const next = Math.max(0, current + direction * OUTPUT_QUANTITY_STEP);
-
-    this.updateLine(this.outputLines, index, { quantityProduced: next });
-  }
-
-  protected adjustDurationHours(direction: 1 | -1): void {
-    const next = Math.max(0, this.durationHours() + direction * DURATION_HOURS_STEP);
-    this.durationHours.set(Math.round(next * 1000) / 1000);
   }
 
   protected toggleSessionExpanded(sessionId: number): void {

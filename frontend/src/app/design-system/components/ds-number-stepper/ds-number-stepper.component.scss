@@ -1,0 +1,78 @@
+:host {
+  display: inline-block;
+}
+
+.ds-number-stepper {
+  display: flex;
+  align-items: stretch;
+}
+
+.ds-number-stepper__btn {
+  width: 36px;
+  background: var(--gz-bg-elevated);
+  border: 1px solid var(--gz-border-soft);
+  color: var(--gz-text-primary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-base);
+  line-height: 1;
+  cursor: pointer;
+
+  &:first-child {
+    border-radius: var(--gz-radius-sm) 0 0 var(--gz-radius-sm);
+    border-right: none;
+  }
+
+  &:last-child {
+    border-radius: 0 var(--gz-radius-sm) var(--gz-radius-sm) 0;
+    border-left: none;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--gz-border-soft);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--gz-accent-400);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    color: var(--gz-text-muted);
+    cursor: not-allowed;
+  }
+}
+
+.ds-number-stepper__input {
+  width: 90px;
+  padding: var(--gz-space-3) var(--gz-space-4);
+  background: var(--gz-bg-elevated);
+  border: 1px solid var(--gz-border-soft);
+  border-radius: 0;
+  color: var(--gz-text-primary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+  text-align: center;
+
+  // The +/- buttons replace the native stepper; hide the browser's own arrows.
+  appearance: textfield;
+  -moz-appearance: textfield;
+
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button {
+    appearance: none;
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  &:focus-visible {
+    position: relative;
+    z-index: 1;
+    outline: 2px solid var(--gz-accent-400);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    color: var(--gz-text-muted);
+    cursor: not-allowed;
+  }
+}
