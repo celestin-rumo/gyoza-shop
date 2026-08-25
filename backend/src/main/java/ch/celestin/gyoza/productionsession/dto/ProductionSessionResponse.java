@@ -10,8 +10,11 @@ public record ProductionSessionResponse(
         String batchNumber,
         BigDecimal durationHours,
         String notes,
+        BigDecimal otherCosts,
         List<RawMaterialUsageResponse> rawMaterialUsages,
         List<SessionParticipantResponse> participants,
-        List<ProductOutputResponse> outputs
+        List<ProductOutputResponse> outputs,
+        ProductionSessionCostSummary costSummary,
+        ProductionSessionActualSummary actualSummary
 ) {
 }

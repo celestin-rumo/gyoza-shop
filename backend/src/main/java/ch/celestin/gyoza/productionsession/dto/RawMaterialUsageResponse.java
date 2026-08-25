@@ -6,6 +6,10 @@ public record RawMaterialUsageResponse(
         Long rawMaterialId,
         String rawMaterialName,
         String unit,
-        BigDecimal quantityUsed
+        BigDecimal quantityUsed,
+        BigDecimal unitCost,
+        BigDecimal lineCost,
+        Long targetProductId,
+        String targetProductName
 ) {
 }

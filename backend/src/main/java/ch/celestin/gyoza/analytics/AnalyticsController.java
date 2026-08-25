@@ -2,6 +2,7 @@ package ch.celestin.gyoza.analytics;
 
 import ch.celestin.gyoza.analytics.dto.AnalyticsResponse;
 import ch.celestin.gyoza.analytics.dto.AnalyticsTimeSeriesResponse;
+import ch.celestin.gyoza.analytics.dto.ProductionAnalyticsResponse;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,5 +40,10 @@ public class AnalyticsController {
         LocalDate resolvedStart = startDate != null ? startDate : resolvedEnd.minusDays(29);
 
         return analyticsService.getTimeSeries(resolvedStart, resolvedEnd);
+    }
+
+    @GetMapping("/production")
+    public ProductionAnalyticsResponse getProductionAnalytics() {
+        return analyticsService.getProductionAnalytics();
     }
 }

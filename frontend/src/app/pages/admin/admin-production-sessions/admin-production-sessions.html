@@ -106,6 +106,19 @@
                       label="la quantité"
                     ></ds-number-stepper>
 
+                    <select
+                      class="admin-production-sessions__select"
+                      [value]="line.targetProductId ?? ''"
+                      (change)="
+                        updateLine(rawMaterialLines, $index, { targetProductId: $any($event.target).value ? +$any($event.target).value : null })
+                      "
+                    >
+                      <option value="">Pour : toutes les saveurs</option>
+                      @for (product of products(); track product.id) {
+                        <option [value]="product.id">Pour : {{ product.name }}</option>
+                      }
+                    </select>
+
                     <ds-button
                       variant="outline"
                       size="sm"
@@ -311,6 +324,16 @@
                 <span>Nombre d'heures</span>
                 <ds-number-stepper [(value)]="durationHours" [step]="0.5" [min]="0" label="la durée"></ds-number-stepper>
               </div>
+
+              <div class="admin-production-sessions__field">
+                <span>Autres charges (CHF) — emballage, transport…</span>
+                <ds-number-stepper
+                  [(value)]="otherCosts"
+                  [step]="1"
+                  [min]="0"
+                  label="les autres charges"
+                ></ds-number-stepper>
+              </div>
             }
           }
         </div>
@@ -369,12 +392,20 @@
                 @for (output of session.outputs; track output.productId) {
                   <li class="admin-production-session__pill admin-production-session__pill--output">
                     {{ output.productName }} <strong>+{{ output.quantityProduced }}</strong>
+                    <span class="admin-production-session__pill-sub">
+                      {{ currencyService.format(output.costPerGyoza) }}/gyoza
+                    </span>
                   </li>
                 }
                 <li class="admin-production-session__pill admin-production-session__pill--output">
                   Durée <strong>{{ session.durationHours }} h</strong>
                 </li>
               </ul>
+
+              <p class="admin-production-session__hourly-revenue">
+                Revenu horaire
+                <strong>{{ currencyService.format(session.costSummary.hourlyRevenue) }}/h</strong>
+              </p>
 
               @if (isSessionExpanded(session.id)) {
                 <div class="admin-production-session__details" [id]="'session-details-' + session.id">
@@ -383,11 +414,120 @@
                   }
 
                   <div class="admin-production-session__section">
+                    <h4 class="admin-production-session__section-label">Rentabilité</h4>
+                    <dl class="admin-production-session__cost-grid">
+                      <div class="admin-production-session__cost-item">
+                        <dt>Coût matière première</dt>
+                        <dd>{{ currencyService.format(session.costSummary.totalMaterialCost) }}</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>Coût matière / gyoza</dt>
+                        <dd>{{ currencyService.format(session.costSummary.materialCostPerGyoza) }}</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>Gyoza produits</dt>
+                        <dd>{{ session.costSummary.totalGyozaProduced }}</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>Temps total (personne-heures)</dt>
+                        <dd>{{ session.costSummary.totalSessionHours }} h</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>Temps / gyoza</dt>
+                        <dd>{{ session.costSummary.timePerGyoza }} h</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>CA théorique</dt>
+                        <dd>{{ currencyService.format(session.costSummary.theoreticalRevenue) }}</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>Bénéfice brut</dt>
+                        <dd>{{ currencyService.format(session.costSummary.grossProfit) }}</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>Bénéfice net</dt>
+                        <dd>{{ currencyService.format(session.costSummary.netProfit) }}</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>ROI</dt>
+                        <dd>{{ session.costSummary.roi !== null ? session.costSummary.roi + ' %' : '—' }}</dd>
+                      </div>
+                    </dl>
+
+                    <div class="admin-production-session__other-costs">
+                      @if (editingOtherCostsSessionId() === session.id) {
+                        <ds-number-stepper
+                          [(value)]="otherCostsDraft"
+                          [step]="1"
+                          [min]="0"
+                          label="les autres charges"
+                        ></ds-number-stepper>
+
+                        <ds-button
+                          variant="primary"
+                          size="sm"
+                          [disabled]="savingOtherCosts()"
+                          (pressed)="saveOtherCosts(session.id)"
+                        >
+                          {{ savingOtherCosts() ? 'Enregistrement…' : 'Enregistrer' }}
+                        </ds-button>
+
+                        <ds-button variant="ghost" size="sm" (pressed)="cancelEditOtherCosts()">
+                          Annuler
+                        </ds-button>
+                      } @else {
+                        <span>Autres charges : {{ currencyService.format(session.otherCosts) }}</span>
+                        <ds-button variant="outline" size="sm" (pressed)="startEditOtherCosts(session)">
+                          Modifier
+                        </ds-button>
+                      }
+                    </div>
+
+                    @if (editingOtherCostsSessionId() === session.id && otherCostsError()) {
+                      <p class="admin-production-sessions__submit-error" role="alert">{{ otherCostsError() }}</p>
+                    }
+                  </div>
+
+                  <div class="admin-production-session__section">
+                    <h4 class="admin-production-session__section-label">
+                      Rentabilité réelle (commandes livrées)
+                    </h4>
+                    <dl class="admin-production-session__cost-grid">
+                      <div class="admin-production-session__cost-item">
+                        <dt>Gyoza vendus</dt>
+                        <dd>{{ session.actualSummary.unitsSold }} / {{ session.costSummary.totalGyozaProduced }}</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>CA réel</dt>
+                        <dd>{{ currencyService.format(session.actualSummary.actualRevenue) }}</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>Bénéfice net réel</dt>
+                        <dd>{{ currencyService.format(session.actualSummary.actualNetProfit) }}</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>Revenu horaire réel</dt>
+                        <dd>{{ currencyService.format(session.actualSummary.actualHourlyRevenue) }}/h</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>ROI réel</dt>
+                        <dd>
+                          {{ session.actualSummary.actualRoi !== null ? session.actualSummary.actualRoi + ' %' : '—' }}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+
+                  <div class="admin-production-session__section">
                     <h4 class="admin-production-session__section-label">Matières premières utilisées</h4>
                     <ul class="admin-production-session__pills">
                       @for (usage of session.rawMaterialUsages; track usage.rawMaterialId) {
                         <li class="admin-production-session__pill">
                           {{ usage.rawMaterialName }} — {{ usage.quantityUsed }} {{ usage.unit }}
+                          ({{ currencyService.format(usage.lineCost) }})
+                          @if (usage.targetProductName) {
+                            <span class="admin-production-session__pill-sub">pour {{ usage.targetProductName }}</span>
+                          }
                         </li>
                       }
                     </ul>

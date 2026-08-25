@@ -1,8 +1,13 @@
 package ch.celestin.gyoza.productionsession;
 
+import ch.celestin.gyoza.pack.PackOption;
+import ch.celestin.gyoza.pack.PackOptionRepository;
 import ch.celestin.gyoza.product.Product;
 import ch.celestin.gyoza.product.ProductRepository;
+import ch.celestin.gyoza.rawmaterial.PurchaseSource;
 import ch.celestin.gyoza.rawmaterial.RawMaterial;
+import ch.celestin.gyoza.rawmaterial.RawMaterialPurchase;
+import ch.celestin.gyoza.rawmaterial.RawMaterialPurchaseRepository;
 import ch.celestin.gyoza.rawmaterial.RawMaterialRepository;
 import ch.celestin.gyoza.support.AbstractIntegrationTest;
 import ch.celestin.gyoza.user.User;
@@ -14,6 +19,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -21,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -32,6 +40,12 @@ class AdminProductionSessionControllerIT extends AbstractIntegrationTest {
 
     @Autowired
     private RawMaterialRepository rawMaterialRepository;
+
+    @Autowired
+    private RawMaterialPurchaseRepository rawMaterialPurchaseRepository;
+
+    @Autowired
+    private PackOptionRepository packOptionRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -165,6 +179,121 @@ class AdminProductionSessionControllerIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void createSession_computesCostSummary_usingLastKnownPurchasePriceAndPackPrice() throws Exception {
+        MockHttpSession adminSession = loginAsAdmin();
+
+        Product chicken = productRepository.save(new Product("Poulet gyoza", 0));
+        Product vegetable = productRepository.save(new Product("Légumes gyoza", 0));
+        packOptionRepository.save(new PackOption(chicken, 1, new BigDecimal("2.00")));
+        packOptionRepository.save(new PackOption(vegetable, 1, new BigDecimal("1.50")));
+
+        RawMaterial rawMaterial = rawMaterialRepository.save(new RawMaterial("Farine T55", "kg"));
+        rawMaterialPurchaseRepository.save(new RawMaterialPurchase(
+                rawMaterial, LocalDate.of(2026, 1, 1), BigDecimal.TEN, new BigDecimal("10"),
+                PurchaseSource.MANUAL, "Suisse", "Coop", null
+        ));
+        // Most recent purchase should win over the older one above.
+        rawMaterialPurchaseRepository.save(new RawMaterialPurchase(
+                rawMaterial, LocalDate.of(2026, 6, 1), BigDecimal.TEN, new BigDecimal("20"),
+                PurchaseSource.MANUAL, "Suisse", "Coop", null
+        ));
+
+        User admin = userRepository.findByEmail("admin@example.com").orElseThrow();
+
+        Cookie csrf = fetchCsrfCookie();
+        mockMvc.perform(post("/api/admin/production-sessions")
+                        .session(adminSession)
+                        .cookie(csrf)
+                        .header("X-XSRF-TOKEN", csrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "date": "2026-08-23",
+                                  "durationHours": 2,
+                                  "otherCosts": 5,
+                                  "rawMaterialUsages": [
+                                    {"rawMaterialId": %d, "quantityUsed": 4, "targetProductId": %d}
+                                  ],
+                                  "participants": [
+                                    {"userId": "%s"},
+                                    {"userId": "%s"}
+                                  ],
+                                  "outputs": [
+                                    {"productId": %d, "quantityProduced": 30},
+                                    {"productId": %d, "quantityProduced": 10}
+                                  ]
+                                }
+                                """.formatted(
+                                rawMaterial.getId(), chicken.getId(),
+                                admin.getId(), admin.getId(),
+                                chicken.getId(), vegetable.getId()))
+                )
+                .andExpect(status().isOk())
+                // Unit cost frozen from the latest purchase (2 CHF/kg), not the older one.
+                .andExpect(jsonPath("$.rawMaterialUsages[0].unitCost", is(2.0)))
+                .andExpect(jsonPath("$.rawMaterialUsages[0].lineCost", is(8.0)))
+                .andExpect(jsonPath("$.rawMaterialUsages[0].targetProductId", is(chicken.getId().intValue())))
+                // Targeted usage: full cost on chicken, none on vegetable.
+                .andExpect(jsonPath("$.outputs[0].materialCost", is(8.0)))
+                .andExpect(jsonPath("$.outputs[1].materialCost", is(0.0)))
+                .andExpect(jsonPath("$.costSummary.totalMaterialCost", is(8.0)))
+                .andExpect(jsonPath("$.costSummary.totalGyozaProduced", is(40)))
+                .andExpect(jsonPath("$.costSummary.totalSessionHours", is(4.0)))
+                // Revenue: 30 x 2.00 + 10 x 1.50 = 75; gross profit 75 - 8 = 67; net 67 - 5 = 62.
+                .andExpect(jsonPath("$.costSummary.theoreticalRevenue", is(75.0)))
+                .andExpect(jsonPath("$.costSummary.grossProfit", is(67.0)))
+                .andExpect(jsonPath("$.costSummary.netProfit", is(62.0)))
+                // Hourly revenue: net profit 62 / 4 person-hours = 15.5.
+                .andExpect(jsonPath("$.costSummary.hourlyRevenue", is(15.5)));
+    }
+
+    @Test
+    void updateOtherCosts_asAdmin_recomputesNetProfitAndHourlyRevenue() throws Exception {
+        MockHttpSession adminSession = loginAsAdmin();
+
+        Product product = saveInactiveProduct("Tofu gyoza", 5);
+        RawMaterial rawMaterial = rawMaterialRepository.save(new RawMaterial("Tofu", "kg"));
+        User admin = userRepository.findByEmail("admin@example.com").orElseThrow();
+
+        Integer sessionId = createSessionAndReturnId(adminSession, "2026-08-24", rawMaterial.getId(), admin.getId(), product.getId());
+
+        Cookie csrf = fetchCsrfCookie();
+        mockMvc.perform(patch("/api/admin/production-sessions/{id}/other-costs", sessionId)
+                        .session(adminSession)
+                        .cookie(csrf)
+                        .header("X-XSRF-TOKEN", csrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"otherCosts": 3}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.otherCosts", is(3.0)))
+                .andExpect(jsonPath("$.costSummary.otherCosts", is(3.0)));
+    }
+
+    @Test
+    void updateOtherCosts_withNegativeValue_isRejected() throws Exception {
+        MockHttpSession adminSession = loginAsAdmin();
+
+        Product product = saveInactiveProduct("Canard gyoza", 5);
+        RawMaterial rawMaterial = rawMaterialRepository.save(new RawMaterial("Canard", "kg"));
+        User admin = userRepository.findByEmail("admin@example.com").orElseThrow();
+
+        Integer sessionId = createSessionAndReturnId(adminSession, "2026-08-25", rawMaterial.getId(), admin.getId(), product.getId());
+
+        Cookie csrf = fetchCsrfCookie();
+        mockMvc.perform(patch("/api/admin/production-sessions/{id}/other-costs", sessionId)
+                        .session(adminSession)
+                        .cookie(csrf)
+                        .header("X-XSRF-TOKEN", csrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"otherCosts": -1}
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void getAllSessions_returnsThemOrderedByDateDescending() throws Exception {
         MockHttpSession adminSession = loginAsAdmin();
 
@@ -246,6 +375,41 @@ class AdminProductionSessionControllerIT extends AbstractIntegrationTest {
                                 }
                                 """.formatted(date, rawMaterialId, userId, productId)))
                 .andExpect(status().isOk());
+    }
+
+    private Integer createSessionAndReturnId(
+            MockHttpSession adminSession,
+            String date,
+            Long rawMaterialId,
+            UUID userId,
+            Long productId
+    ) throws Exception {
+        Cookie csrf = fetchCsrfCookie();
+
+        var result = mockMvc.perform(post("/api/admin/production-sessions")
+                        .session(adminSession)
+                        .cookie(csrf)
+                        .header("X-XSRF-TOKEN", csrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "date": "%s",
+                                  "durationHours": 2,
+                                  "rawMaterialUsages": [
+                                    {"rawMaterialId": %d, "quantityUsed": 1}
+                                  ],
+                                  "participants": [
+                                    {"userId": "%s"}
+                                  ],
+                                  "outputs": [
+                                    {"productId": %d, "quantityProduced": 1}
+                                  ]
+                                }
+                                """.formatted(date, rawMaterialId, userId, productId)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        return JsonPath.read(result.getResponse().getContentAsString(), "$.id");
     }
 
     private String createSessionAndReturnBatchNumber(

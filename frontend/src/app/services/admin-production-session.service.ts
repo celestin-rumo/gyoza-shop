@@ -8,6 +8,7 @@ import { ProductionSession } from '../models/production-session.model';
 export interface CreateRawMaterialUsagePayload {
   rawMaterialId: number;
   quantityUsed: number;
+  targetProductId?: number | null;
 }
 
 export interface CreateSessionParticipantPayload {
@@ -23,6 +24,7 @@ export interface CreateProductionSessionPayload {
   date: string;
   durationHours: number;
   notes: string | null;
+  otherCosts?: number | null;
   rawMaterialUsages: CreateRawMaterialUsagePayload[];
   participants: CreateSessionParticipantPayload[];
   outputs: CreateProductOutputPayload[];
@@ -50,5 +52,11 @@ export class AdminProductionSessionService {
     return this.http
       .post<ProductionSession>('/api/admin/production-sessions', payload)
       .pipe(tap(() => this.catalog.refresh()));
+  }
+
+  updateOtherCosts(id: number, otherCosts: number): Observable<ProductionSession> {
+    return this.http.patch<ProductionSession>(`/api/admin/production-sessions/${id}/other-costs`, {
+      otherCosts,
+    });
   }
 }

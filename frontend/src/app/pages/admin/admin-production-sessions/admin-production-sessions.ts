@@ -13,6 +13,7 @@ import { AdminRawMaterialService } from '../../../services/admin-raw-material.se
 import { AdminProductService } from '../../../services/admin-product.service';
 import { AdminUser, AdminUserService } from '../../../services/admin-user.service';
 import { AuthService } from '../../../services/auth.service';
+import { CurrencyService } from '../../../services/currency.service';
 import { ProductionSession } from '../../../models/production-session.model';
 import { RawMaterial } from '../../../models/raw-material.model';
 import { PurchaseSource } from '../../../models/raw-material-purchase.model';
@@ -24,6 +25,7 @@ import { DsNumberStepperComponent, DsStep, DsStepperComponent } from '../../../d
 interface RawMaterialUsageLine {
   rawMaterialId: number | null;
   quantityUsed: number;
+  targetProductId: number | null;
 }
 
 interface ParticipantLine {
@@ -65,6 +67,7 @@ export class AdminProductionSessions implements OnInit {
   private readonly adminUserService = inject(AdminUserService);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  protected readonly currencyService = inject(CurrencyService);
 
   protected readonly sessions = signal<ProductionSession[]>([]);
   protected readonly expandedSessionIds = signal<ReadonlySet<number>>(new Set());
@@ -81,6 +84,7 @@ export class AdminProductionSessions implements OnInit {
   protected readonly participantLines = signal<ParticipantLine[]>([this.emptyParticipantLine()]);
   protected readonly outputLines = signal<OutputLine[]>([this.emptyOutputLine()]);
   protected readonly durationHours = signal(0);
+  protected readonly otherCosts = signal(0);
 
   protected readonly creating = signal(false);
   protected readonly createError = signal<string | null>(null);
@@ -107,6 +111,12 @@ export class AdminProductionSessions implements OnInit {
       this.purchaseDraftOriginCountry().trim().length > 0 &&
       this.purchaseDraftStore().trim().length > 0,
   );
+
+  // Inline "modifier les autres charges" edit, opened from a session's expanded detail card.
+  protected readonly editingOtherCostsSessionId = signal<number | null>(null);
+  protected readonly otherCostsDraft = signal(0);
+  protected readonly savingOtherCosts = signal(false);
+  protected readonly otherCostsError = signal<string | null>(null);
 
   protected readonly wizardOpen = signal(false);
   protected readonly currentStepIndex = signal(DATE_STEP);
@@ -184,7 +194,7 @@ export class AdminProductionSessions implements OnInit {
   }
 
   protected emptyRawMaterialLine(): RawMaterialUsageLine {
-    return { rawMaterialId: null, quantityUsed: 0 };
+    return { rawMaterialId: null, quantityUsed: 0, targetProductId: null };
   }
 
   protected emptyParticipantLine(): ParticipantLine {
@@ -259,6 +269,34 @@ export class AdminProductionSessions implements OnInit {
     return this.expandedSessionIds().has(sessionId);
   }
 
+  protected startEditOtherCosts(session: ProductionSession): void {
+    this.otherCostsError.set(null);
+    this.otherCostsDraft.set(session.otherCosts);
+    this.editingOtherCostsSessionId.set(session.id);
+  }
+
+  protected cancelEditOtherCosts(): void {
+    this.editingOtherCostsSessionId.set(null);
+  }
+
+  protected async saveOtherCosts(sessionId: number): Promise<void> {
+    this.savingOtherCosts.set(true);
+    this.otherCostsError.set(null);
+
+    try {
+      const updated = await firstValueFrom(
+        this.adminProductionSessionService.updateOtherCosts(sessionId, this.otherCostsDraft()),
+      );
+
+      this.sessions.update((sessions) => sessions.map((s) => (s.id === sessionId ? updated : s)));
+      this.editingOtherCostsSessionId.set(null);
+    } catch (error) {
+      this.otherCostsError.set(this.extractErrorMessage(error, 'Impossible de mettre à jour les autres charges.'));
+    } finally {
+      this.savingOtherCosts.set(false);
+    }
+  }
+
   protected openWizard(): void {
     this.resetForm();
     this.currentStepIndex.set(DATE_STEP);
@@ -306,6 +344,7 @@ export class AdminProductionSessions implements OnInit {
           date: this.date(),
           durationHours: this.durationHours(),
           notes: this.notes().trim().length > 0 ? this.notes() : null,
+          otherCosts: this.otherCosts(),
           rawMaterialUsages: this.validRawMaterialUsages(),
           participants: this.validParticipants(),
           outputs: this.validOutputs(),
@@ -324,7 +363,11 @@ export class AdminProductionSessions implements OnInit {
   private validRawMaterialUsages(): CreateRawMaterialUsagePayload[] {
     return this.rawMaterialLines()
       .filter((line) => line.rawMaterialId !== null && line.quantityUsed > 0)
-      .map((line) => ({ rawMaterialId: line.rawMaterialId as number, quantityUsed: line.quantityUsed }));
+      .map((line) => ({
+        rawMaterialId: line.rawMaterialId as number,
+        quantityUsed: line.quantityUsed,
+        targetProductId: line.targetProductId,
+      }));
   }
 
   private validParticipants(): CreateSessionParticipantPayload[] {
@@ -346,6 +389,7 @@ export class AdminProductionSessions implements OnInit {
     this.participantLines.set([this.emptyParticipantLine()]);
     this.outputLines.set([this.emptyOutputLine()]);
     this.durationHours.set(0);
+    this.otherCosts.set(0);
     this.purchaseDraftOpenIndex.set(null);
     this.resetPurchaseDraft();
   }
