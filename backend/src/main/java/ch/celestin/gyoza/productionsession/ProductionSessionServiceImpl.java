@@ -43,7 +43,9 @@ public class ProductionSessionServiceImpl
     public ProductionSessionResponse createSession(CreateProductionSessionRequest request) {
 
         String batchNumber = generateBatchNumber(request.date());
-        ProductionSession session = new ProductionSession(request.date(), batchNumber, request.notes());
+        ProductionSession session = new ProductionSession(
+                request.date(), batchNumber, request.durationHours(), request.notes()
+        );
 
         for (CreateRawMaterialUsageRequest line : request.rawMaterialUsages()) {
 
@@ -62,7 +64,7 @@ public class ProductionSessionServiceImpl
                             "Utilisateur introuvable : " + line.userId()
                     ));
 
-            session.addParticipant(new SessionParticipant(user, line.hoursSpent()));
+            session.addParticipant(new SessionParticipant(user));
         }
 
         for (CreateProductOutputRequest line : request.outputs()) {
@@ -125,6 +127,7 @@ public class ProductionSessionServiceImpl
                 session.getId(),
                 session.getDate(),
                 session.getBatchNumber(),
+                session.getDurationHours(),
                 session.getNotes(),
                 session.getRawMaterialUsages().stream().map(this::toUsageResponse).toList(),
                 session.getParticipants().stream().map(this::toParticipantResponse).toList(),
@@ -144,8 +147,7 @@ public class ProductionSessionServiceImpl
     private SessionParticipantResponse toParticipantResponse(SessionParticipant participant) {
         return new SessionParticipantResponse(
                 participant.getUser().getId(),
-                participant.getUser().getFirstName() + " " + participant.getUser().getLastName(),
-                participant.getHoursSpent()
+                participant.getUser().getFirstName() + " " + participant.getUser().getLastName()
         );
     }
 

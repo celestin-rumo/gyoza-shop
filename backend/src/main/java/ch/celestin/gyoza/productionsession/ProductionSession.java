@@ -2,6 +2,7 @@ package ch.celestin.gyoza.productionsession;
 
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +22,11 @@ public class ProductionSession {
     // from the date and the day's session count — see ProductionSessionServiceImpl.
     @Column(name = "batch_number", nullable = false, unique = true)
     private String batchNumber;
+
+    // Total time the whole session took, shared by every participant — not tracked per
+    // participant since a session is worked together, not staggered.
+    @Column(name = "duration_hours", nullable = false)
+    private BigDecimal durationHours;
 
     private String notes;
 
@@ -48,9 +54,16 @@ public class ProductionSession {
     protected ProductionSession() {
     }
 
-    public ProductionSession(LocalDate date, String batchNumber, String notes) {
+    public ProductionSession(LocalDate date, String batchNumber, BigDecimal durationHours, String notes) {
+        if (durationHours == null || durationHours.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException(
+                    "La durée de la session doit être supérieure à 0"
+            );
+        }
+
         this.date = date;
         this.batchNumber = batchNumber;
+        this.durationHours = durationHours;
         this.notes = notes;
     }
 
@@ -79,6 +92,10 @@ public class ProductionSession {
 
     public String getBatchNumber() {
         return batchNumber;
+    }
+
+    public BigDecimal getDurationHours() {
+        return durationHours;
     }
 
     public String getNotes() {

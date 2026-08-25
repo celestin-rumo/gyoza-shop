@@ -8,7 +8,6 @@ export interface RawMaterialUsage {
 export interface SessionParticipant {
   userId: string;
   userName: string;
-  hoursSpent: number;
 }
 
 export interface ProductOutput {
@@ -22,6 +21,8 @@ export interface ProductionSession {
   date: string;
   /** Lot/batch traceability code, e.g. "L20260825-01" — see ProductionSessionServiceImpl. */
   batchNumber: string;
+  /** Total time the whole session took, shared by every participant. */
+  durationHours: number;
   notes: string | null;
   rawMaterialUsages: RawMaterialUsage[];
   participants: SessionParticipant[];
