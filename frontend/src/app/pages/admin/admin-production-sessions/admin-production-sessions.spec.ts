@@ -27,9 +27,10 @@ describe('AdminProductionSessions', () => {
     id: 1,
     date: '2026-08-10',
     batchNumber: 'L20260810-01',
+    durationHours: 4,
     notes: 'Session du samedi',
     rawMaterialUsages: [{ rawMaterialId: 1, rawMaterialName: 'Farine', unit: 'kg', quantityUsed: 3.5 }],
-    participants: [{ userId: 'user-1', userName: 'Cel Nino', hoursSpent: 4 }],
+    participants: [{ userId: 'user-1', userName: 'Cel Nino' }],
     outputs: [{ productId: 1, productName: 'Chicken', quantityProduced: 80 }],
   };
 
@@ -61,6 +62,56 @@ describe('AdminProductionSessions', () => {
     matches[index].click();
   }
 
+  function findButton(name: string): HTMLButtonElement {
+    const buttons: HTMLButtonElement[] = Array.from(fixture.nativeElement.querySelectorAll('button'));
+    const button = buttons.find((candidate) => candidate.textContent?.trim() === name);
+    if (!button) {
+      throw new Error(`No button found matching ${name}`);
+    }
+    return button;
+  }
+
+  function setInputValue(selector: string, value: string): void {
+    const input: HTMLInputElement = fixture.nativeElement.querySelector(selector);
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
+
+  function setSelectValue(selector: string, value: string): void {
+    const select: HTMLSelectElement = fixture.nativeElement.querySelector(selector);
+    select.value = value;
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+  }
+
+  /** Opens the wizard. The date step starts pre-filled with today's date, so it's valid already. */
+  function openWizard(): void {
+    clickButton('Enregistrer une nouvelle session');
+    fixture.detectChanges();
+  }
+
+  function goToNextStep(): void {
+    clickButton('Continuer');
+    fixture.detectChanges();
+  }
+
+  /** Opens the wizard and advances past the (pre-filled) date step to the raw materials step. */
+  function openWizardToRawMaterialsStep(): void {
+    openWizard();
+    goToNextStep();
+  }
+
+  /** Opens the wizard and fills the date/raw materials/participants steps to reach the outputs step. */
+  function openWizardToOutputsStep(): void {
+    openWizardToRawMaterialsStep();
+    setSelectValue('select', '1');
+    setInputValue('.admin-production-sessions__stepper-input', '1');
+    goToNextStep();
+    setSelectValue('select', 'user-1');
+    goToNextStep();
+  }
+
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [AdminProductionSessions],
@@ -74,16 +125,50 @@ describe('AdminProductionSessions', () => {
 
   afterEach(() => httpMock.verify());
 
-  it('loads and displays the session history', async () => {
+  it('loads and displays the session history collapsed, with the output highlighted', async () => {
     await flushInit();
 
+    // Scoped to the history card: the "new session" form above also renders a "Farine"
+    // option and a "Chicken" option, which would otherwise give false positives/negatives.
+    const cardText = (
+      fixture.nativeElement.querySelector('.admin-production-session') as HTMLElement
+    ).textContent;
+
+    expect(cardText).toContain('L20260810-01');
+    expect(cardText).toContain('2026-08-10');
+    expect(cardText).toContain('Chicken');
+    expect(cardText).toContain('+80');
+    expect(cardText).toContain('4 h');
+
+    // Collapsed by default: only the batch/date/output/duration summary is visible.
+    expect(cardText).not.toContain('Session du samedi');
+    expect(cardText).not.toContain('Farine');
+    expect(cardText).not.toContain('Cel Nino');
+  });
+
+  it('expands a session to reveal its raw materials, participants and notes', async () => {
+    await flushInit();
+
+    const toggle: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '.admin-production-session__toggle',
+    );
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+
+    toggle.click();
+    fixture.detectChanges();
+
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+
     const text = fixture.nativeElement.textContent;
-    expect(text).toContain('L20260810-01');
-    expect(text).toContain('2026-08-10');
     expect(text).toContain('Session du samedi');
     expect(text).toContain('Farine — 3.5 kg');
-    expect(text).toContain('Cel Nino — 4 h');
-    expect(text).toContain('Chicken — +80');
+    expect(text).toContain('Cel Nino');
+
+    toggle.click();
+    fixture.detectChanges();
+
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(fixture.nativeElement.textContent).not.toContain('Session du samedi');
   });
 
   it('shows an error message when loading fails', async () => {
@@ -103,81 +188,217 @@ describe('AdminProductionSessions', () => {
     expect(fixture.nativeElement.textContent).toContain('Aucune session enregistrée pour le moment.');
   });
 
-  it('keeps the submit button disabled until every line category has a valid entry', async () => {
+  it('opens the wizard from the trigger button and shows the 5-step progress indicator', async () => {
     await flushInit();
 
-    const buttons: HTMLButtonElement[] = Array.from(fixture.nativeElement.querySelectorAll('button'));
-    const submitButton = buttons.find(
-      (candidate) => candidate.textContent?.trim() === 'Enregistrer la session',
-    ) as HTMLButtonElement;
+    expect(fixture.nativeElement.querySelector('.admin-production-sessions__modal')).toBeNull();
 
-    expect(submitButton.disabled).toBe(true);
+    openWizard();
+
+    expect(fixture.nativeElement.querySelector('.admin-production-sessions__modal')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Date et notes');
+  });
+
+  it('closes the wizard via the close button without submitting anything', async () => {
+    await flushInit();
+    openWizard();
+
+    const closeButton: HTMLButtonElement = fixture.nativeElement.querySelector(
+      'button[aria-label="Fermer"]',
+    );
+    closeButton.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.admin-production-sessions__modal')).toBeNull();
+    httpMock.expectNone('/api/admin/production-sessions');
+  });
+
+  it('keeps the continue button disabled until the current step has a valid entry', async () => {
+    await flushInit();
+
+    // The date step starts pre-filled with today's date, so it advances immediately —
+    // the raw materials step (empty by default) is where the gating is actually visible.
+    openWizardToRawMaterialsStep();
+
+    expect(findButton('Continuer').disabled).toBe(true);
 
     httpMock.expectNone('/api/admin/production-sessions');
   });
 
+  it('adjusts the raw material quantity via the +/- stepper buttons', async () => {
+    await flushInit();
+    openWizardToRawMaterialsStep();
+
+    const quantityInput: HTMLInputElement = fixture.nativeElement.querySelector(
+      '.admin-production-sessions__stepper-input',
+    );
+    expect(quantityInput.value).toBe('0');
+
+    const increment: HTMLButtonElement = fixture.nativeElement.querySelector(
+      'button[aria-label="Augmenter la quantité"]',
+    );
+    increment.click();
+    fixture.detectChanges();
+    expect(quantityInput.value).toBe('0.1');
+
+    increment.click();
+    fixture.detectChanges();
+    expect(quantityInput.value).toBe('0.2');
+
+    const decrement: HTMLButtonElement = fixture.nativeElement.querySelector(
+      'button[aria-label="Diminuer la quantité"]',
+    );
+    decrement.click();
+    fixture.detectChanges();
+    expect(quantityInput.value).toBe('0.1');
+  });
+
+  it('does not let the raw material quantity go below zero', async () => {
+    await flushInit();
+    openWizardToRawMaterialsStep();
+
+    const decrement: HTMLButtonElement = fixture.nativeElement.querySelector(
+      'button[aria-label="Diminuer la quantité"]',
+    );
+    decrement.click();
+    fixture.detectChanges();
+
+    const quantityInput: HTMLInputElement = fixture.nativeElement.querySelector(
+      '.admin-production-sessions__stepper-input',
+    );
+    expect(quantityInput.value).toBe('0');
+  });
+
+  it('adjusts the produced quantity via the +/- stepper buttons', async () => {
+    await flushInit();
+    openWizardToOutputsStep();
+
+    const quantityInput: HTMLInputElement = fixture.nativeElement.querySelector(
+      '.admin-production-sessions__stepper-input',
+    );
+    expect(quantityInput.value).toBe('0');
+
+    const increment: HTMLButtonElement = fixture.nativeElement.querySelector(
+      'button[aria-label="Augmenter la quantité produite"]',
+    );
+    increment.click();
+    fixture.detectChanges();
+    increment.click();
+    fixture.detectChanges();
+    expect(quantityInput.value).toBe('2');
+
+    const decrement: HTMLButtonElement = fixture.nativeElement.querySelector(
+      'button[aria-label="Diminuer la quantité produite"]',
+    );
+    decrement.click();
+    fixture.detectChanges();
+    expect(quantityInput.value).toBe('1');
+  });
+
+  it('does not let the produced quantity go below zero', async () => {
+    await flushInit();
+    openWizardToOutputsStep();
+
+    const decrement: HTMLButtonElement = fixture.nativeElement.querySelector(
+      'button[aria-label="Diminuer la quantité produite"]',
+    );
+    decrement.click();
+    fixture.detectChanges();
+
+    const quantityInput: HTMLInputElement = fixture.nativeElement.querySelector(
+      '.admin-production-sessions__stepper-input',
+    );
+    expect(quantityInput.value).toBe('0');
+  });
+
   it('adds and removes raw material lines', async () => {
     await flushInit();
+    openWizardToRawMaterialsStep();
 
-    expect(fixture.nativeElement.querySelectorAll('.admin-production-sessions__lines')[0]
-      .querySelectorAll('.admin-production-sessions__line').length).toBe(1);
+    expect(fixture.nativeElement.querySelectorAll('.admin-production-sessions__line').length).toBe(1);
 
     clickButton('+ Ajouter une matière première');
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelectorAll('.admin-production-sessions__lines')[0]
-      .querySelectorAll('.admin-production-sessions__line').length).toBe(2);
+    expect(fixture.nativeElement.querySelectorAll('.admin-production-sessions__line').length).toBe(2);
 
     clickButton('Retirer', 1);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelectorAll('.admin-production-sessions__lines')[0]
-      .querySelectorAll('.admin-production-sessions__line').length).toBe(1);
+    expect(fixture.nativeElement.querySelectorAll('.admin-production-sessions__line').length).toBe(1);
   });
 
-  it('submits a new session with filled-in lines and prepends it to the history', async () => {
-    await flushInit([]);
+  it('adjusts the session duration via the +/- stepper buttons', async () => {
+    await flushInit();
+    openWizard();
 
-    const dateInput: HTMLInputElement = fixture.nativeElement.querySelector(
-      '.admin-production-sessions__top-fields input[type="date"]',
+    goToNextStep(); // date -> raw materials
+    setSelectValue('select', '1');
+    setInputValue('.admin-production-sessions__stepper-input', '1');
+    goToNextStep(); // -> participants
+    setSelectValue('select', 'user-1');
+    goToNextStep(); // -> products
+    setSelectValue('select', '1');
+    setInputValue('input[type="number"]', '1');
+    goToNextStep(); // -> duration
+
+    const durationInput: HTMLInputElement = fixture.nativeElement.querySelector(
+      '.admin-production-sessions__stepper-input',
     );
-    dateInput.value = '2026-08-20';
-    dateInput.dispatchEvent(new Event('input'));
+    expect(durationInput.value).toBe('0');
 
-    const lineSections = fixture.nativeElement.querySelectorAll('.admin-production-sessions__lines');
-
-    const rawMaterialSelect: HTMLSelectElement = lineSections[0].querySelector('select');
-    rawMaterialSelect.value = '1';
-    rawMaterialSelect.dispatchEvent(new Event('change'));
-    const rawMaterialQtyInput: HTMLInputElement = lineSections[0].querySelector('input[type="number"]');
-    rawMaterialQtyInput.value = '3.5';
-    rawMaterialQtyInput.dispatchEvent(new Event('input'));
-
-    const participantSelect: HTMLSelectElement = lineSections[1].querySelector('select');
-    participantSelect.value = 'user-1';
-    participantSelect.dispatchEvent(new Event('change'));
-    const hoursInput: HTMLInputElement = lineSections[1].querySelector('input[type="number"]');
-    hoursInput.value = '4';
-    hoursInput.dispatchEvent(new Event('input'));
-
-    const outputSelect: HTMLSelectElement = lineSections[2].querySelector('select');
-    outputSelect.value = '1';
-    outputSelect.dispatchEvent(new Event('change'));
-    const quantityInput: HTMLInputElement = lineSections[2].querySelector('input[type="number"]');
-    quantityInput.value = '80';
-    quantityInput.dispatchEvent(new Event('input'));
-
+    const increment: HTMLButtonElement = fixture.nativeElement.querySelector(
+      'button[aria-label="Augmenter la durée"]',
+    );
+    increment.click();
     fixture.detectChanges();
+    expect(durationInput.value).toBe('0.5');
 
-    clickButton('Enregistrer la session');
+    const decrement: HTMLButtonElement = fixture.nativeElement.querySelector(
+      'button[aria-label="Diminuer la durée"]',
+    );
+    decrement.click();
+    fixture.detectChanges();
+    decrement.click();
+    fixture.detectChanges();
+    expect(durationInput.value).toBe('0');
+  });
+
+  it('submits a new session after walking through all 5 steps, and prepends it to the history', async () => {
+    await flushInit([]);
+    openWizard();
+
+    // Step 1: date (overwrite the pre-filled default).
+    setInputValue('input[type="date"]', '2026-08-20');
+    goToNextStep();
+
+    // Step 2: raw materials.
+    setSelectValue('select', '1');
+    setInputValue('.admin-production-sessions__stepper-input', '3.5');
+    goToNextStep();
+
+    // Step 3: participants (names only).
+    setSelectValue('select', 'user-1');
+    goToNextStep();
+
+    // Step 4: products fabricated.
+    setSelectValue('select', '1');
+    setInputValue('input[type="number"]', '80');
+    goToNextStep();
+
+    // Step 5: session duration.
+    setInputValue('.admin-production-sessions__stepper-input', '4');
+
+    clickButton('Enregistrer');
 
     const req = httpMock.expectOne('/api/admin/production-sessions');
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({
       date: '2026-08-20',
+      durationHours: 4,
       notes: null,
       rawMaterialUsages: [{ rawMaterialId: 1, quantityUsed: 3.5 }],
-      participants: [{ userId: 'user-1', hoursSpent: 4 }],
+      participants: [{ userId: 'user-1' }],
       outputs: [{ productId: 1, quantityProduced: 80 }],
     });
 
@@ -185,9 +406,10 @@ describe('AdminProductionSessions', () => {
       id: 2,
       date: '2026-08-20',
       batchNumber: 'L20260820-01',
+      durationHours: 4,
       notes: null,
       rawMaterialUsages: [{ rawMaterialId: 1, rawMaterialName: 'Farine', unit: 'kg', quantityUsed: 3.5 }],
-      participants: [{ userId: 'user-1', userName: 'Cel Nino', hoursSpent: 4 }],
+      participants: [{ userId: 'user-1', userName: 'Cel Nino' }],
       outputs: [{ productId: 1, productName: 'Chicken', quantityProduced: 80 }],
     });
 
@@ -197,39 +419,33 @@ describe('AdminProductionSessions', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
+    // The wizard closes on success.
+    expect(fixture.nativeElement.querySelector('.admin-production-sessions__modal')).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('2026-08-20');
     expect(fixture.nativeElement.textContent).toContain('L20260820-01');
   });
 
-  it('shows a submit error message when creation fails', async () => {
+  it('shows a submit error message when creation fails, and keeps the wizard open', async () => {
     await flushInit([]);
+    openWizard();
 
-    const dateInput: HTMLInputElement = fixture.nativeElement.querySelector(
-      '.admin-production-sessions__top-fields input[type="date"]',
-    );
-    dateInput.value = '2026-08-20';
-    dateInput.dispatchEvent(new Event('input'));
+    setInputValue('input[type="date"]', '2026-08-20');
+    goToNextStep();
 
-    const lineSections = fixture.nativeElement.querySelectorAll('.admin-production-sessions__lines');
+    setSelectValue('select', '1');
+    setInputValue('.admin-production-sessions__stepper-input', '1');
+    goToNextStep();
 
-    (lineSections[0].querySelector('select') as HTMLSelectElement).value = '1';
-    lineSections[0].querySelector('select')!.dispatchEvent(new Event('change'));
-    (lineSections[0].querySelector('input[type="number"]') as HTMLInputElement).value = '1';
-    lineSections[0].querySelector('input[type="number"]')!.dispatchEvent(new Event('input'));
+    setSelectValue('select', 'user-1');
+    goToNextStep();
 
-    (lineSections[1].querySelector('select') as HTMLSelectElement).value = 'user-1';
-    lineSections[1].querySelector('select')!.dispatchEvent(new Event('change'));
-    (lineSections[1].querySelector('input[type="number"]') as HTMLInputElement).value = '1';
-    lineSections[1].querySelector('input[type="number"]')!.dispatchEvent(new Event('input'));
+    setSelectValue('select', '1');
+    setInputValue('input[type="number"]', '1');
+    goToNextStep();
 
-    (lineSections[2].querySelector('select') as HTMLSelectElement).value = '1';
-    lineSections[2].querySelector('select')!.dispatchEvent(new Event('change'));
-    (lineSections[2].querySelector('input[type="number"]') as HTMLInputElement).value = '1';
-    lineSections[2].querySelector('input[type="number"]')!.dispatchEvent(new Event('input'));
+    setInputValue('.admin-production-sessions__stepper-input', '1');
 
-    fixture.detectChanges();
-
-    clickButton('Enregistrer la session');
+    clickButton('Enregistrer');
 
     httpMock
       .expectOne('/api/admin/production-sessions')
@@ -238,6 +454,7 @@ describe('AdminProductionSessions', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
+    expect(fixture.nativeElement.querySelector('.admin-production-sessions__modal')).not.toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Matière première introuvable : 1');
   });
 });

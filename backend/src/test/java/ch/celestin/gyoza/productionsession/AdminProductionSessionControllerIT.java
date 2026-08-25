@@ -59,12 +59,13 @@ class AdminProductionSessionControllerIT extends AbstractIntegrationTest {
                         .content("""
                                 {
                                   "date": "2026-08-20",
+                                  "durationHours": 3.5,
                                   "notes": "Session du samedi",
                                   "rawMaterialUsages": [
                                     {"rawMaterialId": %d, "quantityUsed": 3.5}
                                   ],
                                   "participants": [
-                                    {"userId": "%s", "hoursSpent": 4}
+                                    {"userId": "%s"}
                                   ],
                                   "outputs": [
                                     {"productId": %d, "quantityProduced": 80}
@@ -74,6 +75,7 @@ class AdminProductionSessionControllerIT extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.notes", is("Session du samedi")))
                 .andExpect(jsonPath("$.batchNumber", is("L20260820-01")))
+                .andExpect(jsonPath("$.durationHours", is(3.5)))
                 .andExpect(jsonPath("$.rawMaterialUsages", hasSize(1)))
                 .andExpect(jsonPath("$.rawMaterialUsages[0].rawMaterialName", is("Farine T55")))
                 .andExpect(jsonPath("$.participants", hasSize(1)))
@@ -112,11 +114,12 @@ class AdminProductionSessionControllerIT extends AbstractIntegrationTest {
                         .content("""
                                 {
                                   "date": "2026-08-21",
+                                  "durationHours": 2,
                                   "rawMaterialUsages": [
                                     {"rawMaterialId": 999999, "quantityUsed": 1}
                                   ],
                                   "participants": [
-                                    {"userId": "%s", "hoursSpent": 2}
+                                    {"userId": "%s"}
                                   ],
                                   "outputs": [
                                     {"productId": %d, "quantityProduced": 10}
@@ -148,11 +151,12 @@ class AdminProductionSessionControllerIT extends AbstractIntegrationTest {
                         .content("""
                                 {
                                   "date": "2026-08-22",
+                                  "durationHours": 2,
                                   "rawMaterialUsages": [
                                     {"rawMaterialId": %d, "quantityUsed": 1}
                                   ],
                                   "participants": [
-                                    {"userId": "%s", "hoursSpent": 2}
+                                    {"userId": "%s"}
                                   ],
                                   "outputs": []
                                 }
@@ -229,11 +233,12 @@ class AdminProductionSessionControllerIT extends AbstractIntegrationTest {
                         .content("""
                                 {
                                   "date": "%s",
+                                  "durationHours": 2,
                                   "rawMaterialUsages": [
                                     {"rawMaterialId": %d, "quantityUsed": 1}
                                   ],
                                   "participants": [
-                                    {"userId": "%s", "hoursSpent": 2}
+                                    {"userId": "%s"}
                                   ],
                                   "outputs": [
                                     {"productId": %d, "quantityProduced": 1}
@@ -260,11 +265,12 @@ class AdminProductionSessionControllerIT extends AbstractIntegrationTest {
                         .content("""
                                 {
                                   "date": "%s",
+                                  "durationHours": 2,
                                   "rawMaterialUsages": [
                                     {"rawMaterialId": %d, "quantityUsed": 1}
                                   ],
                                   "participants": [
-                                    {"userId": "%s", "hoursSpent": 2}
+                                    {"userId": "%s"}
                                   ],
                                   "outputs": [
                                     {"productId": %d, "quantityProduced": 1}

@@ -12,7 +12,6 @@ export interface CreateRawMaterialUsagePayload {
 
 export interface CreateSessionParticipantPayload {
   userId: string;
-  hoursSpent: number;
 }
 
 export interface CreateProductOutputPayload {
@@ -22,6 +21,7 @@ export interface CreateProductOutputPayload {
 
 export interface CreateProductionSessionPayload {
   date: string;
+  durationHours: number;
   notes: string | null;
   rawMaterialUsages: CreateRawMaterialUsagePayload[];
   participants: CreateSessionParticipantPayload[];

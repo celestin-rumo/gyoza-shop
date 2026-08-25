@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 class ProductionSessionTest {
 
@@ -17,7 +18,7 @@ class ProductionSessionTest {
 
     @Test
     void addRawMaterialUsage_appendsItAndLinksItBack() {
-        ProductionSession session = new ProductionSession(date, "L20260824-01", null);
+        ProductionSession session = new ProductionSession(date, "L20260824-01", new BigDecimal("3"), null);
         RawMaterialUsage usage = new RawMaterialUsage(new RawMaterial("Farine", "kg"), BigDecimal.TEN);
 
         session.addRawMaterialUsage(usage);
@@ -27,12 +28,12 @@ class ProductionSessionTest {
 
     @Test
     void addParticipant_appendsItAndLinksItBack() {
-        ProductionSession session = new ProductionSession(date, "L20260824-01", null);
+        ProductionSession session = new ProductionSession(date, "L20260824-01", new BigDecimal("3"), null);
         User user = new User(
                 "cook@example.com", "hash", "Cel", "Nino",
                 "Rue 1", "1000", "Lausanne", Role.ADMIN, true
         );
-        SessionParticipant participant = new SessionParticipant(user, new BigDecimal("4"));
+        SessionParticipant participant = new SessionParticipant(user);
 
         session.addParticipant(participant);
 
@@ -41,7 +42,7 @@ class ProductionSessionTest {
 
     @Test
     void addOutput_appendsItAndLinksItBack() {
-        ProductionSession session = new ProductionSession(date, "L20260824-01", null);
+        ProductionSession session = new ProductionSession(date, "L20260824-01", new BigDecimal("3"), null);
         ProductOutput output = new ProductOutput(new Product("Chicken", 100), 50);
 
         session.addOutput(output);
@@ -50,11 +51,26 @@ class ProductionSessionTest {
     }
 
     @Test
-    void getters_exposeDateBatchNumberAndNotes() {
-        ProductionSession session = new ProductionSession(date, "L20260824-01", "Session du samedi");
+    void getters_exposeDateBatchNumberDurationAndNotes() {
+        ProductionSession session = new ProductionSession(
+                date, "L20260824-01", new BigDecimal("3.5"), "Session du samedi"
+        );
 
         assertThat(session.getDate()).isEqualTo(date);
         assertThat(session.getBatchNumber()).isEqualTo("L20260824-01");
+        assertThat(session.getDurationHours()).isEqualByComparingTo("3.5");
         assertThat(session.getNotes()).isEqualTo("Session du samedi");
+    }
+
+    @Test
+    void constructor_rejectsNonPositiveDuration() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new ProductionSession(date, "L20260824-01", BigDecimal.ZERO, null));
+    }
+
+    @Test
+    void constructor_rejectsNullDuration() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new ProductionSession(date, "L20260824-01", null, null));
     }
 }
