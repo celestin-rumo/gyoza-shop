@@ -2,7 +2,7 @@
   <header class="admin-raw-materials__header">
     <ds-section-header
       title="Matières premières"
-      subtitle="Catalogue des matières premières et de leur coût de référence."
+      subtitle="Catalogue, coût de référence et historique des achats."
       align="left"
     ></ds-section-header>
 
@@ -22,6 +22,7 @@
           id="rawMaterialName"
           type="text"
           placeholder="Farine"
+          class="admin-raw-materials__input"
           [formField]="newRawMaterialForm.name"
         />
         @if (newRawMaterialForm.name().touched() && newRawMaterialForm.name().invalid()) {
@@ -37,6 +38,7 @@
           id="rawMaterialUnit"
           type="text"
           placeholder="kg"
+          class="admin-raw-materials__input"
           [formField]="newRawMaterialForm.unit"
         />
         @if (newRawMaterialForm.unit().touched() && newRawMaterialForm.unit().invalid()) {
@@ -72,9 +74,175 @@
             [rawMaterial]="rawMaterial"
             (rawMaterialUpdated)="onRawMaterialUpdated($event)"
             (rawMaterialDeleted)="onRawMaterialDeleted($event)"
+            (viewHistory)="viewHistoryFor($event)"
           ></app-admin-raw-material-row>
         }
       </div>
+    }
+  </section>
+
+  <section class="admin-raw-materials__achats" #achatsSection>
+    <h2 class="admin-raw-materials__section-title">Achats</h2>
+
+    @if (!loading()) {
+      <div class="admin-raw-materials__picker">
+        <label class="admin-raw-materials__field" for="purchaseFilter">
+          Matière première
+          <select
+            id="purchaseFilter"
+            class="admin-raw-materials__select"
+            [value]="selectedRawMaterialId() ?? ''"
+            (change)="onPurchaseFilterChanged($any($event.target).value)"
+          >
+            <option value="">— Tous les achats —</option>
+            @for (rawMaterial of rawMaterials(); track rawMaterial.id) {
+              <option [value]="rawMaterial.id">{{ rawMaterial.name }} ({{ rawMaterial.unit }})</option>
+            }
+          </select>
+        </label>
+
+        @if (rawMaterials().length === 0) {
+          <p class="admin-raw-materials__hint">
+            Aucune matière première pour le moment — créez-en une ci-dessus.
+          </p>
+        }
+      </div>
+
+      @if (selectedRawMaterial(); as material) {
+        <section class="admin-raw-materials__purchase-new">
+          <h3 class="admin-raw-materials__section-title">Enregistrer un achat — {{ material.name }}</h3>
+
+          <div class="admin-raw-materials__purchase-form">
+            <label class="admin-raw-materials__field">
+              Date
+              <input
+                type="date"
+                class="admin-raw-materials__input"
+                [value]="purchaseDate()"
+                (input)="purchaseDate.set($any($event.target).value)"
+              />
+            </label>
+
+            <div class="admin-raw-materials__field">
+              <span>Quantité ({{ material.unit }})</span>
+              <ds-number-stepper
+                [(value)]="quantityPurchased"
+                [step]="0.1"
+                [min]="0"
+                label="la quantité"
+              ></ds-number-stepper>
+            </div>
+
+            <div class="admin-raw-materials__field">
+              <span>Prix payé (CHF)</span>
+              <ds-number-stepper
+                [(value)]="totalPricePaid"
+                [step]="1"
+                [min]="0"
+                label="le prix payé"
+              ></ds-number-stepper>
+            </div>
+
+            <label class="admin-raw-materials__field">
+              Mode de saisie
+              <select
+                class="admin-raw-materials__select"
+                [value]="source()"
+                (change)="source.set($any($event.target).value)"
+              >
+                <option value="MANUAL">Saisie manuelle</option>
+                <option value="SCANNED">Scanné</option>
+              </select>
+            </label>
+
+            <label class="admin-raw-materials__field">
+              Pays de provenance
+              <input
+                type="text"
+                placeholder="Suisse"
+                class="admin-raw-materials__input"
+                [value]="originCountry()"
+                (input)="originCountry.set($any($event.target).value)"
+              />
+            </label>
+
+            <label class="admin-raw-materials__field">
+              Magasin
+              <input
+                type="text"
+                placeholder="Coop"
+                class="admin-raw-materials__input"
+                [value]="store()"
+                (input)="store.set($any($event.target).value)"
+              />
+            </label>
+
+            <label class="admin-raw-materials__field">
+              N° de lot (si disponible)
+              <input
+                type="text"
+                class="admin-raw-materials__input"
+                [value]="batchNumber()"
+                (input)="batchNumber.set($any($event.target).value)"
+              />
+            </label>
+
+            <ds-button
+              variant="primary"
+              size="md"
+              [disabled]="!canSubmitPurchase() || creatingPurchase()"
+              (pressed)="createPurchase()"
+            >
+              {{ creatingPurchase() ? 'Enregistrement…' : "Ajouter l'achat" }}
+            </ds-button>
+          </div>
+
+          @if (createPurchaseError()) {
+            <p class="admin-raw-materials__submit-error" role="alert">{{ createPurchaseError() }}</p>
+          }
+        </section>
+      }
+
+      @if (loadingPurchases()) {
+        <p class="admin-raw-materials__hint">Chargement…</p>
+      } @else if (loadPurchasesError()) {
+        <p class="admin-raw-materials__submit-error" role="alert">{{ loadPurchasesError() }}</p>
+      } @else if (purchases().length === 0) {
+        <p class="admin-raw-materials__hint">Aucun achat enregistré pour le moment.</p>
+      } @else {
+        <div class="admin-raw-materials__table-wrapper">
+          <table class="admin-raw-materials__table">
+            <thead>
+              <tr>
+                <th scope="col">Matière première</th>
+                <th scope="col">Date</th>
+                <th scope="col">Quantité</th>
+                <th scope="col">Prix payé</th>
+                <th scope="col">Prix unitaire</th>
+                <th scope="col">Saisie</th>
+                <th scope="col">Provenance</th>
+                <th scope="col">Magasin</th>
+                <th scope="col">N° de lot</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (purchase of purchases(); track purchase.id) {
+                <tr>
+                  <td>{{ purchase.rawMaterialName }}</td>
+                  <td>{{ purchase.date }}</td>
+                  <td>{{ purchase.quantityPurchased }} {{ unitFor(purchase.rawMaterialId) }}</td>
+                  <td>{{ purchase.totalPricePaid | dsPrice }}</td>
+                  <td>{{ purchase.unitPrice | dsPrice }} / {{ unitFor(purchase.rawMaterialId) }}</td>
+                  <td>{{ purchase.source === 'MANUAL' ? 'Saisie manuelle' : 'Scanné' }}</td>
+                  <td>{{ purchase.originCountry }}</td>
+                  <td>{{ purchase.store }}</td>
+                  <td>{{ purchase.batchNumber ?? '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
     }
   </section>
 </main>

@@ -68,10 +68,14 @@
 }
 
 .admin-raw-material__history-link {
+  padding: 0;
+  background: none;
+  border: none;
   color: var(--gz-text-secondary);
   font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
   text-decoration: none;
+  cursor: pointer;
 
   &:hover {
     color: var(--gz-text-primary);

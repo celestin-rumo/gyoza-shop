@@ -106,10 +106,122 @@
                       label="la quantité"
                     ></ds-number-stepper>
 
-                    <ds-button variant="ghost" size="sm" (pressed)="removeLine(rawMaterialLines, $index)">
+                    <ds-button
+                      variant="outline"
+                      size="sm"
+                      [disabled]="line.rawMaterialId === null"
+                      (pressed)="togglePurchaseDraft($index)"
+                    >
+                      {{ purchaseDraftOpenIndex() === $index ? 'Annuler l’achat' : '+ Achat' }}
+                    </ds-button>
+
+                    <ds-button
+                      variant="ghost"
+                      size="sm"
+                      (pressed)="removeLine(rawMaterialLines, $index, true)"
+                    >
                       Retirer
                     </ds-button>
                   </div>
+
+                  @if (purchaseDraftOpenIndex() === $index) {
+                    <div class="admin-production-sessions__purchase-draft">
+                      <p class="admin-production-sessions__purchase-draft-title">
+                        Enregistrer l’achat correspondant
+                      </p>
+
+                      <div class="admin-production-sessions__purchase-draft-fields">
+                        <label class="admin-production-sessions__field">
+                          Date
+                          <input
+                            type="date"
+                            class="admin-production-sessions__input"
+                            [value]="purchaseDraftDate()"
+                            (input)="purchaseDraftDate.set($any($event.target).value)"
+                          />
+                        </label>
+
+                        <div class="admin-production-sessions__field">
+                          <span>Quantité achetée</span>
+                          <ds-number-stepper
+                            [(value)]="purchaseDraftQuantity"
+                            [step]="0.1"
+                            [min]="0"
+                            label="la quantité achetée"
+                          ></ds-number-stepper>
+                        </div>
+
+                        <div class="admin-production-sessions__field">
+                          <span>Prix payé (CHF)</span>
+                          <ds-number-stepper
+                            [(value)]="purchaseDraftPrice"
+                            [step]="1"
+                            [min]="0"
+                            label="le prix payé"
+                          ></ds-number-stepper>
+                        </div>
+
+                        <label class="admin-production-sessions__field">
+                          Mode de saisie
+                          <select
+                            class="admin-production-sessions__select"
+                            [value]="purchaseDraftSource()"
+                            (change)="purchaseDraftSource.set($any($event.target).value)"
+                          >
+                            <option value="MANUAL">Saisie manuelle</option>
+                            <option value="SCANNED">Scanné</option>
+                          </select>
+                        </label>
+
+                        <label class="admin-production-sessions__field">
+                          Pays de provenance
+                          <input
+                            type="text"
+                            placeholder="Suisse"
+                            class="admin-production-sessions__input"
+                            [value]="purchaseDraftOriginCountry()"
+                            (input)="purchaseDraftOriginCountry.set($any($event.target).value)"
+                          />
+                        </label>
+
+                        <label class="admin-production-sessions__field">
+                          Magasin
+                          <input
+                            type="text"
+                            placeholder="Coop"
+                            class="admin-production-sessions__input"
+                            [value]="purchaseDraftStore()"
+                            (input)="purchaseDraftStore.set($any($event.target).value)"
+                          />
+                        </label>
+
+                        <label class="admin-production-sessions__field">
+                          N° de lot (si disponible)
+                          <input
+                            type="text"
+                            class="admin-production-sessions__input"
+                            [value]="purchaseDraftBatchNumber()"
+                            (input)="purchaseDraftBatchNumber.set($any($event.target).value)"
+                          />
+                        </label>
+                      </div>
+
+                      @if (purchaseDraftError()) {
+                        <p class="admin-production-sessions__submit-error" role="alert">
+                          {{ purchaseDraftError() }}
+                        </p>
+                      }
+
+                      <ds-button
+                        variant="primary"
+                        size="sm"
+                        [disabled]="!canSavePurchaseDraft() || savingPurchaseDraft()"
+                        (pressed)="savePurchaseDraft($index)"
+                      >
+                        {{ savingPurchaseDraft() ? 'Enregistrement…' : 'Enregistrer l’achat' }}
+                      </ds-button>
+                    </div>
+                  }
                 }
 
                 <ds-button variant="outline" size="sm" (pressed)="addLine(rawMaterialLines, emptyRawMaterialLine())">

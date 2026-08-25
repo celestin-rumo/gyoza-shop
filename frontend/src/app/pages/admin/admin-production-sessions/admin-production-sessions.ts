@@ -15,6 +15,7 @@ import { AdminUser, AdminUserService } from '../../../services/admin-user.servic
 import { AuthService } from '../../../services/auth.service';
 import { ProductionSession } from '../../../models/production-session.model';
 import { RawMaterial } from '../../../models/raw-material.model';
+import { PurchaseSource } from '../../../models/raw-material-purchase.model';
 import { Product } from '../../../models/product.model';
 import { DsButtonComponent } from '../../../design-system/components/ds-button/ds-button.component';
 import { DsSectionHeaderComponent } from '../../../design-system/components/ds-section-header/ds-section-header.component';
@@ -84,6 +85,29 @@ export class AdminProductionSessions implements OnInit {
   protected readonly creating = signal(false);
   protected readonly createError = signal<string | null>(null);
 
+  // Inline "log a purchase for this raw material" mini-form, opened from a single line of
+  // the raw-materials step. Independent from the session itself: it posts its own
+  // RawMaterialPurchase immediately rather than being bundled into the session payload.
+  protected readonly purchaseDraftOpenIndex = signal<number | null>(null);
+  protected readonly purchaseDraftDate = signal(this.today());
+  protected readonly purchaseDraftQuantity = signal(0);
+  protected readonly purchaseDraftPrice = signal(0);
+  protected readonly purchaseDraftSource = signal<PurchaseSource>('MANUAL');
+  protected readonly purchaseDraftOriginCountry = signal('');
+  protected readonly purchaseDraftStore = signal('');
+  protected readonly purchaseDraftBatchNumber = signal('');
+  protected readonly savingPurchaseDraft = signal(false);
+  protected readonly purchaseDraftError = signal<string | null>(null);
+
+  protected readonly canSavePurchaseDraft = computed(
+    () =>
+      this.purchaseDraftDate().length > 0 &&
+      this.purchaseDraftQuantity() > 0 &&
+      this.purchaseDraftPrice() > 0 &&
+      this.purchaseDraftOriginCountry().trim().length > 0 &&
+      this.purchaseDraftStore().trim().length > 0,
+  );
+
   protected readonly wizardOpen = signal(false);
   protected readonly currentStepIndex = signal(DATE_STEP);
   protected readonly steps = WIZARD_STEPS;
@@ -145,8 +169,14 @@ export class AdminProductionSessions implements OnInit {
     lines.update((current) => [...current, empty]);
   }
 
-  protected removeLine<T>(lines: WritableSignal<T[]>, index: number): void {
+  protected removeLine<T>(lines: WritableSignal<T[]>, index: number, isRawMaterialLines = false): void {
     lines.update((current) => current.filter((_, i) => i !== index));
+
+    // Removing a raw material line can shift indices out from under an open purchase
+    // draft; simplest safe behavior is to just close it.
+    if (isRawMaterialLines) {
+      this.purchaseDraftOpenIndex.set(null);
+    }
   }
 
   protected updateLine<T>(lines: WritableSignal<T[]>, index: number, patch: Partial<T>): void {
@@ -163,6 +193,52 @@ export class AdminProductionSessions implements OnInit {
 
   protected emptyOutputLine(): OutputLine {
     return { productId: null, quantityProduced: 0 };
+  }
+
+  protected togglePurchaseDraft(index: number): void {
+    if (this.purchaseDraftOpenIndex() === index) {
+      this.purchaseDraftOpenIndex.set(null);
+      return;
+    }
+
+    this.resetPurchaseDraft();
+    this.purchaseDraftOpenIndex.set(index);
+  }
+
+  protected async savePurchaseDraft(index: number): Promise<void> {
+    const rawMaterialId = this.rawMaterialLines()[index]?.rawMaterialId;
+    if (rawMaterialId == null || !this.canSavePurchaseDraft()) {
+      return;
+    }
+
+    this.savingPurchaseDraft.set(true);
+    this.purchaseDraftError.set(null);
+
+    try {
+      await firstValueFrom(
+        this.adminRawMaterialService.createPurchase({
+          rawMaterialId,
+          date: this.purchaseDraftDate(),
+          quantityPurchased: this.purchaseDraftQuantity(),
+          totalPricePaid: this.purchaseDraftPrice(),
+          source: this.purchaseDraftSource(),
+          originCountry: this.purchaseDraftOriginCountry(),
+          store: this.purchaseDraftStore(),
+          batchNumber:
+            this.purchaseDraftBatchNumber().trim().length > 0 ? this.purchaseDraftBatchNumber() : null,
+        }),
+      );
+
+      this.rawMaterials.set(await firstValueFrom(this.adminRawMaterialService.getAllRawMaterials()));
+      this.purchaseDraftOpenIndex.set(null);
+      this.resetPurchaseDraft();
+    } catch (error) {
+      this.purchaseDraftError.set(
+        this.extractErrorMessage(error, "Impossible d’enregistrer cet achat."),
+      );
+    } finally {
+      this.savingPurchaseDraft.set(false);
+    }
   }
 
   protected toggleSessionExpanded(sessionId: number): void {
@@ -239,7 +315,7 @@ export class AdminProductionSessions implements OnInit {
       this.sessions.update((sessions) => [session, ...sessions]);
       this.closeWizard();
     } catch (error) {
-      this.createError.set(this.extractErrorMessage(error));
+      this.createError.set(this.extractErrorMessage(error, 'Impossible d’enregistrer cette session.'));
     } finally {
       this.creating.set(false);
     }
@@ -270,14 +346,27 @@ export class AdminProductionSessions implements OnInit {
     this.participantLines.set([this.emptyParticipantLine()]);
     this.outputLines.set([this.emptyOutputLine()]);
     this.durationHours.set(0);
+    this.purchaseDraftOpenIndex.set(null);
+    this.resetPurchaseDraft();
   }
 
-  private extractErrorMessage(error: unknown): string {
+  private resetPurchaseDraft(): void {
+    this.purchaseDraftDate.set(this.today());
+    this.purchaseDraftQuantity.set(0);
+    this.purchaseDraftPrice.set(0);
+    this.purchaseDraftSource.set('MANUAL');
+    this.purchaseDraftOriginCountry.set('');
+    this.purchaseDraftStore.set('');
+    this.purchaseDraftBatchNumber.set('');
+    this.purchaseDraftError.set(null);
+  }
+
+  private extractErrorMessage(error: unknown, fallback: string): string {
     if (error instanceof HttpErrorResponse && typeof error.error?.message === 'string') {
       return error.error.message;
     }
 
-    return 'Impossible d’enregistrer cette session.';
+    return fallback;
   }
 
   private today(): string {
