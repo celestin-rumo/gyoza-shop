@@ -12,54 +12,64 @@
     </div>
   </header>
 
-  <div class="admin-home__cards">
-    <a class="admin-home__card" routerLink="/admin/stocks">
-      <h2 class="admin-home__card-title">Gestion des stocks</h2>
-      <p class="admin-home__card-description">
-        Produits, packs, prix et niveaux de stock.
-      </p>
-    </a>
+  <section class="admin-home__group">
+    <h3 class="admin-home__group-title">Opérations</h3>
 
-    <a class="admin-home__card" routerLink="/admin/orders">
-      <h2 class="admin-home__card-title">Gestion des commandes</h2>
-      <p class="admin-home__card-description">
-        Suivi des commandes et changement de statut.
-      </p>
-    </a>
+    <div class="admin-home__cards">
+      <a class="admin-home__card" routerLink="/admin/stocks">
+        <h4 class="admin-home__card-title">Gestion des stocks</h4>
+        <p class="admin-home__card-description">Produits, packs, prix et niveaux de stock.</p>
+      </a>
 
-    <a class="admin-home__card" routerLink="/admin/slots">
-      <h2 class="admin-home__card-title">Créneaux &amp; lots frais</h2>
-      <p class="admin-home__card-description">
-        Ouvrir ou fermer des créneaux et gérer les dates de lot frais.
-      </p>
-    </a>
+      <a class="admin-home__card" routerLink="/admin/orders">
+        <h4 class="admin-home__card-title">Gestion des commandes</h4>
+        <p class="admin-home__card-description">Suivi des commandes et changement de statut.</p>
+      </a>
 
-    <a class="admin-home__card" routerLink="/admin/analytics">
-      <h2 class="admin-home__card-title">Analytics</h2>
-      <p class="admin-home__card-description">
-        Clients, chiffre d’affaires et commandes en un coup d’œil.
-      </p>
-    </a>
+      <a class="admin-home__card" routerLink="/admin/slots">
+        <h4 class="admin-home__card-title">Créneaux &amp; lots frais</h4>
+        <p class="admin-home__card-description">
+          Ouvrir ou fermer des créneaux et gérer les dates de lot frais.
+        </p>
+      </a>
+    </div>
+  </section>
 
-    <a class="admin-home__card" routerLink="/admin/users">
-      <h2 class="admin-home__card-title">Gestion des droits</h2>
-      <p class="admin-home__card-description">
-        Comptes admin : ajouter ou révoquer les droits.
-      </p>
-    </a>
+  <section class="admin-home__group">
+    <h3 class="admin-home__group-title">Pilotage</h3>
 
-    <a class="admin-home__card" routerLink="/admin/raw-materials">
-      <h2 class="admin-home__card-title">Matières premières</h2>
-      <p class="admin-home__card-description">
-        Catalogue, coût de référence et historique des achats.
-      </p>
-    </a>
+    <div class="admin-home__cards">
+      <a class="admin-home__card" routerLink="/admin/analytics">
+        <h4 class="admin-home__card-title">Analytics</h4>
+        <p class="admin-home__card-description">
+          Clients, chiffre d’affaires et commandes en un coup d’œil.
+        </p>
+      </a>
 
-    <a class="admin-home__card" routerLink="/admin/production-sessions">
-      <h2 class="admin-home__card-title">Sessions de production</h2>
-      <p class="admin-home__card-description">
-        Matières consommées, produits fabriqués et temps passé.
-      </p>
-    </a>
-  </div>
+      <a class="admin-home__card" routerLink="/admin/users">
+        <h4 class="admin-home__card-title">Gestion des droits</h4>
+        <p class="admin-home__card-description">Comptes admin : ajouter ou révoquer les droits.</p>
+      </a>
+    </div>
+  </section>
+
+  <section class="admin-home__group">
+    <h3 class="admin-home__group-title">Production</h3>
+
+    <div class="admin-home__cards">
+      <a class="admin-home__card" routerLink="/admin/raw-materials">
+        <h4 class="admin-home__card-title">Matières premières</h4>
+        <p class="admin-home__card-description">
+          Catalogue, coût de référence et historique des achats.
+        </p>
+      </a>
+
+      <a class="admin-home__card" routerLink="/admin/production-sessions">
+        <h4 class="admin-home__card-title">Sessions de production</h4>
+        <p class="admin-home__card-description">
+          Matières consommées, produits fabriqués et temps passé.
+        </p>
+      </a>
+    </div>
+  </section>
 </main>
