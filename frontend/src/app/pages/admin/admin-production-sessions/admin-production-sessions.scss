@@ -2,6 +2,11 @@
   display: block;
 }
 
+%focus-ring {
+  outline: 2px solid var(--gz-accent-400);
+  outline-offset: 2px;
+}
+
 .admin-production-sessions {
   max-width: 1000px;
   margin: 0 auto;
@@ -27,7 +32,6 @@
 
 .admin-production-sessions__back-link {
   color: var(--gz-text-secondary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
   text-decoration: none;
 
@@ -36,22 +40,20 @@
   }
 
   &:focus-visible {
-    outline: 2px solid var(--gz-accent-400);
-    outline-offset: 2px;
+    @extend %focus-ring;
   }
 }
 
 .admin-production-sessions__section-title {
   margin: 0 0 var(--gz-space-4);
   color: var(--gz-text-primary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-lg);
   font-weight: var(--gz-fw-semibold);
 }
 
-.admin-production-sessions__hint {
+.admin-production-sessions__hint,
+.admin-production-session__date {
   color: var(--gz-text-secondary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
 }
 
@@ -109,7 +111,6 @@
 .admin-production-sessions__modal-title {
   margin: 0;
   color: var(--gz-text-primary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-lg);
   font-weight: var(--gz-fw-semibold);
 }
@@ -141,8 +142,7 @@
   }
 
   &:focus-visible {
-    outline: 2px solid var(--gz-accent-400);
-    outline-offset: 2px;
+    @extend %focus-ring;
   }
 }
 
@@ -156,7 +156,6 @@
 .admin-production-sessions__step-heading {
   margin: 0;
   color: var(--gz-text-primary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-base);
   font-weight: var(--gz-fw-semibold);
 
@@ -187,7 +186,6 @@
   gap: var(--gz-space-2);
   min-width: 180px;
   color: var(--gz-text-secondary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
   font-weight: var(--gz-fw-medium);
 }
@@ -203,12 +201,10 @@
   border: 1px solid var(--gz-border-soft);
   border-radius: var(--gz-radius-sm);
   color: var(--gz-text-primary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
 
   &:focus-visible {
-    outline: 2px solid var(--gz-accent-400);
-    outline-offset: 2px;
+    @extend %focus-ring;
   }
 }
 
@@ -248,7 +244,6 @@
 .admin-production-sessions__purchase-draft-title {
   margin: 0;
   color: var(--gz-text-secondary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-xs);
   font-weight: var(--gz-fw-medium);
 }
@@ -267,7 +262,6 @@
   border: 1px solid var(--gz-accent-400);
   border-radius: var(--gz-radius-sm);
   color: var(--gz-text-primary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
 }
 
@@ -304,22 +298,14 @@
   text-align: left;
 
   &:focus-visible {
-    outline: 2px solid var(--gz-accent-400);
-    outline-offset: 2px;
+    @extend %focus-ring;
   }
 }
 
 .admin-production-session__batch {
   color: var(--gz-text-primary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-lg);
   font-weight: var(--gz-fw-semibold);
-}
-
-.admin-production-session__date {
-  color: var(--gz-text-secondary);
-  font-family: var(--gz-font-family);
-  font-size: var(--gz-fs-sm);
 }
 
 .admin-production-session__chevron {
@@ -335,7 +321,6 @@
 .admin-production-session__notes {
   margin: 0;
   color: var(--gz-text-secondary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
 }
 
@@ -350,7 +335,6 @@
 .admin-production-session__section-label {
   margin: 0 0 var(--gz-space-2);
   color: var(--gz-text-secondary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-xs);
   font-weight: var(--gz-fw-medium);
 }
@@ -370,7 +354,6 @@
   border: 1px solid var(--gz-border-soft);
   border-radius: var(--gz-radius-pill);
   color: var(--gz-text-secondary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-xs);
 }
 
@@ -391,7 +374,6 @@
 .admin-production-session__hourly-revenue {
   margin: 0;
   color: var(--gz-text-secondary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
 
   strong {
@@ -416,14 +398,12 @@
 
   dt {
     color: var(--gz-text-secondary);
-    font-family: var(--gz-font-family);
     font-size: var(--gz-fs-xs);
   }
 
   dd {
     margin: 0;
     color: var(--gz-text-primary);
-    font-family: var(--gz-font-family);
     font-size: var(--gz-fs-sm);
     font-weight: var(--gz-fw-semibold);
   }
@@ -435,6 +415,5 @@
   flex-wrap: wrap;
   gap: var(--gz-space-3);
   color: var(--gz-text-secondary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
 }

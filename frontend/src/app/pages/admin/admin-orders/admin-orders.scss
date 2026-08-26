@@ -27,7 +27,6 @@
 
 .admin-orders__back-link {
   color: var(--gz-text-secondary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
   text-decoration: none;
 
@@ -43,7 +42,6 @@
 
 .admin-orders__hint {
   color: var(--gz-text-secondary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
 }
 
@@ -54,7 +52,6 @@
   border: 1px solid var(--gz-accent-400);
   border-radius: var(--gz-radius-sm);
   color: var(--gz-text-primary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
 }
 
@@ -68,7 +65,6 @@
 .admin-orders__prep-title {
   margin: 0 0 var(--gz-space-4);
   color: var(--gz-text-primary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-base);
   font-weight: var(--gz-fw-semibold);
 }
@@ -84,7 +80,6 @@
 .admin-orders__prep-slot-title {
   margin: 0 0 var(--gz-space-2);
   color: var(--gz-text-secondary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
   font-weight: var(--gz-fw-medium);
 }
@@ -107,13 +102,11 @@
 
 .prep-tile__label {
   color: var(--gz-text-secondary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
 }
 
 .prep-tile__value {
   color: var(--gz-accent-500);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-xl);
   font-weight: var(--gz-fw-semibold);
 }
@@ -123,7 +116,6 @@
   padding: 0;
   list-style: none;
   color: var(--gz-text-secondary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-xs);
 }
 
@@ -142,7 +134,6 @@
 
 .admin-orders__pagination-status {
   color: var(--gz-text-secondary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
 }
 
@@ -159,7 +150,6 @@
   border: 1px solid var(--gz-border-soft);
   border-radius: var(--gz-radius-pill);
   color: var(--gz-text-secondary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
   cursor: pointer;
   transition: border-color var(--gz-transition-fast), color var(--gz-transition-fast);
@@ -189,7 +179,6 @@
 
   label {
     color: var(--gz-text-secondary);
-    font-family: var(--gz-font-family);
     font-size: var(--gz-fs-sm);
   }
 
@@ -199,7 +188,6 @@
     border: 1px solid var(--gz-border-soft);
     border-radius: var(--gz-radius-sm);
     color: var(--gz-text-primary);
-    font-family: var(--gz-font-family);
     font-size: var(--gz-fs-sm);
 
     &:focus-visible {
@@ -248,21 +236,18 @@
 
 .admin-order__summary-id {
   color: var(--gz-text-primary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-lg);
   font-weight: var(--gz-fw-semibold);
 }
 
 .admin-order__summary-slot {
   color: var(--gz-text-secondary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
 }
 
 .admin-order__summary-total {
   margin-left: auto;
   color: var(--gz-accent-500);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-base);
   font-weight: var(--gz-fw-semibold);
 }
@@ -288,7 +273,6 @@
 .admin-order__date {
   margin: 0;
   color: var(--gz-text-primary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
 }
 
@@ -297,7 +281,6 @@
   border-radius: var(--gz-radius-pill);
   background: var(--gz-bg-elevated);
   color: var(--gz-text-muted);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-xs);
   font-weight: var(--gz-fw-medium);
   white-space: nowrap;
@@ -328,7 +311,6 @@
 .admin-order__section-title {
   margin: 0 0 var(--gz-space-2);
   color: var(--gz-text-secondary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
   font-weight: var(--gz-fw-medium);
 }
@@ -336,7 +318,6 @@
 .admin-order__customer {
   margin: 0;
   color: var(--gz-text-primary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
   line-height: var(--gz-lh-normal);
 }
@@ -355,7 +336,6 @@
   flex-direction: column;
   gap: var(--gz-space-1);
   color: var(--gz-text-primary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
 }
 
@@ -397,7 +377,6 @@
 .admin-order__hint {
   margin: var(--gz-space-2) 0 0;
   color: var(--gz-text-secondary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-xs);
 }
 
@@ -408,7 +387,6 @@
   padding-top: var(--gz-space-2);
   border-top: 1px solid var(--gz-border-soft);
   color: var(--gz-text-primary);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-sm);
 
   strong {
@@ -428,6 +406,5 @@
 .admin-order__error {
   margin: var(--gz-space-2) 0 0;
   color: var(--gz-accent-500);
-  font-family: var(--gz-font-family);
   font-size: var(--gz-fs-xs);
 }
