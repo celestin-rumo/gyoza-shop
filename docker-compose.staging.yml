@@ -16,7 +16,6 @@ services:
       - "traefik.http.routers.gyoza-staging-frontend.entrypoints=websecure"
       - "traefik.http.routers.gyoza-staging-frontend.tls.certresolver=le"
       - "traefik.http.routers.gyoza-staging-frontend.priority=1"
-      - "traefik.http.routers.gyoza-staging-frontend.middlewares=basic-auth@file"
       - "traefik.http.services.gyoza-staging-frontend.loadbalancer.server.port=4000"
 
     networks:
@@ -53,7 +52,6 @@ services:
       - "traefik.http.routers.gyoza-staging-api.entrypoints=websecure"
       - "traefik.http.routers.gyoza-staging-api.tls.certresolver=le"
       - "traefik.http.routers.gyoza-staging-api.priority=100"
-      - "traefik.http.routers.gyoza-staging-api.middlewares=basic-auth@file"
       - "traefik.http.services.gyoza-staging-api.loadbalancer.server.port=8080"
 
     networks:
