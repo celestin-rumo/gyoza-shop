@@ -9,8 +9,24 @@
 // DAYS_BACK, DAYS_FORWARD, SLOT_COUNT, SESSION_COUNT.
 
 import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.resolve(SCRIPT_DIR, '../..');
+
+// A deploy directory (e.g. staging, copied there by deploy.yml's "Sync fake-data
+// scripts" step) only has its own compose file, not the full repo's — used both to
+// pick the right compose file below and to gate loading a co-located .env (the git
+// checkout may have an unrelated stray .env at its root; only trust one that sits
+// next to a deploy-only compose file).
+const IS_DEPLOY_DIR = !existsSync(path.join(REPO_ROOT, 'docker-compose.dev.yml'));
+
+const ENV_FILE = path.join(REPO_ROOT, '.env');
+if (IS_DEPLOY_DIR && existsSync(ENV_FILE) && typeof process.loadEnvFile === 'function') {
+  process.loadEnvFile(ENV_FILE);
+}
 
 const API_BASE = process.env.API_BASE ?? 'http://localhost:8080';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@gyoza.local';
@@ -22,11 +38,14 @@ const DAYS_FORWARD = Number(process.env.DAYS_FORWARD ?? 14);
 const SLOT_COUNT = Number(process.env.SLOT_COUNT ?? 8);
 const SESSION_COUNT = Number(process.env.SESSION_COUNT ?? 11);
 
-const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(SCRIPT_DIR, '../..');
-const COMPOSE_FILE = process.env.COMPOSE_FILE ?? path.join(REPO_ROOT, 'docker-compose.dev.yml');
-const DB_NAME = process.env.DB_NAME ?? 'gyoza';
-const DB_USER = process.env.DB_USER ?? 'gyoza';
+const COMPOSE_FILE =
+  process.env.COMPOSE_FILE ??
+  (IS_DEPLOY_DIR ? path.join(REPO_ROOT, 'docker-compose.staging.yml') : path.join(REPO_ROOT, 'docker-compose.dev.yml'));
+// docker-compose.{dev,staging}.yml both name these POSTGRES_DB/POSTGRES_USER — the
+// same .env loaded above already uses those names, so no separate DB_NAME/DB_USER
+// entries are needed there.
+const DB_NAME = process.env.DB_NAME ?? process.env.POSTGRES_DB ?? 'gyoza';
+const DB_USER = process.env.DB_USER ?? process.env.POSTGRES_USER ?? 'gyoza';
 
 const RAW_MATERIALS = [
   { name: 'Farine de blé', unit: 'kg' },

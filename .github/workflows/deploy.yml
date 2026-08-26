@@ -183,6 +183,15 @@ jobs:
         run: |
           install -Dm644 docker-compose.staging.yml "${{ env.STAGING_DEPLOY_PATH }}/${{ env.COMPOSE_STAGING_FILE }}"
 
+      - name: Sync fake-data scripts
+        # Staging only — these seed/wipe fake orders, sessions, and slots for manual
+        # testing; keeping them alongside the compose file + .env makes them runnable
+        # in place (docker compose exec, DB creds) without cloning the repo there.
+        shell: bash
+        run: |
+          mkdir -p "${{ env.STAGING_DEPLOY_PATH }}/scripts"
+          cp -r scripts/fake-data "${{ env.STAGING_DEPLOY_PATH }}/scripts/"
+
       - name: Pull deployment images
         shell: bash
         run: |
