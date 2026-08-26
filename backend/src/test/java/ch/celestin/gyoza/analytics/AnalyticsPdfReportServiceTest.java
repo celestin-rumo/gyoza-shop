@@ -4,6 +4,7 @@ import ch.celestin.gyoza.analytics.dto.AnalyticsDayPoint;
 import ch.celestin.gyoza.analytics.dto.AnalyticsTimeSeriesResponse;
 import ch.celestin.gyoza.analytics.dto.ProductionPeriodAnalyticsResponse;
 import ch.celestin.gyoza.analytics.dto.ProductionPeriodAnalyticsResponse.ParticipantHours;
+import ch.celestin.gyoza.analytics.dto.ProductionPeriodAnalyticsResponse.RawMaterialCostPoint;
 import ch.celestin.gyoza.analytics.dto.ProductionPeriodAnalyticsResponse.SessionPeriodPoint;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,7 +51,9 @@ class AnalyticsPdfReportServiceTest {
                 BigDecimal.valueOf(300),
                 BigDecimal.valueOf(250),
                 List.of(new SessionPeriodPoint(START, "B-001", BigDecimal.valueOf(45), BigDecimal.valueOf(0.5), BigDecimal.valueOf(150), BigDecimal.valueOf(125))),
-                List.of(new ParticipantHours("Jean Dupont", BigDecimal.valueOf(4)))
+                List.of(new ParticipantHours("Jean Dupont", BigDecimal.valueOf(4))),
+                BigDecimal.valueOf(37.5),
+                List.of(new RawMaterialCostPoint("Farine", BigDecimal.valueOf(25)), new RawMaterialCostPoint("Poulet", BigDecimal.valueOf(12.5)))
         ));
 
         byte[] pdf = reportService.generateReport(START, END);
@@ -66,7 +69,8 @@ class AnalyticsPdfReportServiceTest {
         )));
 
         when(analyticsService.getProductionPeriodAnalytics(START, END)).thenReturn(new ProductionPeriodAnalyticsResponse(
-                START, END, BigDecimal.ZERO, null, BigDecimal.ZERO, null, BigDecimal.ZERO, BigDecimal.ZERO, List.of(), List.of()
+                START, END, BigDecimal.ZERO, null, BigDecimal.ZERO, null, BigDecimal.ZERO, BigDecimal.ZERO,
+                List.of(), List.of(), BigDecimal.ZERO, List.of()
         ));
 
         byte[] pdf = reportService.generateReport(START, END);
