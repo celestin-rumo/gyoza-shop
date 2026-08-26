@@ -51,6 +51,7 @@ class ProductionSessionCostCalculatorTest {
             order.changeStatus(OrderStatus.CANCELLED);
         } else if (status == OrderStatus.DELIVERED) {
             order.changeStatus(OrderStatus.PREPARING);
+            orderItem.setBatchValidated(true);
             order.changeStatus(OrderStatus.READY);
             order.changeStatus(OrderStatus.DELIVERED);
         }
