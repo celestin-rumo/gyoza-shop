@@ -121,6 +121,8 @@ export class AdminProductionSessions implements OnInit {
   protected readonly wizardOpen = signal(false);
   protected readonly currentStepIndex = signal(DATE_STEP);
   protected readonly steps = WIZARD_STEPS;
+  /** Batch number of the session this wizard run was pre-filled from, if any. */
+  protected readonly duplicatingFromBatch = signal<string | null>(null);
 
   private readonly stepHeading = viewChild<ElementRef<HTMLHeadingElement>>('stepHeading');
 
@@ -299,6 +301,51 @@ export class AdminProductionSessions implements OnInit {
 
   protected openWizard(): void {
     this.resetForm();
+    this.duplicatingFromBatch.set(null);
+    this.currentStepIndex.set(DATE_STEP);
+    this.wizardOpen.set(true);
+  }
+
+  /**
+   * Opens the wizard pre-filled from a past session — raw material lines, participants,
+   * outputs, duration and other costs are copied over; only the date resets to today. The
+   * duplicate is a fully independent session: nothing here links back to the original.
+   */
+  protected duplicateSession(session: ProductionSession): void {
+    this.date.set(this.today());
+    this.notes.set(session.notes ?? '');
+    this.durationHours.set(session.durationHours);
+    this.otherCosts.set(session.otherCosts);
+
+    this.rawMaterialLines.set(
+      session.rawMaterialUsages.length > 0
+        ? session.rawMaterialUsages.map((usage) => ({
+            rawMaterialId: usage.rawMaterialId,
+            quantityUsed: usage.quantityUsed,
+            targetProductId: usage.targetProductId,
+          }))
+        : [this.emptyRawMaterialLine()],
+    );
+
+    this.participantLines.set(
+      session.participants.length > 0
+        ? session.participants.map((participant) => ({ userId: participant.userId }))
+        : [this.emptyParticipantLine()],
+    );
+
+    this.outputLines.set(
+      session.outputs.length > 0
+        ? session.outputs.map((output) => ({
+            productId: output.productId,
+            quantityProduced: output.quantityProduced,
+          }))
+        : [this.emptyOutputLine()],
+    );
+
+    this.purchaseDraftOpenIndex.set(null);
+    this.resetPurchaseDraft();
+    this.createError.set(null);
+    this.duplicatingFromBatch.set(session.batchNumber);
     this.currentStepIndex.set(DATE_STEP);
     this.wizardOpen.set(true);
   }
