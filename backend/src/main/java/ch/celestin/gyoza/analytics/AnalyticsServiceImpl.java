@@ -4,6 +4,7 @@ import ch.celestin.gyoza.analytics.dto.AnalyticsDayPoint;
 import ch.celestin.gyoza.analytics.dto.AnalyticsResponse;
 import ch.celestin.gyoza.analytics.dto.AnalyticsTimeSeriesResponse;
 import ch.celestin.gyoza.analytics.dto.ProductionAnalyticsResponse;
+import ch.celestin.gyoza.analytics.dto.ProductionPeriodAnalyticsResponse;
 import ch.celestin.gyoza.customer.Customer;
 import ch.celestin.gyoza.customer.CustomerRepository;
 import ch.celestin.gyoza.order.Order;
@@ -14,6 +15,7 @@ import ch.celestin.gyoza.productionsession.ProductOutput;
 import ch.celestin.gyoza.productionsession.ProductionSession;
 import ch.celestin.gyoza.productionsession.ProductionSessionCostCalculator;
 import ch.celestin.gyoza.productionsession.ProductionSessionRepository;
+import ch.celestin.gyoza.productionsession.SessionParticipant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -242,5 +244,131 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 // date-descending order used elsewhere in this admin section.
                 points.reversed()
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProductionPeriodAnalyticsResponse getProductionPeriodAnalytics(LocalDate startDate, LocalDate endDate) {
+        if (startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException(
+                    "La date de début doit précéder la date de fin"
+            );
+        }
+
+        long rangeDays = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+
+        if (rangeDays > MAX_RANGE_DAYS) {
+            throw new IllegalArgumentException(
+                    "La période sélectionnée est trop longue (365 jours maximum)"
+            );
+        }
+
+        PeriodAggregate current = aggregatePeriod(startDate, endDate);
+
+        // Equal-length window immediately preceding the selected period, used only to derive
+        // the trend arrows on the two averaged KPIs — never returned itself.
+        LocalDate previousEnd = startDate.minusDays(1);
+        LocalDate previousStart = previousEnd.minusDays(rangeDays - 1);
+        PeriodAggregate previous = aggregatePeriod(previousStart, previousEnd);
+
+        Map<String, BigDecimal> participantHoursByName = new LinkedHashMap<>();
+
+        for (ProductionSession session : current.sessions()) {
+            for (SessionParticipant participant : session.getParticipants()) {
+                String name = participant.getUser().getFirstName() + " " + participant.getUser().getLastName();
+                participantHoursByName.merge(name, session.getDurationHours(), BigDecimal::add);
+            }
+        }
+
+        List<ProductionPeriodAnalyticsResponse.ParticipantHours> participantHours = participantHoursByName
+                .entrySet()
+                .stream()
+                .map(entry -> new ProductionPeriodAnalyticsResponse.ParticipantHours(entry.getKey(), entry.getValue()))
+                .sorted((a, b) -> b.hours().compareTo(a.hours()))
+                .toList();
+
+        return new ProductionPeriodAnalyticsResponse(
+                startDate,
+                endDate,
+                current.averageHourlyRevenue(),
+                changePercent(current.averageHourlyRevenue(), previous.averageHourlyRevenue(), !previous.sessions().isEmpty()),
+                current.averageMaterialCostPerGyoza(),
+                changePercent(current.averageMaterialCostPerGyoza(), previous.averageMaterialCostPerGyoza(), !previous.sessions().isEmpty()),
+                current.totalGrossProfit(),
+                current.totalNetProfit(),
+                current.points(),
+                participantHours
+        );
+    }
+
+    /** Ratio-of-totals aggregates for one date window — see {@link #getProductionPeriodAnalytics}. */
+    private record PeriodAggregate(
+            List<ProductionSession> sessions,
+            List<ProductionPeriodAnalyticsResponse.SessionPeriodPoint> points,
+            BigDecimal averageHourlyRevenue,
+            BigDecimal averageMaterialCostPerGyoza,
+            BigDecimal totalGrossProfit,
+            BigDecimal totalNetProfit
+    ) {
+    }
+
+    private PeriodAggregate aggregatePeriod(LocalDate start, LocalDate end) {
+        List<ProductionSession> sessions = productionSessionRepository.findAllByDateBetweenOrderByDateAsc(start, end);
+
+        BigDecimal totalNetProfit = BigDecimal.ZERO;
+        BigDecimal totalGrossProfit = BigDecimal.ZERO;
+        BigDecimal totalMaterialCost = BigDecimal.ZERO;
+        BigDecimal totalSessionHours = BigDecimal.ZERO;
+        int totalGyoza = 0;
+
+        List<ProductionPeriodAnalyticsResponse.SessionPeriodPoint> points = new ArrayList<>();
+
+        for (ProductionSession session : sessions) {
+            ProductionSessionCostCalculator.Summary summary = ProductionSessionCostCalculator.summary(session);
+
+            totalNetProfit = totalNetProfit.add(summary.netProfit());
+            totalGrossProfit = totalGrossProfit.add(summary.grossProfit());
+            totalMaterialCost = totalMaterialCost.add(summary.totalMaterialCost());
+            totalSessionHours = totalSessionHours.add(summary.totalSessionHours());
+            totalGyoza += summary.totalGyozaProduced();
+
+            points.add(new ProductionPeriodAnalyticsResponse.SessionPeriodPoint(
+                    session.getDate(),
+                    session.getBatchNumber(),
+                    summary.hourlyRevenue(),
+                    summary.materialCostPerGyoza(),
+                    summary.grossProfit(),
+                    summary.netProfit()
+            ));
+        }
+
+        // Ratio of period totals, not a mean of per-session rates, so a single short/tiny
+        // session doesn't skew the average — same approach as averageMaterialCostPerGyoza above.
+        BigDecimal averageHourlyRevenue = totalSessionHours.compareTo(BigDecimal.ZERO) > 0
+                ? totalNetProfit.divide(totalSessionHours, 4, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
+        BigDecimal averageMaterialCostPerGyoza = totalGyoza > 0
+                ? totalMaterialCost.divide(BigDecimal.valueOf(totalGyoza), 4, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
+        return new PeriodAggregate(
+                sessions,
+                points,
+                averageHourlyRevenue,
+                averageMaterialCostPerGyoza,
+                totalGrossProfit,
+                totalNetProfit
+        );
+    }
+
+    private BigDecimal changePercent(BigDecimal current, BigDecimal previous, boolean previousHasSessions) {
+        if (!previousHasSessions || previous.compareTo(BigDecimal.ZERO) == 0) {
+            return null;
+        }
+
+        return current.subtract(previous)
+                .multiply(BigDecimal.valueOf(100))
+                .divide(previous, 2, RoundingMode.HALF_UP);
     }
 }

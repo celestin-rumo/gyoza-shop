@@ -10,5 +10,7 @@ public interface ProductionSessionRepository
 
     List<ProductionSession> findAllByOrderByDateDesc();
 
+    List<ProductionSession> findAllByDateBetweenOrderByDateAsc(LocalDate start, LocalDate end);
+
     long countByDate(LocalDate date);
 }

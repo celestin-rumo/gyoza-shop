@@ -141,6 +141,16 @@
   font-weight: var(--gz-fw-semibold);
 }
 
+.stat-tile__trend {
+  color: var(--gz-sage-300);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+
+  &--down {
+    color: var(--gz-accent-400);
+  }
+}
+
 .admin-analytics__section-title {
   margin: 0 0 var(--gz-space-4);
   color: var(--gz-text-primary);
