@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 import { email, form, FormRoot, required } from '@angular/forms/signals';
@@ -8,7 +8,10 @@ import { AdminUser, AdminUserService } from '../../../services/admin-user.servic
 import { AuthService } from '../../../services/auth.service';
 import { DsButtonComponent } from '../../../design-system/components/ds-button/ds-button.component';
 import { DsSectionHeaderComponent } from '../../../design-system/components/ds-section-header/ds-section-header.component';
-import { DsFormFieldComponent } from '../../../design-system/components/ds-form-field/ds-form-field.component';
+import {
+  DsAutocompleteComponent,
+  DsAutocompleteOption,
+} from '../../../design-system/components/ds-autocomplete/ds-autocomplete.component';
 import { DsFormMessageComponent } from '../../../design-system/components/ds-form-message/ds-form-message.component';
 
 interface AddAdminFields {
@@ -20,7 +23,7 @@ interface AddAdminFields {
   imports: [
     DsSectionHeaderComponent,
     DsButtonComponent,
-    DsFormFieldComponent,
+    DsAutocompleteComponent,
     DsFormMessageComponent,
     FormRoot,
     RouterLink,
@@ -34,11 +37,22 @@ export class AdminUsers implements OnInit {
   private readonly router = inject(Router);
 
   protected readonly admins = signal<AdminUser[]>([]);
+  protected readonly allUsers = signal<AdminUser[]>([]);
   protected readonly loading = signal(true);
   protected readonly loadError = signal<string | null>(null);
   protected readonly revokingEmail = signal<string | null>(null);
   protected readonly submitting = signal(false);
   protected readonly submitError = signal<string | null>(null);
+
+  /** Customers only: existing admins have nothing to gain from being suggested again. */
+  protected readonly userOptions = computed<DsAutocompleteOption[]>(() =>
+    this.allUsers()
+      .filter((user) => user.role !== 'ADMIN')
+      .map((user) => ({
+        label: `${user.firstName} ${user.lastName} — ${user.email}`,
+        value: user.email,
+      })),
+  );
 
   protected readonly fields = signal<AddAdminFields>({ email: '' });
 
@@ -74,6 +88,7 @@ export class AdminUsers implements OnInit {
 
   ngOnInit(): void {
     this.loadAdmins();
+    this.loadAllUsers();
   }
 
   protected logout(): void {
@@ -104,6 +119,15 @@ export class AdminUsers implements OnInit {
       this.loadError.set('Impossible de charger les comptes admin.');
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  private async loadAllUsers(): Promise<void> {
+    try {
+      const users = await firstValueFrom(this.adminUserService.getAllUsers());
+      this.allUsers.set(users);
+    } catch {
+      // Best-effort: the autocomplete just has no suggestions, manual entry still works.
     }
   }
 
