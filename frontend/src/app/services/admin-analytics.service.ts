@@ -50,4 +50,10 @@ export class AdminAnalyticsService {
 
     return this.http.get<ProductionPeriodAnalytics>('/api/admin/analytics/production/period', { params });
   }
+
+  exportPdf(startDate: string, endDate: string): Observable<Blob> {
+    const params = new HttpParams().set('startDate', startDate).set('endDate', endDate);
+
+    return this.http.get('/api/admin/analytics/export/pdf', { params, responseType: 'blob' });
+  }
 }
