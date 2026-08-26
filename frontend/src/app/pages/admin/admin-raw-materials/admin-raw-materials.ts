@@ -159,7 +159,9 @@ export class AdminRawMaterials implements OnInit {
 
   protected viewHistoryFor(rawMaterialId: number): void {
     this.selectPurchaseFilter(rawMaterialId);
-    queueMicrotask(() => this.achatsSection()?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    queueMicrotask(() =>
+      this.achatsSection()?.nativeElement.scrollIntoView?.({ behavior: 'smooth', block: 'start' }),
+    );
   }
 
   protected unitFor(rawMaterialId: number): string {
