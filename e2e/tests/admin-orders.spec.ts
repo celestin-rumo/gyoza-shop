@@ -88,7 +88,13 @@ test('an admin can log in, adjust stock, and move an order forward', async ({ pa
   const chickenRow = page.locator('.admin-product', { hasText: 'Chicken' });
   const stockBefore = Number((await chickenRow.locator('.admin-product__stock').innerText()).match(/\d+/)![0]);
 
-  await chickenRow.getByRole('button', { name: '+50' }).click();
+  // Manual stock adjustment now goes through the lot-selection confirmation modal
+  // (a positive delta skips lot selection — it's only required when removing stock).
+  await chickenRow.getByText('Ajustement manuel (perte, casse, correction)').click();
+  await chickenRow.getByRole('spinbutton', { name: "l'ajustement de stock", exact: true }).fill('50');
+  await chickenRow.getByRole('button', { name: 'Valider' }).click();
+  await chickenRow.getByRole('button', { name: 'Confirmer' }).click();
+
   await expect(chickenRow.locator('.admin-product__stock')).toHaveText(`Stock : ${stockBefore + 50}`);
 
   await page.goto('/admin/orders');
