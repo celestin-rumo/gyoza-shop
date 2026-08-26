@@ -125,6 +125,19 @@ public class ProductionSessionServiceImpl
         return toResponse(session);
     }
 
+    @Override
+    @Transactional
+    public ProductionSessionResponse updateDetails(Long sessionId, UpdateProductionSessionDetailsRequest request) {
+
+        ProductionSession session = productionSessionRepository
+                .findById(sessionId)
+                .orElseThrow(() -> new ProductionSessionNotFoundException(sessionId));
+
+        session.changeDetails(request.notes(), request.durationHours());
+
+        return toResponse(session);
+    }
+
     private BigDecimal lastKnownUnitCost(Long rawMaterialId) {
         return rawMaterialPurchaseRepository
                 .findFirstByRawMaterialIdOrderByDateDescIdDesc(rawMaterialId)

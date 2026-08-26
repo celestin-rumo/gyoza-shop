@@ -378,31 +378,25 @@
         <div class="admin-production-sessions__session-list">
           @for (session of sessions(); track session.id) {
             <article class="admin-production-session">
-              <div class="admin-production-session__row">
-                <h3 class="admin-production-session__toggle-heading">
-                  <button
-                    type="button"
-                    class="admin-production-session__toggle"
-                    [attr.aria-expanded]="isSessionExpanded(session.id)"
-                    [attr.aria-controls]="'session-details-' + session.id"
-                    (click)="toggleSessionExpanded(session.id)"
+              <h3 class="admin-production-session__toggle-heading">
+                <button
+                  type="button"
+                  class="admin-production-session__toggle"
+                  [attr.aria-expanded]="isSessionExpanded(session.id)"
+                  [attr.aria-controls]="'session-details-' + session.id"
+                  (click)="toggleSessionExpanded(session.id)"
+                >
+                  <span class="admin-production-session__batch">{{ session.batchNumber }}</span>
+                  <span class="admin-production-session__date">{{ session.date }}</span>
+                  <span
+                    class="admin-production-session__chevron"
+                    [class.admin-production-session__chevron--open]="isSessionExpanded(session.id)"
+                    aria-hidden="true"
                   >
-                    <span class="admin-production-session__batch">{{ session.batchNumber }}</span>
-                    <span class="admin-production-session__date">{{ session.date }}</span>
-                    <span
-                      class="admin-production-session__chevron"
-                      [class.admin-production-session__chevron--open]="isSessionExpanded(session.id)"
-                      aria-hidden="true"
-                    >
-                      ▾
-                    </span>
-                  </button>
-                </h3>
-
-                <ds-button variant="outline" size="sm" (pressed)="duplicateSession(session)">
-                  Dupliquer
-                </ds-button>
-              </div>
+                    ▾
+                  </span>
+                </button>
+              </h3>
 
               <ul class="admin-production-session__pills admin-production-session__pills--outputs">
                 @for (output of session.outputs; track output.productId) {
@@ -557,6 +551,57 @@
                       }
                     </ul>
                   </div>
+
+                  <hr class="admin-production-session__divider" />
+
+                  @if (editingDetailsSessionId() === session.id) {
+                    <label class="admin-production-sessions__field admin-production-sessions__field--grow">
+                      Notes
+                      <input
+                        type="text"
+                        class="admin-production-sessions__input"
+                        [value]="detailsNotesDraft()"
+                        (input)="detailsNotesDraft.set($any($event.target).value)"
+                      />
+                    </label>
+
+                    <div class="admin-production-sessions__field">
+                      <span>Durée (h)</span>
+                      <ds-number-stepper
+                        [(value)]="detailsDurationDraft"
+                        [step]="0.5"
+                        [min]="0"
+                        label="la durée"
+                      ></ds-number-stepper>
+                    </div>
+
+                    @if (detailsError()) {
+                      <p class="admin-production-sessions__submit-error" role="alert">{{ detailsError() }}</p>
+                    }
+
+                    <div class="admin-production-sessions__header-actions">
+                      <ds-button
+                        variant="primary"
+                        size="sm"
+                        [disabled]="savingDetails() || detailsDurationDraft() <= 0"
+                        (pressed)="saveDetails(session.id)"
+                      >
+                        {{ savingDetails() ? 'Enregistrement…' : 'Enregistrer' }}
+                      </ds-button>
+
+                      <ds-button variant="ghost" size="sm" (pressed)="cancelEditDetails()">Annuler</ds-button>
+                    </div>
+                  } @else {
+                    <div class="admin-production-sessions__header-actions">
+                      <ds-button variant="outline" size="sm" (pressed)="startEditDetails(session)">
+                        Modifier
+                      </ds-button>
+
+                      <ds-button variant="outline" size="sm" (pressed)="duplicateSession(session)">
+                        Dupliquer
+                      </ds-button>
+                    </div>
+                  }
                 </div>
               }
             </article>

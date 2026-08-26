@@ -59,4 +59,11 @@ export class AdminProductionSessionService {
       otherCosts,
     });
   }
+
+  updateDetails(id: number, notes: string | null, durationHours: number): Observable<ProductionSession> {
+    return this.http.patch<ProductionSession>(`/api/admin/production-sessions/${id}/details`, {
+      notes,
+      durationHours,
+    });
+  }
 }

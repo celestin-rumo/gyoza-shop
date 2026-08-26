@@ -108,4 +108,33 @@ class ProductionSessionTest {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> session.changeOtherCosts(new BigDecimal("-1")));
     }
+
+    @Test
+    void changeDetails_updatesNotesAndDuration() {
+        ProductionSession session = new ProductionSession(date, "L20260824-01", new BigDecimal("3"), "Ancienne note", null);
+
+        session.changeDetails("Nouvelle note", new BigDecimal("5"));
+
+        assertThat(session.getNotes()).isEqualTo("Nouvelle note");
+        assertThat(session.getDurationHours()).isEqualByComparingTo("5");
+    }
+
+    @Test
+    void changeDetails_allowsClearingNotes() {
+        ProductionSession session = new ProductionSession(date, "L20260824-01", new BigDecimal("3"), "Une note", null);
+
+        session.changeDetails(null, new BigDecimal("3"));
+
+        assertThat(session.getNotes()).isNull();
+    }
+
+    @Test
+    void changeDetails_rejectsZeroOrNegativeDuration() {
+        ProductionSession session = new ProductionSession(date, "L20260824-01", new BigDecimal("3"), null, null);
+
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> session.changeDetails(null, BigDecimal.ZERO));
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> session.changeDetails(null, new BigDecimal("-1")));
+    }
 }

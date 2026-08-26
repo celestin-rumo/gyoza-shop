@@ -118,6 +118,14 @@ export class AdminProductionSessions implements OnInit {
   protected readonly savingOtherCosts = signal(false);
   protected readonly otherCostsError = signal<string | null>(null);
 
+  // Inline "modifier" edit (notes + durée), opened from the actions row at the bottom of a
+  // session's expanded detail card.
+  protected readonly editingDetailsSessionId = signal<number | null>(null);
+  protected readonly detailsNotesDraft = signal('');
+  protected readonly detailsDurationDraft = signal(0);
+  protected readonly savingDetails = signal(false);
+  protected readonly detailsError = signal<string | null>(null);
+
   protected readonly wizardOpen = signal(false);
   protected readonly currentStepIndex = signal(DATE_STEP);
   protected readonly steps = WIZARD_STEPS;
@@ -296,6 +304,40 @@ export class AdminProductionSessions implements OnInit {
       this.otherCostsError.set(this.extractErrorMessage(error, 'Impossible de mettre à jour les autres charges.'));
     } finally {
       this.savingOtherCosts.set(false);
+    }
+  }
+
+  protected startEditDetails(session: ProductionSession): void {
+    this.detailsError.set(null);
+    this.detailsNotesDraft.set(session.notes ?? '');
+    this.detailsDurationDraft.set(session.durationHours);
+    this.editingDetailsSessionId.set(session.id);
+  }
+
+  protected cancelEditDetails(): void {
+    this.editingDetailsSessionId.set(null);
+  }
+
+  protected async saveDetails(sessionId: number): Promise<void> {
+    this.savingDetails.set(true);
+    this.detailsError.set(null);
+
+    try {
+      const notes = this.detailsNotesDraft().trim();
+      const updated = await firstValueFrom(
+        this.adminProductionSessionService.updateDetails(
+          sessionId,
+          notes.length > 0 ? notes : null,
+          this.detailsDurationDraft(),
+        ),
+      );
+
+      this.sessions.update((sessions) => sessions.map((s) => (s.id === sessionId ? updated : s)));
+      this.editingDetailsSessionId.set(null);
+    } catch (error) {
+      this.detailsError.set(this.extractErrorMessage(error, 'Impossible de mettre à jour la session.'));
+    } finally {
+      this.savingDetails.set(false);
     }
   }
 

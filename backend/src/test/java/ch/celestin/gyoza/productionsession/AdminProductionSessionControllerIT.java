@@ -303,6 +303,54 @@ class AdminProductionSessionControllerIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void updateDetails_asAdmin_updatesNotesAndDurationAndRecomputesSessionHours() throws Exception {
+        MockHttpSession adminSession = loginAsAdmin();
+
+        Product product = saveInactiveProduct("Saumon gyoza", 5);
+        RawMaterial rawMaterial = rawMaterialRepository.save(new RawMaterial("Saumon", "kg"));
+        User admin = userRepository.findByEmail("admin@example.com").orElseThrow();
+
+        Integer sessionId = createSessionAndReturnId(adminSession, "2026-08-26", rawMaterial.getId(), admin.getId(), product.getId());
+
+        Cookie csrf = fetchCsrfCookie();
+        mockMvc.perform(patch("/api/admin/production-sessions/{id}/details", sessionId)
+                        .session(adminSession)
+                        .cookie(csrf)
+                        .header("X-XSRF-TOKEN", csrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"notes": "Session recomptée", "durationHours": 5}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.notes", is("Session recomptée")))
+                .andExpect(jsonPath("$.durationHours", is(5.0)))
+                // 1 participant x 5h.
+                .andExpect(jsonPath("$.costSummary.totalSessionHours", is(5.0)));
+    }
+
+    @Test
+    void updateDetails_withZeroDuration_isRejected() throws Exception {
+        MockHttpSession adminSession = loginAsAdmin();
+
+        Product product = saveInactiveProduct("Boeuf gyoza rec", 5);
+        RawMaterial rawMaterial = rawMaterialRepository.save(new RawMaterial("Boeuf rec", "kg"));
+        User admin = userRepository.findByEmail("admin@example.com").orElseThrow();
+
+        Integer sessionId = createSessionAndReturnId(adminSession, "2026-08-27", rawMaterial.getId(), admin.getId(), product.getId());
+
+        Cookie csrf = fetchCsrfCookie();
+        mockMvc.perform(patch("/api/admin/production-sessions/{id}/details", sessionId)
+                        .session(adminSession)
+                        .cookie(csrf)
+                        .header("X-XSRF-TOKEN", csrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"notes": null, "durationHours": 0}
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void getAllSessions_returnsThemOrderedByDateDescending() throws Exception {
         MockHttpSession adminSession = loginAsAdmin();
 

@@ -744,8 +744,43 @@ describe('AdminProductionSessions', () => {
     expect(fixture.nativeElement.textContent).toContain('Autres charges : CHF 1.00');
   });
 
+  it('edits the notes and duration of an existing session via the bottom actions row', async () => {
+    await flushInit();
+
+    const toggle: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '.admin-production-session__toggle',
+    );
+    toggle.click();
+    fixture.detectChanges();
+
+    // Index 1: index 0 is the unrelated "Modifier" button for the other-costs inline edit.
+    clickButton('Modifier', 1);
+    fixture.detectChanges();
+
+    setInputValue('.admin-production-session__details input[type=text]', 'Note mise à jour');
+    setInputValue('.admin-production-session__details .ds-number-stepper__input', '6');
+
+    clickButton('Enregistrer');
+
+    const req = httpMock.expectOne('/api/admin/production-sessions/1/details');
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({ notes: 'Note mise à jour', durationHours: 6 });
+
+    req.flush({ ...existingSession, notes: 'Note mise à jour', durationHours: 6 });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Note mise à jour');
+  });
+
   it('opens the wizard pre-filled from a past session, with the date reset to today', async () => {
     await flushInit();
+
+    const toggle: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '.admin-production-session__toggle',
+    );
+    toggle.click();
+    fixture.detectChanges();
 
     clickButton('Dupliquer');
     fixture.detectChanges();
@@ -764,6 +799,12 @@ describe('AdminProductionSessions', () => {
 
   it('submits the duplicated session as a fully independent session', async () => {
     await flushInit();
+
+    const toggle: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '.admin-production-session__toggle',
+    );
+    toggle.click();
+    fixture.detectChanges();
 
     clickButton('Dupliquer');
     fixture.detectChanges();
