@@ -28,12 +28,14 @@
     <p class="admin-product__error" role="alert">{{ statusError() }}</p>
   }
 
-  <section class="admin-product__section">
-    <h4 class="admin-product__section-title">Stock</h4>
+  <details class="admin-product__section admin-product__stock-adjust">
+    <summary class="admin-product__stock-adjust-summary">
+      Ajustement manuel (perte, casse, correction)
+    </summary>
 
     <div class="admin-product__stock-actions">
       @for (step of quickStockSteps; track step) {
-        <ds-button variant="sage" size="sm" [disabled]="addingStock()" (pressed)="addStock(step)">
+        <ds-button variant="outline" size="sm" [disabled]="addingStock()" (pressed)="addStock(step)">
           +{{ step }}
         </ds-button>
       }
@@ -76,7 +78,7 @@
     @if (stockError()) {
       <p class="admin-product__error" role="alert">{{ stockError() }}</p>
     }
-  </section>
+  </details>
 
   <section class="admin-product__section">
     <h4 class="admin-product__section-title">Packs</h4>
