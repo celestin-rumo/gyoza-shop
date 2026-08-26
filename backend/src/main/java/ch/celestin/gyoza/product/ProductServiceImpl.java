@@ -4,7 +4,10 @@ import ch.celestin.gyoza.pack.PackOption;
 import ch.celestin.gyoza.pack.PackOptionRepository;
 import ch.celestin.gyoza.pack.dto.PackResponse;
 import ch.celestin.gyoza.product.dto.CreateProductRequest;
+import ch.celestin.gyoza.product.dto.ProductLotResponse;
 import ch.celestin.gyoza.product.dto.ProductResponse;
+import ch.celestin.gyoza.productionsession.ProductOutput;
+import ch.celestin.gyoza.productionsession.ProductOutputRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,13 +20,16 @@ public class ProductServiceImpl
 
     private final ProductRepository productRepository;
     private final PackOptionRepository packOptionRepository;
+    private final ProductOutputRepository productOutputRepository;
 
     public ProductServiceImpl(
             ProductRepository productRepository,
-            PackOptionRepository packOptionRepository
+            PackOptionRepository packOptionRepository,
+            ProductOutputRepository productOutputRepository
     ) {
         this.productRepository = productRepository;
         this.packOptionRepository = packOptionRepository;
+        this.productOutputRepository = productOutputRepository;
     }
 
     @Override
@@ -75,9 +81,38 @@ public class ProductServiceImpl
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<ProductLotResponse> getAvailableLots(Long productId) {
+        return productOutputRepository
+                .findByProduct_IdAndRemainingQuantityGreaterThanOrderByProductionSession_DateAscIdAsc(productId, 0)
+                .stream()
+                .map(output -> new ProductLotResponse(
+                        output.getId(),
+                        output.getProductionSession().getBatchNumber(),
+                        output.getProductionSession().getDate(),
+                        output.getRemainingQuantity()
+                ))
+                .toList();
+    }
+
+    @Override
     @Transactional
-    public ProductResponse removeStock(Long productId, int quantity) {
+    public ProductResponse removeStockFromLot(Long productId, Long productOutputId, int quantity) {
         Product product = findProductOrThrow(productId);
+
+        ProductOutput output = productOutputRepository
+                .findById(productOutputId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Lot introuvable : " + productOutputId
+                ));
+
+        if (!output.getProduct().getId().equals(productId)) {
+            throw new IllegalArgumentException(
+                    "Ce lot n'appartient pas à ce produit"
+            );
+        }
+
+        output.changeQuantityProduced(output.getQuantityProduced() - quantity);
         product.removeStock(quantity);
 
         return toResponse(product);

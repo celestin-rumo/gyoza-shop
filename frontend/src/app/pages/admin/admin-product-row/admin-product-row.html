@@ -34,49 +34,90 @@
     </summary>
 
     <div class="admin-product__stock-actions">
-      @for (step of quickStockSteps; track step) {
-        <ds-button variant="outline" size="sm" [disabled]="addingStock()" (pressed)="addStock(step)">
-          +{{ step }}
-        </ds-button>
-      }
+      <ds-number-stepper
+        [(value)]="stockDelta"
+        [step]="1"
+        [min]="-9999"
+        label="l'ajustement de stock"
+      ></ds-number-stepper>
 
-      <div class="admin-product__custom-stock">
-        <ds-number-stepper
-          [(value)]="stockToAdd"
-          [step]="1"
-          [min]="1"
-          label="la quantité à ajouter"
-        ></ds-number-stepper>
-        <ds-button
-          variant="outline"
-          size="sm"
-          [disabled]="addingStock() || stockToAdd() <= 0"
-          (pressed)="addStock(stockToAdd())"
-        >
-          Ajouter
-        </ds-button>
-      </div>
-
-      <div class="admin-product__custom-stock">
-        <ds-number-stepper
-          [(value)]="stockToRemove"
-          [step]="1"
-          [min]="1"
-          label="la quantité à retirer"
-        ></ds-number-stepper>
-        <ds-button
-          variant="ghost"
-          size="sm"
-          [disabled]="removingStock() || stockToRemove() <= 0"
-          (pressed)="removeStock(stockToRemove())"
-        >
-          Retirer
-        </ds-button>
-      </div>
+      <ds-button
+        variant="outline"
+        size="sm"
+        [disabled]="stockDelta() === 0"
+        (pressed)="openStockConfirm()"
+      >
+        Valider
+      </ds-button>
     </div>
 
-    @if (stockError()) {
-      <p class="admin-product__error" role="alert">{{ stockError() }}</p>
+    @if (showStockConfirm()) {
+      <div class="admin-product__stock-modal-backdrop" (click)="closeStockConfirm()"></div>
+
+      <div
+        class="admin-product__stock-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Confirmer l'ajustement de stock"
+      >
+        @if (isAddingStock()) {
+          <p class="admin-product__stock-modal-warning">
+            Ajouter {{ quantityAbs() }} unité(s) manuellement crée un stock dont l'origine (lot de
+            production) est inconnue. C'est déconseillé — préférez une nouvelle session de
+            production pour alimenter le stock.
+          </p>
+        } @else {
+          <p>
+            Retirer {{ quantityAbs() }} unité(s) : choisissez le lot concerné pour que le coût de
+            la production correspondante soit recalculé.
+          </p>
+
+          @if (loadingLots()) {
+            <p class="admin-product__hint">Chargement des lots…</p>
+          } @else if (lots().length === 0) {
+            <p class="admin-product__error" role="alert">
+              Aucun lot avec du stock restant pour ce produit.
+            </p>
+          } @else {
+            <div class="admin-product__field">
+              <label for="lotSelect-{{ product().id }}">Lot concerné</label>
+              <select id="lotSelect-{{ product().id }}" (change)="onLotChange($event)">
+                @for (lot of lots(); track lot.productOutputId) {
+                  <option [value]="lot.productOutputId" [selected]="lot.productOutputId === selectedLotId()">
+                    {{ lot.batchNumber }} — {{ lot.date }} — reste {{ lot.remainingQuantity }}
+                  </option>
+                }
+              </select>
+            </div>
+
+            @if (selectedLot(); as lot) {
+              @if (quantityAbs() > lot.remainingQuantity) {
+                <p class="admin-product__error" role="alert">
+                  La quantité dépasse le stock restant de ce lot ({{ lot.remainingQuantity }}).
+                </p>
+              }
+            }
+          }
+        }
+
+        @if (stockConfirmError()) {
+          <p class="admin-product__error" role="alert">{{ stockConfirmError() }}</p>
+        }
+
+        <div class="admin-product__stock-modal-actions">
+          <ds-button variant="outline" size="sm" (pressed)="closeStockConfirm()">
+            Annuler
+          </ds-button>
+          <ds-button
+            variant="primary"
+            size="sm"
+            [disabled]="!canConfirmStock() || confirmingStock()"
+            (pressed)="confirmStockChange()"
+          >
+            {{ confirmingStock() ? 'Confirmation…' : 'Confirmer' }}
+          </ds-button>
+        </div>
+      </div>
     }
   </details>
 
