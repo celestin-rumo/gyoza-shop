@@ -110,6 +110,8 @@ public class AnalyticsPdfReportService {
         overviewRows.put("Commandes", String.valueOf(periodOrders));
         overviewRows.put("Nouveaux clients", String.valueOf(periodNewCustomers));
         overviewRows.put("Panier moyen", formatMoney(averageOrderValue));
+        overviewRows.put("Bénéfice net", formatMoney(production.totalNetProfit()));
+        overviewRows.put("Coût matière première total", formatMoney(production.totalMaterialCost()));
 
         addSectionTitle(document, "Vue d'ensemble", sectionFont);
         document.add(summaryTable(bodyFont, overviewRows));
