@@ -5,6 +5,7 @@ import ch.celestin.gyoza.analytics.dto.AnalyticsResponse;
 import ch.celestin.gyoza.analytics.dto.AnalyticsTimeSeriesResponse;
 import ch.celestin.gyoza.analytics.dto.ProductionAnalyticsResponse;
 import ch.celestin.gyoza.analytics.dto.ProductionPeriodAnalyticsResponse;
+import ch.celestin.gyoza.analytics.dto.ProductionPeriodAnalyticsResponse.RawMaterialCostPoint;
 import ch.celestin.gyoza.customer.Customer;
 import ch.celestin.gyoza.customer.CustomerRepository;
 import ch.celestin.gyoza.order.Order;
@@ -15,6 +16,7 @@ import ch.celestin.gyoza.productionsession.ProductOutput;
 import ch.celestin.gyoza.productionsession.ProductionSession;
 import ch.celestin.gyoza.productionsession.ProductionSessionCostCalculator;
 import ch.celestin.gyoza.productionsession.ProductionSessionRepository;
+import ch.celestin.gyoza.productionsession.RawMaterialUsage;
 import ch.celestin.gyoza.productionsession.SessionParticipant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -297,7 +299,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 current.totalGrossProfit(),
                 current.totalNetProfit(),
                 current.points(),
-                participantHours
+                participantHours,
+                current.totalMaterialCost(),
+                current.rawMaterialCosts()
         );
     }
 
@@ -308,7 +312,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             BigDecimal averageHourlyRevenue,
             BigDecimal averageMaterialCostPerGyoza,
             BigDecimal totalGrossProfit,
-            BigDecimal totalNetProfit
+            BigDecimal totalNetProfit,
+            BigDecimal totalMaterialCost,
+            List<RawMaterialCostPoint> rawMaterialCosts
     ) {
     }
 
@@ -322,6 +328,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         int totalGyoza = 0;
 
         List<ProductionPeriodAnalyticsResponse.SessionPeriodPoint> points = new ArrayList<>();
+        Map<String, BigDecimal> materialCostByName = new LinkedHashMap<>();
 
         for (ProductionSession session : sessions) {
             ProductionSessionCostCalculator.Summary summary = ProductionSessionCostCalculator.summary(session);
@@ -340,7 +347,17 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     summary.grossProfit(),
                     summary.netProfit()
             ));
+
+            for (RawMaterialUsage usage : session.getRawMaterialUsages()) {
+                BigDecimal lineCost = usage.getQuantityUsed().multiply(usage.getUnitCost());
+                materialCostByName.merge(usage.getRawMaterial().getName(), lineCost, BigDecimal::add);
+            }
         }
+
+        List<RawMaterialCostPoint> rawMaterialCosts = materialCostByName.entrySet().stream()
+                .map(entry -> new RawMaterialCostPoint(entry.getKey(), entry.getValue().setScale(2, RoundingMode.HALF_UP)))
+                .sorted((a, b) -> b.totalCost().compareTo(a.totalCost()))
+                .toList();
 
         // Ratio of period totals, not a mean of per-session rates, so a single short/tiny
         // session doesn't skew the average — same approach as averageMaterialCostPerGyoza above.
@@ -358,7 +375,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 averageHourlyRevenue,
                 averageMaterialCostPerGyoza,
                 totalGrossProfit,
-                totalNetProfit
+                totalNetProfit,
+                totalMaterialCost.setScale(2, RoundingMode.HALF_UP),
+                rawMaterialCosts
         );
     }
 

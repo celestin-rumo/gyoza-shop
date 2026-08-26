@@ -4,6 +4,7 @@ import ch.celestin.gyoza.analytics.dto.AnalyticsDayPoint;
 import ch.celestin.gyoza.analytics.dto.AnalyticsTimeSeriesResponse;
 import ch.celestin.gyoza.analytics.dto.ProductionPeriodAnalyticsResponse;
 import ch.celestin.gyoza.analytics.dto.ProductionPeriodAnalyticsResponse.ParticipantHours;
+import ch.celestin.gyoza.analytics.dto.ProductionPeriodAnalyticsResponse.RawMaterialCostPoint;
 import ch.celestin.gyoza.analytics.dto.ProductionPeriodAnalyticsResponse.SessionPeriodPoint;
 import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
@@ -21,10 +22,14 @@ import com.lowagie.text.pdf.PdfWriter;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartUtils;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.Axis;
 import org.jfree.chart.axis.CategoryLabelPositions;
 import org.jfree.chart.plot.CategoryPlot;
+import org.jfree.chart.plot.Plot;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.category.BarRenderer;
+import org.jfree.chart.renderer.category.LineAndShapeRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.time.Day;
@@ -32,6 +37,7 @@ import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
 import org.springframework.stereotype.Service;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -46,10 +52,11 @@ import java.util.function.Function;
 
 /**
  * Builds the "export analytics as PDF" report for a date range: an overview table plus
- * daily revenue/orders/new-customers charts, and — when the period has production
- * sessions — a profitability table and per-session charts. Charts are rendered
- * server-side with JFreeChart (Chart.js, used on the admin dashboard, only runs in a
- * browser canvas) and embedded as PNGs into an OpenPDF document.
+ * daily revenue/orders/new-customers charts, a raw-material cost breakdown, and — when
+ * the period has production sessions — a profitability table and per-session charts.
+ * Charts are rendered server-side with JFreeChart (Chart.js, used on the admin
+ * dashboard, only runs in a browser canvas) and embedded as PNGs into an OpenPDF
+ * document, two per row to keep the report compact.
  */
 @Service
 public class AnalyticsPdfReportService {
@@ -61,8 +68,25 @@ public class AnalyticsPdfReportService {
     }
 
     private static final DateTimeFormatter FULL_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-    private static final int CHART_WIDTH = 500;
-    private static final int CHART_HEIGHT = 260;
+
+    // Rendered at a higher resolution than the display size below so the PNG stays crisp
+    // once scaled down to its half-page slot.
+    private static final int CHART_RENDER_WIDTH = 600;
+    private static final int CHART_RENDER_HEIGHT = 360;
+    private static final float CHART_DISPLAY_WIDTH = 230f;
+    private static final float CHART_DISPLAY_HEIGHT = 138f;
+
+    private static final Color CORAL = new Color(0xE3, 0xA0, 0x90);
+    private static final Color SAGE = new Color(0xA9, 0xAD, 0x8C);
+    private static final Color GRID_COLOR = new Color(0xE8, 0xE8, 0xE8);
+    private static final Color AXIS_COLOR = new Color(0x99, 0x99, 0x99);
+    private static final Color CHART_TITLE_COLOR = new Color(0x33, 0x33, 0x33);
+
+    // java.awt.Font (JFreeChart styling), not com.lowagie.text.Font (the PDF text below) — spelled
+    // out fully since both classes are named "Font" and only one can be imported unqualified.
+    private static final java.awt.Font CHART_TITLE_FONT = new java.awt.Font("SansSerif", java.awt.Font.BOLD, 12);
+    private static final java.awt.Font AXIS_LABEL_FONT = new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 9);
+    private static final java.awt.Font AXIS_TICK_FONT = new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 8);
 
     private final AnalyticsService analyticsService;
 
@@ -130,13 +154,25 @@ public class AnalyticsPdfReportService {
         addSectionTitle(document, "Vue d'ensemble", sectionFont);
         document.add(summaryTable(bodyFont, overviewRows));
 
-        addChart(document, dayChart("Chiffre d'affaires par jour", days, AnalyticsDayPoint::revenue, "CA (CHF)"));
-        addChart(document, dayChart(
-                "Commandes par jour", days, day -> BigDecimal.valueOf(day.orderCount()), "Commandes"
-        ));
-        addChart(document, dayChart(
-                "Nouveaux clients par jour", days, day -> BigDecimal.valueOf(day.newCustomerCount()), "Clients"
-        ));
+        addChartRow(
+                document,
+                dayChart("Chiffre d'affaires par jour", days, AnalyticsDayPoint::revenue, "CA (CHF)"),
+                dayChart("Commandes par jour", days, day -> BigDecimal.valueOf(day.orderCount()), "Commandes")
+        );
+        addChartRow(
+                document,
+                dayChart("Nouveaux clients par jour", days, day -> BigDecimal.valueOf(day.newCustomerCount()), "Clients"),
+                null
+        );
+
+        if (!production.rawMaterialCosts().isEmpty()) {
+            Map<String, String> materialRows = new LinkedHashMap<>();
+            materialRows.put("Coût matière première total", formatMoney(production.totalMaterialCost()));
+
+            addSectionTitle(document, "Coût des matières premières", sectionFont);
+            document.add(summaryTable(bodyFont, materialRows));
+            document.add(rawMaterialCostTable(bodyFont, production.rawMaterialCosts()));
+        }
 
         if (!production.sessions().isEmpty()) {
             Map<String, String> productionRows = new LinkedHashMap<>();
@@ -148,10 +184,11 @@ public class AnalyticsPdfReportService {
             addSectionTitle(document, "Rentabilité de production", sectionFont);
             document.add(summaryTable(bodyFont, productionRows));
 
-            addChart(document, sessionChart(
-                    "Revenu horaire par session", production.sessions(), SessionPeriodPoint::hourlyRevenue, "CHF/h"
-            ));
-            addChart(document, sessionProfitChart(production.sessions()));
+            addChartRow(
+                    document,
+                    sessionChart("Revenu horaire par session", production.sessions(), SessionPeriodPoint::hourlyRevenue, "CHF/h"),
+                    sessionProfitChart(production.sessions())
+            );
 
             if (!production.participantHours().isEmpty()) {
                 addSectionTitle(document, "Heures par participant", sectionFont);
@@ -184,11 +221,12 @@ public class AnalyticsPdfReportService {
                 title, "Jour", valueAxisLabel, new TimeSeriesCollection(series), false, false, false
         );
 
-        chart.setBackgroundPaint(Color.WHITE);
-        XYPlot plot = chart.getXYPlot();
-        plot.setBackgroundPaint(Color.WHITE);
-        plot.setRenderer(new XYLineAndShapeRenderer(true, false));
+        XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer(true, false);
+        renderer.setSeriesPaint(0, CORAL);
+        renderer.setSeriesStroke(0, new BasicStroke(2.2f));
+        chart.getXYPlot().setRenderer(renderer);
 
+        prettifyChart(chart);
         return chart;
     }
 
@@ -207,7 +245,13 @@ public class AnalyticsPdfReportService {
         JFreeChart chart = ChartFactory.createLineChart(
                 title, "Session", valueAxisLabel, dataset, PlotOrientation.VERTICAL, false, false, false
         );
-        styleChart(chart);
+
+        LineAndShapeRenderer renderer = (LineAndShapeRenderer) chart.getCategoryPlot().getRenderer();
+        renderer.setSeriesPaint(0, CORAL);
+        renderer.setSeriesStroke(0, new BasicStroke(2.2f));
+        renderer.setSeriesShapesVisible(0, false);
+
+        styleCategoryChart(chart);
         return chart;
     }
 
@@ -222,27 +266,95 @@ public class AnalyticsPdfReportService {
         JFreeChart chart = ChartFactory.createBarChart(
                 "Bénéfice brut et net par session", "Session", "CHF", dataset, PlotOrientation.VERTICAL, true, false, false
         );
-        styleChart(chart);
+
+        BarRenderer renderer = (BarRenderer) chart.getCategoryPlot().getRenderer();
+        renderer.setSeriesPaint(0, CORAL);
+        renderer.setSeriesPaint(1, SAGE);
+        renderer.setDrawBarOutline(false);
+        renderer.setMaximumBarWidth(0.12);
+        renderer.setItemMargin(0.15);
+
+        styleCategoryChart(chart);
         return chart;
     }
 
-    /** Rotated labels so batch numbers / day ticks don't overlap into an illegible smear. */
-    private void styleChart(JFreeChart chart) {
-        chart.setBackgroundPaint(Color.WHITE);
-
-        CategoryPlot plot = chart.getCategoryPlot();
-        plot.setBackgroundPaint(Color.WHITE);
-        plot.getDomainAxis().setCategoryLabelPositions(CategoryLabelPositions.createUpRotationLabelPositions(Math.PI / 4));
+    /** Rotated labels so batch numbers don't overlap into an illegible smear. */
+    private void styleCategoryChart(JFreeChart chart) {
+        chart.getCategoryPlot()
+                .getDomainAxis()
+                .setCategoryLabelPositions(CategoryLabelPositions.createUpRotationLabelPositions(Math.PI / 4));
+        prettifyChart(chart);
     }
 
-    private void addChart(Document document, JFreeChart chart) throws IOException, DocumentException {
+    /** Common flat, brand-colored look applied to every chart: white background, no
+     *  outline, muted gridlines/axes, smaller non-default fonts. */
+    private void prettifyChart(JFreeChart chart) {
+        chart.setBackgroundPaint(Color.WHITE);
+        chart.getTitle().setFont(CHART_TITLE_FONT);
+        chart.getTitle().setPaint(CHART_TITLE_COLOR);
+
+        if (chart.getLegend() != null) {
+            chart.getLegend().setItemFont(AXIS_TICK_FONT);
+            chart.getLegend().setBackgroundPaint(Color.WHITE);
+        }
+
+        Plot plot = chart.getPlot();
+        plot.setBackgroundPaint(Color.WHITE);
+        plot.setOutlineVisible(false);
+
+        if (plot instanceof CategoryPlot categoryPlot) {
+            categoryPlot.setDomainGridlinesVisible(false);
+            categoryPlot.setRangeGridlinePaint(GRID_COLOR);
+            prettifyAxis(categoryPlot.getDomainAxis());
+            prettifyAxis(categoryPlot.getRangeAxis());
+        } else if (plot instanceof XYPlot xyPlot) {
+            xyPlot.setDomainGridlinePaint(GRID_COLOR);
+            xyPlot.setRangeGridlinePaint(GRID_COLOR);
+            prettifyAxis(xyPlot.getDomainAxis());
+            prettifyAxis(xyPlot.getRangeAxis());
+        }
+    }
+
+    private void prettifyAxis(Axis axis) {
+        axis.setLabelFont(AXIS_LABEL_FONT);
+        axis.setLabelPaint(AXIS_COLOR);
+        axis.setTickLabelFont(AXIS_TICK_FONT);
+        axis.setTickLabelPaint(AXIS_COLOR);
+        axis.setAxisLinePaint(GRID_COLOR);
+        axis.setTickMarkPaint(GRID_COLOR);
+    }
+
+    /** Two charts side by side per row; pass {@code right = null} to leave the slot blank. */
+    private void addChartRow(Document document, JFreeChart left, JFreeChart right) throws IOException, DocumentException {
+        PdfPTable table = new PdfPTable(2);
+        table.setWidthPercentage(100);
+        table.setSpacingAfter(14);
+
+        table.addCell(chartCell(left));
+        table.addCell(right != null ? chartCell(right) : blankCell());
+
+        document.add(table);
+    }
+
+    private PdfPCell chartCell(JFreeChart chart) throws IOException, DocumentException {
         ByteArrayOutputStream imageBytes = new ByteArrayOutputStream();
-        ChartUtils.writeChartAsPNG(imageBytes, chart, CHART_WIDTH, CHART_HEIGHT);
+        ChartUtils.writeChartAsPNG(imageBytes, chart, CHART_RENDER_WIDTH, CHART_RENDER_HEIGHT);
 
         Image image = Image.getInstance(imageBytes.toByteArray());
-        image.scaleToFit(CHART_WIDTH, CHART_HEIGHT);
-        image.setSpacingAfter(16);
-        document.add(image);
+        image.scaleToFit(CHART_DISPLAY_WIDTH, CHART_DISPLAY_HEIGHT);
+
+        PdfPCell cell = new PdfPCell();
+        cell.addElement(image);
+        cell.setBorder(Rectangle.NO_BORDER);
+        cell.setPadding(6);
+        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        return cell;
+    }
+
+    private PdfPCell blankCell() {
+        PdfPCell cell = new PdfPCell();
+        cell.setBorder(Rectangle.NO_BORDER);
+        return cell;
     }
 
     private void addSectionTitle(Document document, String text, Font font) throws DocumentException {
@@ -261,6 +373,28 @@ public class AnalyticsPdfReportService {
             table.addCell(labelCell(entry.getKey(), font));
 
             PdfPCell valueCell = labelCell(entry.getValue(), font);
+            valueCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            table.addCell(valueCell);
+        }
+
+        return table;
+    }
+
+    private PdfPTable rawMaterialCostTable(Font font, List<RawMaterialCostPoint> costs) {
+        PdfPTable table = new PdfPTable(2);
+        table.setWidthPercentage(100);
+        table.setSpacingAfter(16);
+
+        table.addCell(labelCell("Matière première", font));
+
+        PdfPCell header = labelCell("Coût", font);
+        header.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(header);
+
+        for (RawMaterialCostPoint cost : costs) {
+            table.addCell(labelCell(cost.rawMaterialName(), font));
+
+            PdfPCell valueCell = labelCell(formatMoney(cost.totalCost()), font);
             valueCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
             table.addCell(valueCell);
         }

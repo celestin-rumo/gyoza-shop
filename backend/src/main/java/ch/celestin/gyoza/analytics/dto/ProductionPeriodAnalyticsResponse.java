@@ -16,7 +16,9 @@ public record ProductionPeriodAnalyticsResponse(
         BigDecimal totalGrossProfit,
         BigDecimal totalNetProfit,
         List<SessionPeriodPoint> sessions,
-        List<ParticipantHours> participantHours
+        List<ParticipantHours> participantHours,
+        BigDecimal totalMaterialCost,
+        List<RawMaterialCostPoint> rawMaterialCosts
 ) {
 
     public record SessionPeriodPoint(
@@ -32,6 +34,13 @@ public record ProductionPeriodAnalyticsResponse(
     public record ParticipantHours(
             String participantName,
             BigDecimal hours
+    ) {
+    }
+
+    /** Raw material cost summed across every session in the period, regardless of which flavor it went to. */
+    public record RawMaterialCostPoint(
+            String rawMaterialName,
+            BigDecimal totalCost
     ) {
     }
 }
