@@ -13,13 +13,13 @@
   </header>
 
   <form [formRoot]="addAdminForm" class="admin-users__add-form">
-    <ds-form-field
+    <ds-autocomplete
       label="Ajouter un admin par email"
       fieldId="email"
-      type="email"
-      autocomplete="email"
+      placeholder="Tape une lettre pour chercher un compte…"
+      [options]="userOptions()"
       [field]="addAdminForm.email"
-    ></ds-form-field>
+    ></ds-autocomplete>
 
     @if (submitError()) {
       <ds-form-message variant="error">{{ submitError() }}</ds-form-message>
