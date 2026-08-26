@@ -6,7 +6,7 @@
 //
 // Usage: node scripts/fake-data/seed.mjs
 // Config (env vars, all optional): API_BASE, ADMIN_EMAIL, ADMIN_PASSWORD,
-// DAYS_BACK, DAYS_FORWARD, SLOT_COUNT, SESSION_COUNT.
+// DAYS_BACK, DAYS_FORWARD, SLOT_COUNT, SESSION_COUNT, CUSTOMER_COUNT, ORDER_COUNT.
 
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -31,12 +31,17 @@ if (IS_DEPLOY_DIR && existsSync(ENV_FILE) && typeof process.loadEnvFile === 'fun
 const API_BASE = process.env.API_BASE ?? 'http://localhost:8080';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@gyoza.local';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'changeme';
+// Production sessions look back this far (they're historical work, already done).
 const DAYS_BACK = Number(process.env.DAYS_BACK ?? 60);
-const DAYS_FORWARD = Number(process.env.DAYS_FORWARD ?? 14);
-// Total slot rows created (spread over a few distinct dates — each date gets every
-// method x content-type combination below, so this should be a multiple of 4).
+// Recuperation slots always look forward this far (~2 months) — they're future
+// availability windows to book, never in the past.
+const DAYS_FORWARD = Number(process.env.DAYS_FORWARD ?? 60);
+// Total slot rows created (spread over a few distinct future dates — each date gets
+// every method x content-type combination below, so this should be a multiple of 4).
 const SLOT_COUNT = Number(process.env.SLOT_COUNT ?? 8);
 const SESSION_COUNT = Number(process.env.SESSION_COUNT ?? 11);
+const CUSTOMER_COUNT = Number(process.env.CUSTOMER_COUNT ?? 23);
+const ORDER_COUNT = Number(process.env.ORDER_COUNT ?? 47);
 
 const COMPOSE_FILE =
   process.env.COMPOSE_FILE ??
@@ -47,14 +52,18 @@ const COMPOSE_FILE =
 const DB_NAME = process.env.DB_NAME ?? process.env.POSTGRES_DB ?? 'gyoza';
 const DB_USER = process.env.DB_USER ?? process.env.POSTGRES_USER ?? 'gyoza';
 
-const RAW_MATERIALS = [
-  { name: 'Farine de blé', unit: 'kg' },
-  { name: 'Poulet', unit: 'kg' },
-  { name: 'Légumes mélangés', unit: 'kg' },
-  { name: 'Huile de sésame', unit: 'L' },
-  { name: 'Sauce soja', unit: 'L' },
-  { name: 'Gingembre', unit: 'kg' },
-];
+// A fixed recipe: every session uses these four base ingredients, plus whichever
+// flavor-specific one matches its output (Poulet for Chicken, Légumes for Vegetable).
+// "gingembre frais" matches the name/unit of a raw material already seeded by hand in
+// some environments — reused instead of creating a near-duplicate.
+const RAW_MATERIALS = {
+  farine: { name: 'Farine de blé', unit: 'kg' },
+  poulet: { name: 'Poulet', unit: 'kg' },
+  legumes: { name: 'Légumes mélangés', unit: 'kg' },
+  huileSesame: { name: 'Huile de sésame', unit: 'L' },
+  gingembre: { name: 'gingembre frais', unit: 'grammes' },
+  ciboulette: { name: 'Ciboulette', unit: 'grammes' },
+};
 
 // "Créneaux de récupération" — both fulfillment methods, both content types,
 // mirroring the pattern DataInitializer already seeds for a single day.
@@ -138,6 +147,14 @@ function evenlySpacedOffsets(count, min, max) {
   return [...offsets];
 }
 
+function shuffle(list) {
+  for (let i = list.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  return list;
+}
+
 // --- seeding steps ---
 
 async function login() {
@@ -149,33 +166,38 @@ async function login() {
 async function ensureRawMaterials() {
   const existing = await api('GET', '/api/admin/raw-materials');
   // Case-insensitive: the backend rejects a create as a duplicate the same way
-  // (e.g. an existing "sauce soja" blocks creating "Sauce soja").
+  // (e.g. an existing "gingembre frais" blocks creating "Gingembre Frais").
   const byName = new Map(existing.map((material) => [material.name.trim().toLowerCase(), material]));
 
-  const materials = [];
+  const materials = {};
   let created = 0;
 
-  for (const definition of RAW_MATERIALS) {
-    const key = definition.name.toLowerCase();
-    let material = byName.get(key);
+  for (const [key, definition] of Object.entries(RAW_MATERIALS)) {
+    const lookupKey = definition.name.toLowerCase();
+    let material = byName.get(lookupKey);
     if (!material) {
       material = await api('POST', '/api/admin/raw-materials', definition);
-      byName.set(key, material);
+      byName.set(lookupKey, material);
       created++;
     }
-    materials.push(material);
+    materials[key] = material;
   }
 
-  console.log(`  + ${created} matière(s) première(s) créée(s) (${materials.length} au total)`);
+  console.log(`  + ${created} matière(s) première(s) créée(s) (${Object.keys(materials).length} au total)`);
   return materials;
 }
+
+// A bulk purchase batch sized to the unit — 20 (kg or L) is a normal restock, but
+// 20 grammes of chives/ginger is a tiny reference batch that inflates the implied
+// unit price to absurd levels once a session uses 200g of it.
+const PURCHASE_QUANTITY_BY_UNIT = { kg: 20, L: 5, grammes: 1000 };
 
 async function ensurePurchases(materials) {
   const existingPurchases = await api('GET', '/api/admin/raw-material-purchases');
   const alreadyPurchased = new Set(existingPurchases.map((purchase) => purchase.rawMaterialId));
 
   let created = 0;
-  for (const material of materials) {
+  for (const material of Object.values(materials)) {
     if (alreadyPurchased.has(material.id)) {
       continue;
     }
@@ -183,7 +205,7 @@ async function ensurePurchases(materials) {
     await api('POST', '/api/admin/raw-material-purchases', {
       rawMaterialId: material.id,
       date: isoDate(daysAgo(DAYS_BACK + 30)),
-      quantityPurchased: 20,
+      quantityPurchased: PURCHASE_QUANTITY_BY_UNIT[material.unit] ?? 20,
       totalPricePaid: randomInt(20, 80),
       source: 'MANUAL',
       originCountry: 'Suisse',
@@ -198,7 +220,9 @@ async function ensurePurchases(materials) {
 async function seedSlots() {
   const combosPerDate = SLOT_WINDOWS.length * CONTENT_TYPES.length;
   const dateCount = Math.max(1, Math.round(SLOT_COUNT / combosPerDate));
-  const offsets = evenlySpacedOffsets(dateCount, -DAYS_FORWARD, DAYS_BACK);
+  // Always in the future (tomorrow through DAYS_FORWARD) — these are booking
+  // windows, never a slot for a day that's already passed.
+  const offsets = evenlySpacedOffsets(dateCount, -DAYS_FORWARD, -1);
 
   const slots = [];
   let created = 0;
@@ -219,7 +243,7 @@ async function seedSlots() {
     }
   }
 
-  console.log(`  + ${created} créneau(x) créé(s) sur ${offsets.length} jour(s) (${slots.length} disponibles pour les commandes)`);
+  console.log(`  + ${created} créneau(x) créé(s) sur ${offsets.length} jour(s) futur(s) (${slots.length} disponibles pour les commandes)`);
   return slots;
 }
 
@@ -232,11 +256,28 @@ async function getAdminUserId() {
 }
 
 async function seedProductionSessions(materials, products, participantUserId) {
+  const chicken = products.find((product) => product.name === 'Chicken') ?? products[0];
+  const vegetable = products.find((product) => product.name === 'Vegetable') ?? products[0];
+
   const offsets = evenlySpacedOffsets(SESSION_COUNT, 1, DAYS_BACK);
   let created = 0;
 
   for (const offset of offsets) {
     const date = isoDate(daysAgo(offset));
+    const isChicken = Math.random() < 0.5;
+    const product = isChicken ? chicken : vegetable;
+    // "au moins 1 kilo" — a bit over 1kg, never under.
+    const flourQuantity = Math.round((1 + Math.random() * 0.5) * 100) / 100;
+
+    const rawMaterialUsages = [
+      { rawMaterialId: materials.farine.id, quantityUsed: flourQuantity, targetProductId: null },
+      { rawMaterialId: materials.huileSesame.id, quantityUsed: 0.2, targetProductId: null }, // 2 dl
+      { rawMaterialId: materials.gingembre.id, quantityUsed: 0.4, targetProductId: null },
+      { rawMaterialId: materials.ciboulette.id, quantityUsed: 200, targetProductId: null },
+      isChicken
+        ? { rawMaterialId: materials.poulet.id, quantityUsed: 1.5, targetProductId: null }
+        : { rawMaterialId: materials.legumes.id, quantityUsed: 1.5, targetProductId: null },
+    ];
 
     try {
       await api('POST', '/api/admin/production-sessions', {
@@ -244,13 +285,9 @@ async function seedProductionSessions(materials, products, participantUserId) {
         durationHours: randomInt(2, 6),
         notes: 'Session générée automatiquement (fake data)',
         otherCosts: 0,
-        rawMaterialUsages: [pick(materials), pick(materials)].map((material) => ({
-          rawMaterialId: material.id,
-          quantityUsed: randomInt(2, 10),
-          targetProductId: null,
-        })),
+        rawMaterialUsages,
         participants: [{ userId: participantUserId }],
-        outputs: [{ productId: pick(products).id, quantityProduced: randomInt(40, 120) }],
+        outputs: [{ productId: product.id, quantityProduced: randomInt(40, 120) }],
       });
       created++;
     } catch (error) {
@@ -261,90 +298,122 @@ async function seedProductionSessions(materials, products, participantUserId) {
   console.log(`  + ${created} session(s) de production créée(s)`);
 }
 
-async function seedOrders(slots, products) {
-  const slotsByDate = new Map();
-  for (const slot of slots) {
-    const list = slotsByDate.get(slot.date) ?? [];
-    list.push(slot);
-    slotsByDate.set(slot.date, list);
+function buildCustomerPool(count) {
+  const pool = [];
+  for (let i = 0; i < count; i++) {
+    const firstName = pick(FIRST_NAMES);
+    const lastName = pick(LAST_NAMES);
+    pool.push({
+      firstName,
+      lastName,
+      email: `${firstName}.${lastName}.${Date.now()}.${i}@example.com`.toLowerCase(),
+    });
   }
-
-  let created = 0;
-  // Analytics groups revenue/customers by createdAt, not the order's fulfillment
-  // date — and createdAt is stamped server-side to "now" (see Order/Customer
-  // constructors). Every order created here would land on the exact same day
-  // otherwise, so we backdate createdAt afterward to spread them realistically.
-  const backdateEntries = [];
-
-  for (let offset = DAYS_BACK; offset >= 0; offset--) {
-    const date = isoDate(daysAgo(offset));
-    const daySlots = slotsByDate.get(date);
-    if (!daySlots?.length) {
-      continue;
-    }
-
-    for (let i = 0; i < randomInt(0, 2); i++) {
-      const slot = pick(daySlots);
-      const product = pick(products.filter((candidate) => candidate.packs.length > 0));
-      const pack = pick(product.packs);
-      const firstName = pick(FIRST_NAMES);
-      const lastName = pick(LAST_NAMES);
-      const email = `${firstName}.${lastName}.${Date.now()}.${i}@example.com`.toLowerCase();
-
-      try {
-        const order = await api('POST', '/api/orders', {
-          customer: {
-            firstName,
-            lastName,
-            email,
-            address: slot.fulfillmentMethod === 'DELIVERY' ? '1 rue du Test, Lausanne' : '',
-          },
-          lines: [{ packId: pack.id, quantity: randomInt(1, 3) }],
-          fulfillmentMethod: slot.fulfillmentMethod,
-          date,
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-          contentType: slot.contentType,
-        });
-        created++;
-        backdateEntries.push({ orderId: order.id, email, createdAt: `${date} 12:00:00` });
-      } catch (error) {
-        console.warn(`  ! commande du ${date} ignorée : ${error.message}`);
-      }
-    }
-  }
-
-  console.log(`  + ${created} commande(s) créée(s)`);
-  backdateOrders(backdateEntries);
+  return pool;
 }
 
-function backdateOrders(entries) {
-  if (entries.length === 0) {
+/** Every customer gets at least one order, then the rest are handed out at random —
+ *  "plusieurs commandes des fois par client" without forcing an even split. */
+function buildCustomerAssignments(orderCount, customerCount) {
+  const boundedCustomerCount = Math.max(1, Math.min(customerCount, orderCount));
+  const assignments = [];
+
+  for (let c = 0; c < boundedCustomerCount; c++) {
+    assignments.push(c);
+  }
+  while (assignments.length < orderCount) {
+    assignments.push(randomInt(0, boundedCustomerCount - 1));
+  }
+
+  return shuffle(assignments);
+}
+
+async function seedOrders(slots, products) {
+  if (slots.length === 0) {
+    console.warn('  ! aucun créneau disponible, aucune commande créée');
     return;
   }
 
+  const customers = buildCustomerPool(CUSTOMER_COUNT);
+  const assignments = buildCustomerAssignments(ORDER_COUNT, customers.length);
+
+  let created = 0;
+  // Analytics groups revenue/customers by createdAt, which the API always stamps to
+  // "now" (see Order/Customer constructors) — backdated afterward, independently of
+  // the order's (future) fulfillment slot, so a fake order looks like it was placed
+  // in the past for a future pickup/delivery, same as a real one would be.
+  const orderRecords = []; // { orderId, email, createdAt }
+
+  for (let i = 0; i < assignments.length; i++) {
+    const slot = pick(slots);
+    const customer = customers[assignments[i]];
+    const product = pick(products.filter((candidate) => candidate.packs.length > 0));
+    const pack = pick(product.packs);
+    const createdAt = `${isoDate(daysAgo(randomInt(0, DAYS_BACK)))} 12:00:00`;
+
+    try {
+      const order = await api('POST', '/api/orders', {
+        customer: {
+          firstName: customer.firstName,
+          lastName: customer.lastName,
+          email: customer.email,
+          address: slot.fulfillmentMethod === 'DELIVERY' ? '1 rue du Test, Lausanne' : '',
+        },
+        lines: [{ packId: pack.id, quantity: randomInt(1, 3) }],
+        fulfillmentMethod: slot.fulfillmentMethod,
+        date: slot.date,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        contentType: slot.contentType,
+      });
+      created++;
+      orderRecords.push({ orderId: order.id, email: customer.email, createdAt });
+    } catch (error) {
+      console.warn(`  ! commande ignorée : ${error.message}`);
+    }
+  }
+
+  console.log(`  + ${created} commande(s) créée(s) pour ${customers.length} client(s)`);
+  consolidateCustomersAndBackdate(orderRecords);
+}
+
+/**
+ * The API always inserts a fresh Customer row per order (no lookup/reuse by email —
+ * see OrderServiceImpl.createOrder), so N orders "for the same fake customer" still
+ * produce N separate rows sharing that email. This merges each email's rows down to
+ * one (repointing its orders, deleting the rest) and backdates createdAt, all in one
+ * transaction — the only way to get both right, since neither is exposed by the API.
+ */
+function consolidateCustomersAndBackdate(orderRecords) {
+  if (orderRecords.length === 0) {
+    return;
+  }
+
+  const groups = new Map(); // email -> [{ orderId, createdAt }, ...]
+  for (const record of orderRecords) {
+    const list = groups.get(record.email) ?? [];
+    list.push(record);
+    groups.set(record.email, list);
+  }
+
   const escape = (value) => value.replace(/'/g, "''");
+  const statements = [];
 
-  const orderValues = entries
-    .map(({ orderId, createdAt }) => `(${orderId}, '${createdAt}'::timestamp)`)
-    .join(',\n');
-  const customerValues = entries
-    .map(({ email, createdAt }) => `('${escape(email)}', '${createdAt}'::timestamp)`)
-    .join(',\n');
+  for (const [email, records] of groups) {
+    const keeper = `(SELECT MIN(id) FROM customers WHERE email = '${escape(email)}')`;
+    const earliestCreatedAt = [...records].sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0].createdAt;
 
-  const sql = `
-BEGIN;
+    for (const record of records) {
+      statements.push(
+        `UPDATE customer_orders SET customer_id = ${keeper}, created_at = '${record.createdAt}'::timestamp WHERE id = ${record.orderId};`,
+      );
+    }
 
-UPDATE customer_orders SET created_at = v.created_at
-FROM (VALUES\n${orderValues}\n) AS v(id, created_at)
-WHERE customer_orders.id = v.id;
+    statements.push(`UPDATE customers SET created_at = '${earliestCreatedAt}'::timestamp WHERE id = ${keeper};`);
+    statements.push(`DELETE FROM customers WHERE email = '${escape(email)}' AND id <> ${keeper};`);
+  }
 
-UPDATE customers SET created_at = v.created_at
-FROM (VALUES\n${customerValues}\n) AS v(email, created_at)
-WHERE customers.email = v.email;
-
-COMMIT;
-`;
+  const sql = `BEGIN;\n${statements.join('\n')}\nCOMMIT;\n`;
 
   execFileSync(
     'docker',
@@ -352,7 +421,7 @@ COMMIT;
     { input: sql, stdio: ['pipe', 'inherit', 'inherit'] },
   );
 
-  console.log(`  + dates de création corrigées pour ${entries.length} commande(s)/client(s)`);
+  console.log(`  + consolidé en ${groups.size} client(s) distinct(s), dates de création corrigées`);
 }
 
 async function main() {
@@ -364,7 +433,7 @@ async function main() {
   const materials = await ensureRawMaterials();
   await ensurePurchases(materials);
 
-  console.log('Créneaux (récupération : livraison + retrait, frais + surgelé)...');
+  console.log('Créneaux (récupération : livraison + retrait, frais + surgelé, toujours dans le futur)...');
   const slots = await seedSlots();
 
   console.log('Produits...');
