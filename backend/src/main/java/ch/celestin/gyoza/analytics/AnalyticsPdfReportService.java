@@ -2,6 +2,7 @@ package ch.celestin.gyoza.analytics;
 
 import ch.celestin.gyoza.analytics.dto.AnalyticsDayPoint;
 import ch.celestin.gyoza.analytics.dto.AnalyticsTimeSeriesResponse;
+import ch.celestin.gyoza.analytics.dto.PackSalesPoint;
 import ch.celestin.gyoza.analytics.dto.ProductionPeriodAnalyticsResponse;
 import ch.celestin.gyoza.analytics.dto.ProductionPeriodAnalyticsResponse.ParticipantHours;
 import ch.celestin.gyoza.analytics.dto.ProductionPeriodAnalyticsResponse.RawMaterialCostPoint;
@@ -53,9 +54,10 @@ public class AnalyticsPdfReportService {
     public byte[] generateReport(LocalDate startDate, LocalDate endDate) {
         AnalyticsTimeSeriesResponse timeSeries = analyticsService.getTimeSeries(startDate, endDate);
         ProductionPeriodAnalyticsResponse production = analyticsService.getProductionPeriodAnalytics(startDate, endDate);
+        List<PackSalesPoint> packSales = analyticsService.getPackSales(startDate, endDate);
 
         try {
-            return render(startDate, endDate, timeSeries, production);
+            return render(startDate, endDate, timeSeries, production, packSales);
         } catch (DocumentException | IOException e) {
             throw new IllegalStateException("Impossible de générer le rapport PDF", e);
         }
@@ -65,7 +67,8 @@ public class AnalyticsPdfReportService {
             LocalDate startDate,
             LocalDate endDate,
             AnalyticsTimeSeriesResponse timeSeries,
-            ProductionPeriodAnalyticsResponse production
+            ProductionPeriodAnalyticsResponse production,
+            List<PackSalesPoint> packSales
     ) throws DocumentException, IOException {
         Document document = new Document(PageSize.A4, 40, 40, 50, 40);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -110,7 +113,36 @@ public class AnalyticsPdfReportService {
 
         addSectionTitle(document, "Vue d'ensemble", sectionFont);
         document.add(summaryTable(bodyFont, overviewRows));
-        document.add(dailyBreakdownTable(tableHeaderFont, tableBodyFont, days));
+
+        Map<String, Integer> unitsByProduct = new LinkedHashMap<>();
+        for (AnalyticsDayPoint day : days) {
+            day.unitsByProduct().forEach((name, units) -> unitsByProduct.merge(name, units, Integer::sum));
+        }
+        List<Map.Entry<String, Integer>> sortedProductSales = unitsByProduct.entrySet().stream()
+                .sorted((a, b) -> b.getValue() - a.getValue())
+                .toList();
+
+        if (!sortedProductSales.isEmpty()) {
+            addSectionTitle(document, "Gyozas vendus par type", sectionFont);
+            document.add(productSalesTable(tableHeaderFont, tableBodyFont, sortedProductSales));
+        }
+
+        if (!packSales.isEmpty()) {
+            addSectionTitle(document, "Ventes par type de pack", sectionFont);
+            document.add(packSalesTable(tableHeaderFont, tableBodyFont, packSales));
+        }
+
+        // Only days with actual activity — a multi-month range is mostly empty days otherwise.
+        List<AnalyticsDayPoint> activeDays = days.stream()
+                .filter(day -> day.revenue().compareTo(BigDecimal.ZERO) != 0
+                        || day.orderCount() != 0
+                        || day.newCustomerCount() != 0)
+                .toList();
+
+        if (!activeDays.isEmpty()) {
+            addSectionTitle(document, "Détail journalier", sectionFont);
+            document.add(dailyBreakdownTable(tableHeaderFont, tableBodyFont, activeDays));
+        }
 
         if (!production.rawMaterialCosts().isEmpty()) {
             Map<String, String> materialRows = new LinkedHashMap<>();
@@ -187,6 +219,46 @@ public class AnalyticsPdfReportService {
             PdfPCell revenue = labelCell(formatMoney(day.revenue()), bodyFont);
             revenue.setHorizontalAlignment(Element.ALIGN_RIGHT);
             table.addCell(revenue);
+        }
+
+        return table;
+    }
+
+    private PdfPTable productSalesTable(Font headerFont, Font bodyFont, List<Map.Entry<String, Integer>> sales) {
+        PdfPTable table = new PdfPTable(2);
+        table.setWidthPercentage(100);
+        table.setSpacingAfter(16);
+
+        addHeaderRow(table, headerFont, "Type de gyoza", "Unités vendues");
+
+        for (Map.Entry<String, Integer> entry : sales) {
+            table.addCell(labelCell(entry.getKey(), bodyFont));
+
+            PdfPCell valueCell = labelCell(String.valueOf(entry.getValue()), bodyFont);
+            valueCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            table.addCell(valueCell);
+        }
+
+        return table;
+    }
+
+    private PdfPTable packSalesTable(Font headerFont, Font bodyFont, List<PackSalesPoint> packs) {
+        PdfPTable table = new PdfPTable(3);
+        table.setWidthPercentage(100);
+        table.setSpacingAfter(16);
+
+        addHeaderRow(table, headerFont, "Taille de pack", "Packs vendus", "Unités");
+
+        for (PackSalesPoint pack : packs) {
+            table.addCell(labelCell(pack.packSize() + " pièces", bodyFont));
+
+            PdfPCell packsSold = labelCell(String.valueOf(pack.totalPacksSold()), bodyFont);
+            packsSold.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            table.addCell(packsSold);
+
+            PdfPCell units = labelCell(String.valueOf(pack.totalUnits()), bodyFont);
+            units.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            table.addCell(units);
         }
 
         return table;

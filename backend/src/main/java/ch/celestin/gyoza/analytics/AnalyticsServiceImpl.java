@@ -3,6 +3,7 @@ package ch.celestin.gyoza.analytics;
 import ch.celestin.gyoza.analytics.dto.AnalyticsDayPoint;
 import ch.celestin.gyoza.analytics.dto.AnalyticsResponse;
 import ch.celestin.gyoza.analytics.dto.AnalyticsTimeSeriesResponse;
+import ch.celestin.gyoza.analytics.dto.PackSalesPoint;
 import ch.celestin.gyoza.analytics.dto.ProductionAnalyticsResponse;
 import ch.celestin.gyoza.analytics.dto.ProductionPeriodAnalyticsResponse;
 import ch.celestin.gyoza.analytics.dto.ProductionPeriodAnalyticsResponse.RawMaterialCostPoint;
@@ -379,6 +380,38 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 totalMaterialCost.setScale(2, RoundingMode.HALF_UP),
                 rawMaterialCosts
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PackSalesPoint> getPackSales(LocalDate startDate, LocalDate endDate) {
+        if (startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException(
+                    "La date de début doit précéder la date de fin"
+            );
+        }
+
+        // Same rule as getTimeSeries: a cancelled order sold nothing.
+        List<Order> soldOrders = orderRepository.findAll().stream()
+                .filter(order -> order.getStatus() != OrderStatus.CANCELLED)
+                .filter(order -> {
+                    LocalDate date = order.getCreatedAt().toLocalDate();
+                    return !date.isBefore(startDate) && !date.isAfter(endDate);
+                })
+                .toList();
+
+        Map<Integer, Integer> packsByPackSize = new LinkedHashMap<>();
+
+        for (Order order : soldOrders) {
+            for (OrderItem item : order.getItems()) {
+                packsByPackSize.merge(item.getPackSize(), item.getPackQuantity(), Integer::sum);
+            }
+        }
+
+        return packsByPackSize.entrySet().stream()
+                .map(entry -> new PackSalesPoint(entry.getKey(), entry.getValue(), entry.getKey() * entry.getValue()))
+                .sorted((a, b) -> a.packSize() - b.packSize())
+                .toList();
     }
 
     private BigDecimal changePercent(BigDecimal current, BigDecimal previous, boolean previousHasSessions) {
