@@ -41,6 +41,7 @@ import {
 import { OrderStatus } from '../../../models/order.model';
 import { Product } from '../../../models/product.model';
 import { DsButtonComponent } from '../../../design-system/components/ds-button/ds-button.component';
+import { DsModalComponent } from '../../../design-system/components/ds-modal/ds-modal.component';
 import { DsSectionHeaderComponent } from '../../../design-system/components/ds-section-header/ds-section-header.component';
 
 Chart.register(
@@ -150,7 +151,7 @@ function startOfYear(date: Date): Date {
 
 @Component({
   selector: 'app-admin-analytics',
-  imports: [DsSectionHeaderComponent, DsButtonComponent, RouterLink],
+  imports: [DsSectionHeaderComponent, DsButtonComponent, DsModalComponent, RouterLink],
   templateUrl: './admin-analytics.html',
   styleUrl: './admin-analytics.scss',
 })
@@ -212,6 +213,13 @@ export class AdminAnalytics implements OnInit, OnDestroy {
   protected readonly productsLoadError = signal<string | null>(null);
 
   protected readonly rangeInvalid = computed(() => this.startDate() > this.endDate());
+
+  protected readonly exportDialogOpen = signal(false);
+  protected readonly exportStartDate = signal(defaultStartDate());
+  protected readonly exportEndDate = signal(defaultEndDate());
+  protected readonly exporting = signal(false);
+  protected readonly exportError = signal<string | null>(null);
+  protected readonly exportRangeInvalid = computed(() => this.exportStartDate() > this.exportEndDate());
 
   protected readonly statTiles = computed<StatTile[]>(() => {
     const data = this.analytics();
@@ -494,6 +502,61 @@ export class AdminAnalytics implements OnInit, OnDestroy {
     this.endDate.set(toIsoDateInputValue(today));
     this.loadTimeSeries();
     this.loadProductionPeriodAnalytics();
+  }
+
+  protected openExportDialog(): void {
+    this.exportStartDate.set(this.startDate());
+    this.exportEndDate.set(this.endDate());
+    this.exportError.set(null);
+    this.exportDialogOpen.set(true);
+  }
+
+  protected closeExportDialog(): void {
+    this.exportDialogOpen.set(false);
+  }
+
+  protected onExportStartDateChange(value: string): void {
+    this.exportStartDate.set(value);
+  }
+
+  protected onExportEndDateChange(value: string): void {
+    this.exportEndDate.set(value);
+  }
+
+  protected selectExportPeriodPreset(preset: 'week' | 'month'): void {
+    const today = new Date();
+    const start = preset === 'week' ? startOfWeek(today) : startOfMonth(today);
+
+    this.exportStartDate.set(toIsoDateInputValue(start));
+    this.exportEndDate.set(toIsoDateInputValue(today));
+  }
+
+  protected async confirmExport(): Promise<void> {
+    if (this.exportRangeInvalid()) {
+      return;
+    }
+
+    this.exporting.set(true);
+    this.exportError.set(null);
+
+    try {
+      const blob = await firstValueFrom(
+        this.analyticsService.exportPdf(this.exportStartDate(), this.exportEndDate()),
+      );
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `analytics_${this.exportStartDate()}_${this.exportEndDate()}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      this.exportDialogOpen.set(false);
+    } catch (error) {
+      this.exportError.set(this.extractErrorMessage(error));
+    } finally {
+      this.exporting.set(false);
+    }
   }
 
   private async loadAnalytics(): Promise<void> {

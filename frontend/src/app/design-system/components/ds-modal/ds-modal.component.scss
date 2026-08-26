@@ -1,0 +1,117 @@
+:host {
+  display: contents;
+}
+
+%focus-ring {
+  outline: 2px solid var(--gz-accent-400);
+  outline-offset: 2px;
+}
+
+.ds-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 40;
+}
+
+.ds-modal__panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 41;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gz-space-5);
+  width: min(560px, calc(100vw - var(--gz-space-8)));
+  max-height: calc(100vh - var(--gz-space-8));
+  padding: var(--gz-space-6);
+  background: var(--gz-bg-elevated);
+  border: 1px solid var(--gz-border-soft);
+  border-radius: var(--gz-radius-lg);
+  box-shadow: var(--gz-shadow-md);
+  overflow-y: auto;
+
+  &:focus-visible {
+    outline: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .ds-modal__panel {
+    inset: 0;
+    top: 0;
+    left: 0;
+    transform: none;
+    width: 100%;
+    max-height: 100vh;
+    border: none;
+    border-radius: 0;
+    padding-top: calc(var(--gz-space-6) + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(var(--gz-space-6) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.ds-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ds-modal__title {
+  margin: 0;
+  color: var(--gz-text-primary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-lg);
+  font-weight: var(--gz-fw-semibold);
+}
+
+.ds-modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--gz-radius-pill);
+  color: var(--gz-text-secondary);
+  cursor: pointer;
+  transition:
+    color var(--gz-transition-fast),
+    background var(--gz-transition-fast);
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover {
+    color: var(--gz-text-primary);
+    background: var(--gz-surface-hover);
+  }
+
+  &:focus-visible {
+    @extend %focus-ring;
+  }
+}
+
+.ds-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gz-space-4);
+}
+
+.ds-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--gz-space-3);
+  padding-top: var(--gz-space-4);
+  border-top: 1px solid var(--gz-border-soft);
+
+  &:empty {
+    display: none;
+  }
+}

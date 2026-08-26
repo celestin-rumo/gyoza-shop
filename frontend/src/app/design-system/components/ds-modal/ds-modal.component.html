@@ -1,0 +1,27 @@
+<div class="ds-modal__backdrop" (click)="close()"></div>
+
+<section
+  #panel
+  class="ds-modal__panel"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-labelledby]="titleId"
+  tabindex="-1"
+>
+  <header class="ds-modal__header">
+    <h2 [id]="titleId" class="ds-modal__title">{{ title() }}</h2>
+    <button type="button" class="ds-modal__close" aria-label="Fermer" (click)="close()">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+      </svg>
+    </button>
+  </header>
+
+  <div class="ds-modal__body">
+    <ng-content></ng-content>
+  </div>
+
+  <footer class="ds-modal__footer">
+    <ng-content select="[modal-footer]"></ng-content>
+  </footer>
+</section>

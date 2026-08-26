@@ -8,9 +8,68 @@
 
     <div class="admin-analytics__header-actions">
       <a class="admin-analytics__back-link" routerLink="/admin">← Retour</a>
+      <ds-button variant="outline" size="sm" (pressed)="openExportDialog()">Exporter les données</ds-button>
       <ds-button variant="outline" size="sm" (pressed)="logout()">Se déconnecter</ds-button>
     </div>
   </header>
+
+  @if (exportDialogOpen()) {
+    <ds-modal title="Exporter les données" (closed)="closeExportDialog()">
+      <form
+        class="admin-analytics__date-range"
+        (submit)="$event.preventDefault(); confirmExport()"
+      >
+        <label class="admin-analytics__date-field">
+          Date de début
+          <input
+            type="date"
+            [value]="exportStartDate()"
+            [max]="exportEndDate()"
+            (change)="onExportStartDateChange($any($event.target).value)"
+          />
+        </label>
+
+        <label class="admin-analytics__date-field">
+          Date de fin
+          <input
+            type="date"
+            [value]="exportEndDate()"
+            [min]="exportStartDate()"
+            (change)="onExportEndDateChange($any($event.target).value)"
+          />
+        </label>
+      </form>
+
+      <div class="admin-analytics__filters" role="group" aria-label="Périodes rapides">
+        <button type="button" class="admin-analytics__filter" (click)="selectExportPeriodPreset('week')">
+          Semaine
+        </button>
+        <button type="button" class="admin-analytics__filter" (click)="selectExportPeriodPreset('month')">
+          Mois
+        </button>
+      </div>
+
+      @if (exportRangeInvalid()) {
+        <p class="admin-analytics__error" role="alert">
+          La date de début doit précéder la date de fin.
+        </p>
+      } @else if (exportError()) {
+        <p class="admin-analytics__error" role="alert">{{ exportError() }}</p>
+      }
+
+      <div modal-footer>
+        <ds-button variant="outline" size="sm" (pressed)="closeExportDialog()">Annuler</ds-button>
+        <ds-button
+          variant="primary"
+          size="sm"
+          [disabled]="exportRangeInvalid() || exporting()"
+          (pressed)="confirmExport()"
+        >
+          {{ exporting() ? 'Génération…' : 'Valider' }}
+        </ds-button>
+      </div>
+    </ds-modal>
+  }
 
   @if (loading()) {
     <p class="admin-analytics__hint">Chargement…</p>
