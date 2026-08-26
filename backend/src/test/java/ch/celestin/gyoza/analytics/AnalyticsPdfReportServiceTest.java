@@ -2,10 +2,13 @@ package ch.celestin.gyoza.analytics;
 
 import ch.celestin.gyoza.analytics.dto.AnalyticsDayPoint;
 import ch.celestin.gyoza.analytics.dto.AnalyticsTimeSeriesResponse;
+import ch.celestin.gyoza.analytics.dto.PackSalesPoint;
 import ch.celestin.gyoza.analytics.dto.ProductionPeriodAnalyticsResponse;
 import ch.celestin.gyoza.analytics.dto.ProductionPeriodAnalyticsResponse.ParticipantHours;
 import ch.celestin.gyoza.analytics.dto.ProductionPeriodAnalyticsResponse.RawMaterialCostPoint;
 import ch.celestin.gyoza.analytics.dto.ProductionPeriodAnalyticsResponse.SessionPeriodPoint;
+import com.lowagie.text.pdf.PdfReader;
+import com.lowagie.text.pdf.parser.PdfTextExtractor;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -14,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
@@ -56,6 +60,8 @@ class AnalyticsPdfReportServiceTest {
                 List.of(new RawMaterialCostPoint("Farine", BigDecimal.valueOf(25)), new RawMaterialCostPoint("Poulet", BigDecimal.valueOf(12.5)))
         ));
 
+        when(analyticsService.getPackSales(START, END)).thenReturn(List.of(new PackSalesPoint(6, 4, 24)));
+
         byte[] pdf = reportService.generateReport(START, END);
 
         assertThat(pdf).isNotEmpty();
@@ -73,10 +79,42 @@ class AnalyticsPdfReportServiceTest {
                 List.of(), List.of(), BigDecimal.ZERO, List.of()
         ));
 
+        when(analyticsService.getPackSales(START, END)).thenReturn(List.of());
+
         byte[] pdf = reportService.generateReport(START, END);
 
         assertThat(pdf).isNotEmpty();
         assertThat(new String(pdf, 0, 4, java.nio.charset.StandardCharsets.US_ASCII)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void generateReport_listsProductAndPackSales_andOmitsZeroActivityDays() throws Exception {
+        LocalDate activeDay = START;
+        LocalDate emptyDay = START.plusDays(1);
+
+        when(analyticsService.getTimeSeries(START, END)).thenReturn(new AnalyticsTimeSeriesResponse(List.of(
+                new AnalyticsDayPoint(activeDay, BigDecimal.valueOf(60), 2, 1, Map.of("Poulet", 12)),
+                new AnalyticsDayPoint(emptyDay, BigDecimal.ZERO, 0, 0, Map.of()),
+                new AnalyticsDayPoint(END, BigDecimal.ZERO, 0, 0, Map.of())
+        )));
+
+        when(analyticsService.getProductionPeriodAnalytics(START, END)).thenReturn(new ProductionPeriodAnalyticsResponse(
+                START, END, BigDecimal.ZERO, null, BigDecimal.ZERO, null, BigDecimal.ZERO, BigDecimal.ZERO,
+                List.of(), List.of(), BigDecimal.ZERO, List.of()
+        ));
+
+        when(analyticsService.getPackSales(START, END)).thenReturn(List.of(new PackSalesPoint(6, 2, 12)));
+
+        byte[] pdf = reportService.generateReport(START, END);
+
+        PdfReader reader = new PdfReader(pdf);
+        String text = new PdfTextExtractor(reader).getTextFromPage(1);
+        reader.close();
+
+        assertThat(text).contains("Poulet");
+        assertThat(text).contains("6 pièces");
+        assertThat(text).contains(activeDay.format(DateTimeFormatter.ofPattern("dd.MM")));
+        assertThat(text).doesNotContain(emptyDay.format(DateTimeFormatter.ofPattern("dd.MM")));
     }
 
     @Test
