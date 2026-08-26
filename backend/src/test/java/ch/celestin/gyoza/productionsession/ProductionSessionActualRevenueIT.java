@@ -103,12 +103,12 @@ class ProductionSessionActualRevenueIT extends AbstractIntegrationTest {
         PackOption pack = packOptionRepository.findByProductId(product.getId()).get(0);
 
         // First order: will be delivered, so it must count.
-        Integer deliveredOrderId = placeOrder(pack.getId(), 20, orderDate);
-        deliverOrder(adminSession, deliveredOrderId);
+        PlacedOrder deliveredOrder = placeOrder(pack.getId(), 20, orderDate);
+        deliverOrder(adminSession, deliveredOrder);
 
         // Second order: will be cancelled, so it must NOT count even though it also consumes stock.
-        Integer cancelledOrderId = placeOrder(pack.getId(), 5, orderDate);
-        cancelOrder(adminSession, cancelledOrderId);
+        PlacedOrder cancelledOrder = placeOrder(pack.getId(), 5, orderDate);
+        cancelOrder(adminSession, cancelledOrder.orderId());
 
         mockMvc.perform(get("/api/admin/production-sessions/{id}", sessionId).session(adminSession))
                 .andExpect(status().isOk())
@@ -119,7 +119,7 @@ class ProductionSessionActualRevenueIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.outputs[0].actualRevenue", is(40.0)));
     }
 
-    private Integer placeOrder(Long packId, int quantity, LocalDate date) throws Exception {
+    private PlacedOrder placeOrder(Long packId, int quantity, LocalDate date) throws Exception {
         Cookie csrf = fetchCsrfCookie();
 
         var result = mockMvc.perform(post("/api/orders")
@@ -145,17 +145,40 @@ class ProductionSessionActualRevenueIT extends AbstractIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        return JsonPath.read(result.getResponse().getContentAsString(), "$.id");
+        String body = result.getResponse().getContentAsString();
+        Integer orderId = JsonPath.read(body, "$.id");
+        Number itemId = JsonPath.read(body, "$.items[0].id");
+
+        return new PlacedOrder(orderId, itemId.longValue());
     }
 
-    private void deliverOrder(MockHttpSession adminSession, Integer orderId) throws Exception {
-        updateOrderStatus(adminSession, orderId, "PREPARING");
-        updateOrderStatus(adminSession, orderId, "READY");
-        updateOrderStatus(adminSession, orderId, "DELIVERED");
+    private void deliverOrder(MockHttpSession adminSession, PlacedOrder order) throws Exception {
+        updateOrderStatus(adminSession, order.orderId(), "PREPARING");
+        // Every item's batch/lot number must be checked before an order can become READY.
+        validateItemBatch(adminSession, order.orderId(), order.itemId());
+        updateOrderStatus(adminSession, order.orderId(), "READY");
+        updateOrderStatus(adminSession, order.orderId(), "DELIVERED");
     }
 
     private void cancelOrder(MockHttpSession adminSession, Integer orderId) throws Exception {
         updateOrderStatus(adminSession, orderId, "CANCELLED");
+    }
+
+    private void validateItemBatch(MockHttpSession adminSession, Integer orderId, Long itemId) throws Exception {
+        Cookie csrf = fetchCsrfCookie();
+
+        mockMvc.perform(patch("/api/admin/orders/{orderId}/items/{itemId}/batch-validation", orderId, itemId)
+                        .session(adminSession)
+                        .cookie(csrf)
+                        .header("X-XSRF-TOKEN", csrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"validated": true}
+                                """))
+                .andExpect(status().isOk());
+    }
+
+    private record PlacedOrder(Integer orderId, Long itemId) {
     }
 
     private void updateOrderStatus(MockHttpSession adminSession, Integer orderId, String status) throws Exception {

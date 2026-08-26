@@ -3,6 +3,7 @@ package ch.celestin.gyoza.productionsession;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -82,7 +83,7 @@ public class ProductionSession {
         this.batchNumber = batchNumber;
         this.durationHours = durationHours;
         this.notes = notes;
-        this.otherCosts = otherCosts != null ? otherCosts : BigDecimal.ZERO;
+        this.otherCosts = normalizeMoney(otherCosts != null ? otherCosts : BigDecimal.ZERO);
     }
 
     public void changeOtherCosts(BigDecimal otherCosts) {
@@ -92,7 +93,13 @@ public class ProductionSession {
             );
         }
 
-        this.otherCosts = otherCosts;
+        this.otherCosts = normalizeMoney(otherCosts);
+    }
+
+    // Money fields are stored with a fixed scale so they always serialize with decimals
+    // (e.g. "3.00" rather than "3"), regardless of the scale the client sent.
+    private static BigDecimal normalizeMoney(BigDecimal value) {
+        return value.setScale(2, RoundingMode.HALF_UP);
     }
 
     public void addRawMaterialUsage(RawMaterialUsage usage) {

@@ -182,6 +182,10 @@ class AdminProductionSessionControllerIT extends AbstractIntegrationTest {
     void createSession_computesCostSummary_usingLastKnownPurchasePriceAndPackPrice() throws Exception {
         MockHttpSession adminSession = loginAsAdmin();
 
+        // Active while the session is created: unitSalePrice is only computed from an active
+        // product's packs (see ProductionSessionServiceImpl.averageUnitSalePrice) and this test
+        // asserts real revenue figures — deactivated below, once created, so it doesn't leak
+        // into ProductControllerIT's assertion about the seeded catalog's exact size.
         Product chicken = productRepository.save(new Product("Poulet gyoza", 0));
         Product vegetable = productRepository.save(new Product("Légumes gyoza", 0));
         packOptionRepository.save(new PackOption(chicken, 1, new BigDecimal("2.00")));
@@ -245,6 +249,11 @@ class AdminProductionSessionControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.costSummary.netProfit", is(62.0)))
                 // Hourly revenue: net profit 62 / 4 person-hours = 15.5.
                 .andExpect(jsonPath("$.costSummary.hourlyRevenue", is(15.5)));
+
+        chicken.deactivate();
+        productRepository.save(chicken);
+        vegetable.deactivate();
+        productRepository.save(vegetable);
     }
 
     @Test

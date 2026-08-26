@@ -55,7 +55,9 @@ public final class ProductionSessionCostCalculator {
     }
 
     public static BigDecimal materialCostForOutput(ProductionSession session, ProductOutput output) {
-        return materialCostByProduct(session).getOrDefault(output.getProduct(), BigDecimal.ZERO);
+        // Scaled like a money amount even when there's no usage for this product, so the field
+        // always serializes with decimals instead of sometimes being a bare "0".
+        return materialCostByProduct(session).getOrDefault(output.getProduct(), BigDecimal.ZERO.setScale(2));
     }
 
     public static BigDecimal costPerGyozaForOutput(ProductionSession session, ProductOutput output) {
@@ -90,7 +92,11 @@ public final class ProductionSessionCostCalculator {
 
     /** Cumulated person-hours (e.g. 2 people x 2h = 4h) — see ProductionSession.durationHours. */
     public static BigDecimal totalSessionHours(ProductionSession session) {
-        return session.getDurationHours().multiply(BigDecimal.valueOf(session.getParticipants().size()));
+        BigDecimal hours = session.getDurationHours().multiply(BigDecimal.valueOf(session.getParticipants().size()));
+
+        // Multiplying two whole numbers (e.g. 2h x 2 people) yields scale 0, which serializes
+        // without decimals unlike every other figure here — force at least one decimal place.
+        return hours.scale() < 1 ? hours.setScale(1, RoundingMode.HALF_UP) : hours;
     }
 
     public static Summary summary(ProductionSession session) {
