@@ -281,7 +281,14 @@
   border-radius: var(--gz-radius-lg);
 }
 
+.admin-production-session__row {
+  display: flex;
+  align-items: center;
+  gap: var(--gz-space-3);
+}
+
 .admin-production-session__toggle-heading {
+  flex: 1;
   margin: 0;
 }
 

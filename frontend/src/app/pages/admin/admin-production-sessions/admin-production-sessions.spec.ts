@@ -743,4 +743,62 @@ describe('AdminProductionSessions', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Autres charges : CHF 1.00');
   });
+
+  it('opens the wizard pre-filled from a past session, with the date reset to today', async () => {
+    await flushInit();
+
+    clickButton('Dupliquer');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.admin-production-sessions__modal')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Pré-rempli depuis la session L20260810-01.');
+
+    const dateInput: HTMLInputElement = fixture.nativeElement.querySelector('input[type=date]');
+    const today = new Date().toISOString().slice(0, 10);
+    expect(dateInput.value).toBe(today);
+
+    goToNextStep();
+    expect(fixture.nativeElement.querySelector('select').value).toBe('1');
+    expect(fixture.nativeElement.querySelector('.ds-number-stepper__input').value).toBe('3.5');
+  });
+
+  it('submits the duplicated session as a fully independent session', async () => {
+    await flushInit();
+
+    clickButton('Dupliquer');
+    fixture.detectChanges();
+    goToNextStep(); // raw materials, pre-filled
+    goToNextStep(); // participants, pre-filled
+    goToNextStep(); // outputs, pre-filled
+    goToNextStep(); // duration, pre-filled
+    clickButton('Enregistrer');
+
+    const req = httpMock.expectOne('/api/admin/production-sessions');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({
+      date: new Date().toISOString().slice(0, 10),
+      durationHours: 4,
+      notes: 'Session du samedi',
+      otherCosts: 0,
+      rawMaterialUsages: [{ rawMaterialId: 1, quantityUsed: 3.5, targetProductId: null }],
+      participants: [{ userId: 'user-1' }],
+      outputs: [{ productId: 1, quantityProduced: 80 }],
+    });
+
+    req.flush({ ...existingSession, id: 2, batchNumber: 'L20260810-02' });
+
+    // Creating a session increments stock, so the catalog is refreshed.
+    httpMock.expectOne('/api/products').flush([]);
+
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // The wizard closed and both the original and the duplicate are now in the list.
+    expect(fixture.nativeElement.querySelector('.admin-production-sessions__modal')).toBeNull();
+    const batchElements: NodeListOf<HTMLElement> = fixture.nativeElement.querySelectorAll(
+      '.admin-production-session__batch',
+    );
+    const batchNumbers = Array.from(batchElements).map((el) => el.textContent);
+    expect(batchNumbers).toEqual(['L20260810-02', 'L20260810-01']);
+  });
 });
