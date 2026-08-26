@@ -744,7 +744,7 @@ describe('AdminProductionSessions', () => {
     expect(fixture.nativeElement.textContent).toContain('Autres charges : CHF 1.00');
   });
 
-  it('edits the notes and duration of an existing session via the bottom actions row', async () => {
+  it('opens the wizard pre-filled from an existing session to edit it, keeping its original date', async () => {
     await flushInit();
 
     const toggle: HTMLButtonElement = fixture.nativeElement.querySelector(
@@ -757,20 +757,55 @@ describe('AdminProductionSessions', () => {
     clickButton('Modifier', 1);
     fixture.detectChanges();
 
-    setInputValue('.admin-production-session__details input[type=text]', 'Note mise à jour');
-    setInputValue('.admin-production-session__details .ds-number-stepper__input', '6');
+    expect(fixture.nativeElement.querySelector('.admin-production-sessions__modal')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Modifier la session');
 
-    clickButton('Enregistrer');
+    const dateInput: HTMLInputElement = fixture.nativeElement.querySelector('input[type=date]');
+    expect(dateInput.value).toBe('2026-08-10');
+    expect(dateInput.disabled).toBe(true);
+  });
 
-    const req = httpMock.expectOne('/api/admin/production-sessions/1/details');
-    expect(req.request.method).toBe('PATCH');
-    expect(req.request.body).toEqual({ notes: 'Note mise à jour', durationHours: 6 });
+  it('submits an edited session as a full update, replacing it in place', async () => {
+    await flushInit();
 
-    req.flush({ ...existingSession, notes: 'Note mise à jour', durationHours: 6 });
+    const toggle: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '.admin-production-session__toggle',
+    );
+    toggle.click();
+    fixture.detectChanges();
+
+    clickButton('Modifier', 1);
+    fixture.detectChanges();
+    goToNextStep(); // raw materials, pre-filled
+    goToNextStep(); // participants, pre-filled
+    goToNextStep(); // outputs, pre-filled
+    goToNextStep(); // duration, pre-filled
+    clickButton('Enregistrer les modifications');
+
+    const req = httpMock.expectOne('/api/admin/production-sessions/1');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({
+      durationHours: 4,
+      notes: 'Session du samedi',
+      otherCosts: 0,
+      rawMaterialUsages: [{ rawMaterialId: 1, quantityUsed: 3.5, targetProductId: null }],
+      participants: [{ userId: 'user-1' }],
+      outputs: [{ productId: 1, quantityProduced: 80 }],
+    });
+
+    req.flush({ ...existingSession, notes: 'Session du samedi (modifiée)' });
+
+    // Editing a session's outputs can change stock, so the catalog is refreshed.
+    httpMock.expectOne('/api/products').flush([]);
+
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Note mise à jour');
+    expect(fixture.nativeElement.querySelector('.admin-production-sessions__modal')).toBeNull();
+    const batchElements: NodeListOf<HTMLElement> = fixture.nativeElement.querySelectorAll(
+      '.admin-production-session__batch',
+    );
+    expect(batchElements.length).toBe(1);
   });
 
   it('opens the wizard pre-filled from a past session, with the date reset to today', async () => {

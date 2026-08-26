@@ -21,7 +21,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductionSessionServiceImpl
@@ -127,15 +130,117 @@ public class ProductionSessionServiceImpl
 
     @Override
     @Transactional
-    public ProductionSessionResponse updateDetails(Long sessionId, UpdateProductionSessionDetailsRequest request) {
+    public ProductionSessionResponse updateSession(Long sessionId, UpdateProductionSessionRequest request) {
 
         ProductionSession session = productionSessionRepository
                 .findById(sessionId)
                 .orElseThrow(() -> new ProductionSessionNotFoundException(sessionId));
 
         session.changeDetails(request.notes(), request.durationHours());
+        session.changeOtherCosts(request.otherCosts() != null ? request.otherCosts() : BigDecimal.ZERO);
+
+        replaceRawMaterialUsages(session, request.rawMaterialUsages());
+        replaceParticipants(session, request.participants());
+        reconcileOutputs(session, request.outputs());
 
         return toResponse(session);
+    }
+
+    /** Frozen cost snapshots with no other side effects — safe to fully replace. */
+    private void replaceRawMaterialUsages(ProductionSession session, List<CreateRawMaterialUsageRequest> lines) {
+        session.getRawMaterialUsages().clear();
+
+        for (CreateRawMaterialUsageRequest line : lines) {
+
+            RawMaterial rawMaterial = rawMaterialRepository
+                    .findById(line.rawMaterialId())
+                    .orElseThrow(() -> new RawMaterialNotFoundException(line.rawMaterialId()));
+
+            Product targetProduct = line.targetProductId() != null
+                    ? productRepository.findById(line.targetProductId())
+                            .orElseThrow(() -> new EntityNotFoundException(
+                                    "Produit introuvable : " + line.targetProductId()
+                            ))
+                    : null;
+
+            BigDecimal unitCost = lastKnownUnitCost(rawMaterial.getId());
+
+            session.addRawMaterialUsage(
+                    new RawMaterialUsage(rawMaterial, line.quantityUsed(), unitCost, targetProduct)
+            );
+        }
+    }
+
+    /** Pure metadata with no other side effects — safe to fully replace. */
+    private void replaceParticipants(ProductionSession session, List<CreateSessionParticipantRequest> lines) {
+        session.getParticipants().clear();
+
+        for (CreateSessionParticipantRequest line : lines) {
+
+            User user = userRepository
+                    .findById(line.userId())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Utilisateur introuvable : " + line.userId()
+                    ));
+
+            session.addParticipant(new SessionParticipant(user));
+        }
+    }
+
+    /**
+     * Unlike raw material usages and participants, outputs drive {@code Product.stockQuantity}
+     * and can be referenced by {@code ProductOutputAllocation} once an order draws from them —
+     * so this reconciles instead of blindly replacing: existing lines are quantity-adjusted
+     * (stock delta applied both ways), new lines are created, and a line dropped from the
+     * request is only removed if nothing has been sold from it yet.
+     */
+    private void reconcileOutputs(ProductionSession session, List<CreateProductOutputRequest> lines) {
+        Map<Long, ProductOutput> existingByProductId = session.getOutputs().stream()
+                .collect(Collectors.toMap(output -> output.getProduct().getId(), output -> output));
+        Map<Long, CreateProductOutputRequest> requestedByProductId = lines.stream()
+                .collect(Collectors.toMap(CreateProductOutputRequest::productId, line -> line));
+
+        for (Iterator<ProductOutput> it = session.getOutputs().iterator(); it.hasNext(); ) {
+            ProductOutput existing = it.next();
+
+            if (requestedByProductId.containsKey(existing.getProduct().getId())) {
+                continue;
+            }
+
+            if (!existing.getAllocations().isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Impossible de retirer \"" + existing.getProduct().getName()
+                                + "\" : des commandes ont déjà été livrées depuis cette session."
+                );
+            }
+
+            existing.getProduct().removeStock(existing.getQuantityProduced());
+            it.remove();
+        }
+
+        for (CreateProductOutputRequest line : lines) {
+
+            Product product = productRepository
+                    .findById(line.productId())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Produit introuvable : " + line.productId()
+                    ));
+
+            ProductOutput existing = existingByProductId.get(line.productId());
+
+            if (existing != null) {
+                int delta = line.quantityProduced() - existing.getQuantityProduced();
+                if (delta > 0) {
+                    product.addStock(delta);
+                } else if (delta < 0) {
+                    product.removeStock(-delta);
+                }
+                existing.changeQuantityProduced(line.quantityProduced());
+            } else {
+                product.addStock(line.quantityProduced());
+                session.addOutput(new ProductOutput(product, line.quantityProduced(), averageUnitSalePrice(product)));
+            }
+        }
     }
 
     private BigDecimal lastKnownUnitCost(Long rawMaterialId) {

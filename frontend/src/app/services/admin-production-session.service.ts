@@ -60,10 +60,13 @@ export class AdminProductionSessionService {
     });
   }
 
-  updateDetails(id: number, notes: string | null, durationHours: number): Observable<ProductionSession> {
-    return this.http.patch<ProductionSession>(`/api/admin/production-sessions/${id}/details`, {
-      notes,
-      durationHours,
-    });
+  /** Full edit — everything except `date`, which is fixed after creation. */
+  updateSession(
+    id: number,
+    payload: Omit<CreateProductionSessionPayload, 'date'>,
+  ): Observable<ProductionSession> {
+    return this.http
+      .put<ProductionSession>(`/api/admin/production-sessions/${id}`, payload)
+      .pipe(tap(() => this.catalog.refresh()));
   }
 }

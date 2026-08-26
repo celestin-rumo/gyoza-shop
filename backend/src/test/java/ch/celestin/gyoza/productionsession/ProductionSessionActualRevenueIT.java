@@ -27,6 +27,7 @@ import java.time.LocalTime;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -117,6 +118,82 @@ class ProductionSessionActualRevenueIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.actualSummary.actualRevenue", is(40.0))) // 20 x 2.00
                 .andExpect(jsonPath("$.outputs[0].unitsSold", is(20)))
                 .andExpect(jsonPath("$.outputs[0].actualRevenue", is(40.0)));
+    }
+
+    @Test
+    void updateSession_removingAnOutputAlreadyDeliveredFrom_isRejected() throws Exception {
+        MockHttpSession adminSession = loginAsAdmin();
+
+        Product soldProduct = new Product("Riz gyoza vendu", 0);
+        soldProduct.deactivate();
+        soldProduct = productRepository.save(soldProduct);
+        packOptionRepository.save(new PackOption(soldProduct, 1, new BigDecimal("2.00")));
+
+        Product untouchedProduct = new Product("Nouille gyoza intacte", 0);
+        untouchedProduct.deactivate();
+        untouchedProduct = productRepository.save(untouchedProduct);
+
+        RawMaterial rawMaterial = rawMaterialRepository.save(new RawMaterial("Riz vendu", "kg"));
+        User admin = userRepository.findByEmail("admin@example.com").orElseThrow();
+
+        Cookie sessionCsrf = fetchCsrfCookie();
+        var sessionResult = mockMvc.perform(post("/api/admin/production-sessions")
+                        .session(adminSession)
+                        .cookie(sessionCsrf)
+                        .header("X-XSRF-TOKEN", sessionCsrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "date": "2026-08-28",
+                                  "durationHours": 2,
+                                  "rawMaterialUsages": [
+                                    {"rawMaterialId": %d, "quantityUsed": 1}
+                                  ],
+                                  "participants": [
+                                    {"userId": "%s"}
+                                  ],
+                                  "outputs": [
+                                    {"productId": %d, "quantityProduced": 50},
+                                    {"productId": %d, "quantityProduced": 20}
+                                  ]
+                                }
+                                """.formatted(rawMaterial.getId(), admin.getId(), soldProduct.getId(), untouchedProduct.getId())))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        Integer sessionId = JsonPath.read(sessionResult.getResponse().getContentAsString(), "$.id");
+
+        LocalDate orderDate = LocalDate.of(2027, 4, 20);
+        slotAvailabilityRepository.save(new SlotAvailability(
+                orderDate, FulfillmentMethod.PICKUP, LocalTime.of(10, 0), LocalTime.of(12, 0), ContentType.FROZEN
+        ));
+
+        PackOption pack = packOptionRepository.findByProductId(soldProduct.getId()).get(0);
+        deliverOrder(adminSession, placeOrder(pack.getId(), 5, orderDate));
+
+        // Dropping the sold product's output line entirely must be rejected — something has
+        // already been delivered from it.
+        Cookie updateCsrf = fetchCsrfCookie();
+        mockMvc.perform(put("/api/admin/production-sessions/{id}", sessionId)
+                        .session(adminSession)
+                        .cookie(updateCsrf)
+                        .header("X-XSRF-TOKEN", updateCsrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "durationHours": 2,
+                                  "rawMaterialUsages": [
+                                    {"rawMaterialId": %d, "quantityUsed": 1}
+                                  ],
+                                  "participants": [
+                                    {"userId": "%s"}
+                                  ],
+                                  "outputs": [
+                                    {"productId": %d, "quantityProduced": 20}
+                                  ]
+                                }
+                                """.formatted(rawMaterial.getId(), admin.getId(), untouchedProduct.getId())))
+                .andExpect(status().isBadRequest());
     }
 
     private PlacedOrder placeOrder(Long packId, int quantity, LocalDate date) throws Exception {

@@ -52,6 +52,43 @@ class ProductOutputTest {
     }
 
     @Test
+    void changeQuantityProduced_updatesQuantityAndRemainingWhenNothingConsumed() {
+        ProductOutput output = new ProductOutput(product, 50, new BigDecimal("2.5"));
+
+        output.changeQuantityProduced(80);
+
+        assertThat(output.getQuantityProduced()).isEqualTo(80);
+        assertThat(output.getRemainingQuantity()).isEqualTo(80);
+    }
+
+    @Test
+    void changeQuantityProduced_preservesAlreadyConsumedAmount() {
+        ProductOutput output = new ProductOutput(product, 50, new BigDecimal("2.5"));
+        output.consume(20);
+
+        output.changeQuantityProduced(90);
+
+        assertThat(output.getQuantityProduced()).isEqualTo(90);
+        // 20 already consumed, so remaining is 90 - 20 = 70.
+        assertThat(output.getRemainingQuantity()).isEqualTo(70);
+    }
+
+    @Test
+    void changeQuantityProduced_rejectsValueBelowAlreadyConsumedAmount() {
+        ProductOutput output = new ProductOutput(product, 50, new BigDecimal("2.5"));
+        output.consume(20);
+
+        assertThatIllegalArgumentException().isThrownBy(() -> output.changeQuantityProduced(19));
+    }
+
+    @Test
+    void changeQuantityProduced_rejectsNonPositiveValue() {
+        ProductOutput output = new ProductOutput(product, 50, new BigDecimal("2.5"));
+
+        assertThatIllegalArgumentException().isThrownBy(() -> output.changeQuantityProduced(0));
+    }
+
+    @Test
     void constructor_rejectsNonPositiveQuantity() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new ProductOutput(product, 0, BigDecimal.ZERO));

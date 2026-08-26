@@ -31,7 +31,9 @@
         aria-labelledby="wizard-title"
       >
         <header class="admin-production-sessions__modal-header">
-          <h2 id="wizard-title" class="admin-production-sessions__modal-title">Nouvelle session</h2>
+          <h2 id="wizard-title" class="admin-production-sessions__modal-title">
+            {{ editingSessionId() ? 'Modifier la session' : 'Nouvelle session' }}
+          </h2>
           <button
             type="button"
             class="admin-production-sessions__modal-close"
@@ -57,6 +59,10 @@
                 <p class="admin-production-sessions__hint">
                   Pré-rempli depuis la session {{ duplicatingFromBatch() }}.
                 </p>
+              } @else if (editingSessionId()) {
+                <p class="admin-production-sessions__hint">
+                  La date d’une session n’est pas modifiable après coup.
+                </p>
               }
 
               <div class="admin-production-sessions__top-fields">
@@ -66,6 +72,7 @@
                     type="date"
                     class="admin-production-sessions__input"
                     [value]="date()"
+                    [disabled]="editingSessionId() !== null"
                     (input)="date.set($any($event.target).value)"
                   />
                 </label>
@@ -363,7 +370,15 @@
             [disabled]="!canAdvance() || creating()"
             (pressed)="onWizardNext()"
           >
-            {{ currentStepIndex() === 4 ? (creating() ? 'Enregistrement…' : 'Enregistrer') : 'Continuer' }}
+            {{
+              currentStepIndex() === 4
+                ? creating()
+                  ? 'Enregistrement…'
+                  : editingSessionId()
+                    ? 'Enregistrer les modifications'
+                    : 'Enregistrer'
+                : 'Continuer'
+            }}
           </ds-button>
         </footer>
       </section>
@@ -554,54 +569,15 @@
 
                   <hr class="admin-production-session__divider" />
 
-                  @if (editingDetailsSessionId() === session.id) {
-                    <label class="admin-production-sessions__field admin-production-sessions__field--grow">
-                      Notes
-                      <input
-                        type="text"
-                        class="admin-production-sessions__input"
-                        [value]="detailsNotesDraft()"
-                        (input)="detailsNotesDraft.set($any($event.target).value)"
-                      />
-                    </label>
+                  <div class="admin-production-sessions__header-actions">
+                    <ds-button variant="outline" size="sm" (pressed)="startEditSession(session)">
+                      Modifier
+                    </ds-button>
 
-                    <div class="admin-production-sessions__field">
-                      <span>Durée (h)</span>
-                      <ds-number-stepper
-                        [(value)]="detailsDurationDraft"
-                        [step]="0.5"
-                        [min]="0"
-                        label="la durée"
-                      ></ds-number-stepper>
-                    </div>
-
-                    @if (detailsError()) {
-                      <p class="admin-production-sessions__submit-error" role="alert">{{ detailsError() }}</p>
-                    }
-
-                    <div class="admin-production-sessions__header-actions">
-                      <ds-button
-                        variant="primary"
-                        size="sm"
-                        [disabled]="savingDetails() || detailsDurationDraft() <= 0"
-                        (pressed)="saveDetails(session.id)"
-                      >
-                        {{ savingDetails() ? 'Enregistrement…' : 'Enregistrer' }}
-                      </ds-button>
-
-                      <ds-button variant="ghost" size="sm" (pressed)="cancelEditDetails()">Annuler</ds-button>
-                    </div>
-                  } @else {
-                    <div class="admin-production-sessions__header-actions">
-                      <ds-button variant="outline" size="sm" (pressed)="startEditDetails(session)">
-                        Modifier
-                      </ds-button>
-
-                      <ds-button variant="outline" size="sm" (pressed)="duplicateSession(session)">
-                        Dupliquer
-                      </ds-button>
-                    </div>
-                  }
+                    <ds-button variant="outline" size="sm" (pressed)="duplicateSession(session)">
+                      Dupliquer
+                    </ds-button>
+                  </div>
                 </div>
               }
             </article>

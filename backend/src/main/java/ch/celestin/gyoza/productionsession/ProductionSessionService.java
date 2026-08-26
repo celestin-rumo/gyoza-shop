@@ -2,7 +2,7 @@ package ch.celestin.gyoza.productionsession;
 
 import ch.celestin.gyoza.productionsession.dto.CreateProductionSessionRequest;
 import ch.celestin.gyoza.productionsession.dto.ProductionSessionResponse;
-import ch.celestin.gyoza.productionsession.dto.UpdateProductionSessionDetailsRequest;
+import ch.celestin.gyoza.productionsession.dto.UpdateProductionSessionRequest;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -17,5 +17,5 @@ public interface ProductionSessionService {
 
     ProductionSessionResponse updateOtherCosts(Long sessionId, BigDecimal otherCosts);
 
-    ProductionSessionResponse updateDetails(Long sessionId, UpdateProductionSessionDetailsRequest request);
+    ProductionSessionResponse updateSession(Long sessionId, UpdateProductionSessionRequest request);
 }

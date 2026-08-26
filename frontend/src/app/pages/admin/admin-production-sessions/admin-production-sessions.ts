@@ -118,19 +118,13 @@ export class AdminProductionSessions implements OnInit {
   protected readonly savingOtherCosts = signal(false);
   protected readonly otherCostsError = signal<string | null>(null);
 
-  // Inline "modifier" edit (notes + durée), opened from the actions row at the bottom of a
-  // session's expanded detail card.
-  protected readonly editingDetailsSessionId = signal<number | null>(null);
-  protected readonly detailsNotesDraft = signal('');
-  protected readonly detailsDurationDraft = signal(0);
-  protected readonly savingDetails = signal(false);
-  protected readonly detailsError = signal<string | null>(null);
-
   protected readonly wizardOpen = signal(false);
   protected readonly currentStepIndex = signal(DATE_STEP);
   protected readonly steps = WIZARD_STEPS;
   /** Batch number of the session this wizard run was pre-filled from, if any. */
   protected readonly duplicatingFromBatch = signal<string | null>(null);
+  /** Id of the session this wizard run is editing in place, if any (vs. creating a new one). */
+  protected readonly editingSessionId = signal<number | null>(null);
 
   private readonly stepHeading = viewChild<ElementRef<HTMLHeadingElement>>('stepHeading');
 
@@ -307,43 +301,55 @@ export class AdminProductionSessions implements OnInit {
     }
   }
 
-  protected startEditDetails(session: ProductionSession): void {
-    this.detailsError.set(null);
-    this.detailsNotesDraft.set(session.notes ?? '');
-    this.detailsDurationDraft.set(session.durationHours);
-    this.editingDetailsSessionId.set(session.id);
-  }
-
-  protected cancelEditDetails(): void {
-    this.editingDetailsSessionId.set(null);
-  }
-
-  protected async saveDetails(sessionId: number): Promise<void> {
-    this.savingDetails.set(true);
-    this.detailsError.set(null);
-
-    try {
-      const notes = this.detailsNotesDraft().trim();
-      const updated = await firstValueFrom(
-        this.adminProductionSessionService.updateDetails(
-          sessionId,
-          notes.length > 0 ? notes : null,
-          this.detailsDurationDraft(),
-        ),
-      );
-
-      this.sessions.update((sessions) => sessions.map((s) => (s.id === sessionId ? updated : s)));
-      this.editingDetailsSessionId.set(null);
-    } catch (error) {
-      this.detailsError.set(this.extractErrorMessage(error, 'Impossible de mettre à jour la session.'));
-    } finally {
-      this.savingDetails.set(false);
-    }
-  }
-
   protected openWizard(): void {
     this.resetForm();
     this.duplicatingFromBatch.set(null);
+    this.editingSessionId.set(null);
+    this.currentStepIndex.set(DATE_STEP);
+    this.wizardOpen.set(true);
+  }
+
+  /**
+   * Opens the wizard pre-filled from an existing session to edit it in place — every field
+   * except the date (fixed: it drives the batch number, never regenerated). Submitting sends a
+   * full update instead of creating a new session.
+   */
+  protected startEditSession(session: ProductionSession): void {
+    this.date.set(session.date);
+    this.notes.set(session.notes ?? '');
+    this.durationHours.set(session.durationHours);
+    this.otherCosts.set(session.otherCosts);
+
+    this.rawMaterialLines.set(
+      session.rawMaterialUsages.length > 0
+        ? session.rawMaterialUsages.map((usage) => ({
+            rawMaterialId: usage.rawMaterialId,
+            quantityUsed: usage.quantityUsed,
+            targetProductId: usage.targetProductId,
+          }))
+        : [this.emptyRawMaterialLine()],
+    );
+
+    this.participantLines.set(
+      session.participants.length > 0
+        ? session.participants.map((participant) => ({ userId: participant.userId }))
+        : [this.emptyParticipantLine()],
+    );
+
+    this.outputLines.set(
+      session.outputs.length > 0
+        ? session.outputs.map((output) => ({
+            productId: output.productId,
+            quantityProduced: output.quantityProduced,
+          }))
+        : [this.emptyOutputLine()],
+    );
+
+    this.purchaseDraftOpenIndex.set(null);
+    this.resetPurchaseDraft();
+    this.createError.set(null);
+    this.duplicatingFromBatch.set(null);
+    this.editingSessionId.set(session.id);
     this.currentStepIndex.set(DATE_STEP);
     this.wizardOpen.set(true);
   }
@@ -388,6 +394,7 @@ export class AdminProductionSessions implements OnInit {
     this.resetPurchaseDraft();
     this.createError.set(null);
     this.duplicatingFromBatch.set(session.batchNumber);
+    this.editingSessionId.set(null);
     this.currentStepIndex.set(DATE_STEP);
     this.wizardOpen.set(true);
   }
@@ -412,7 +419,11 @@ export class AdminProductionSessions implements OnInit {
     }
 
     if (this.currentStepIndex() === DURATION_STEP) {
-      await this.createSession();
+      if (this.editingSessionId() !== null) {
+        await this.updateSession();
+      } else {
+        await this.createSession();
+      }
       return;
     }
 
@@ -444,6 +455,36 @@ export class AdminProductionSessions implements OnInit {
       this.closeWizard();
     } catch (error) {
       this.createError.set(this.extractErrorMessage(error, 'Impossible d’enregistrer cette session.'));
+    } finally {
+      this.creating.set(false);
+    }
+  }
+
+  private async updateSession(): Promise<void> {
+    const sessionId = this.editingSessionId();
+    if (sessionId === null) {
+      return;
+    }
+
+    this.creating.set(true);
+    this.createError.set(null);
+
+    try {
+      const session = await firstValueFrom(
+        this.adminProductionSessionService.updateSession(sessionId, {
+          durationHours: this.durationHours(),
+          notes: this.notes().trim().length > 0 ? this.notes() : null,
+          otherCosts: this.otherCosts(),
+          rawMaterialUsages: this.validRawMaterialUsages(),
+          participants: this.validParticipants(),
+          outputs: this.validOutputs(),
+        }),
+      );
+
+      this.sessions.update((sessions) => sessions.map((s) => (s.id === sessionId ? session : s)));
+      this.closeWizard();
+    } catch (error) {
+      this.createError.set(this.extractErrorMessage(error, 'Impossible de mettre à jour cette session.'));
     } finally {
       this.creating.set(false);
     }
