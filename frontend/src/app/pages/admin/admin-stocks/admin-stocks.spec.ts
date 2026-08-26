@@ -97,32 +97,44 @@ describe('AdminStocks', () => {
     expect(stockInput.value).toBe('0');
   });
 
-  it('adds stock to an existing product via the custom quantity stepper', async () => {
+  it('adds stock to an existing product via the adjustment stepper and confirm popup', async () => {
     await flushLoad();
 
-    // stockToAdd defaults to 10; one increment brings it to 11.
-    clickAriaLabel('Augmenter la quantité à ajouter');
-    clickButton('Ajouter');
+    // stockDelta defaults to 1; one increment brings it to 2.
+    clickAriaLabel("Augmenter l'ajustement de stock");
+    clickButton('Valider');
+    fixture.detectChanges();
+    clickButton('Confirmer');
 
     const req = httpMock.expectOne('/api/admin/products/1/stock');
-    expect(req.request.body).toEqual({ quantity: 11 });
+    expect(req.request.body).toEqual({ quantity: 2 });
 
-    req.flush({ ...existingProduct, stockQuantity: 211 });
+    req.flush({ ...existingProduct, stockQuantity: 202 });
     httpMock.expectOne('/api/products').flush([]);
     await fixture.whenStable();
   });
 
-  it('removes stock from an existing product via the custom quantity stepper', async () => {
+  it('removes stock from a specific lot via the adjustment stepper and confirm popup', async () => {
     await flushLoad();
 
-    // stockToRemove defaults to 10; one decrement brings it to 9.
-    clickAriaLabel('Diminuer la quantité à retirer');
-    clickButton('Retirer');
+    // stockDelta defaults to 1; two decrements bring it to -1.
+    clickAriaLabel("Diminuer l'ajustement de stock");
+    clickAriaLabel("Diminuer l'ajustement de stock");
+    clickButton('Valider');
+    fixture.detectChanges();
 
-    const req = httpMock.expectOne('/api/admin/products/1/stock/remove');
-    expect(req.request.body).toEqual({ quantity: 9 });
+    httpMock
+      .expectOne('/api/admin/products/1/lots')
+      .flush([{ productOutputId: 5, batchNumber: 'L20260810-01', date: '2026-08-10', remainingQuantity: 20 }]);
+    await fixture.whenStable();
+    fixture.detectChanges();
 
-    req.flush({ ...existingProduct, stockQuantity: 191 });
+    clickButton('Confirmer');
+
+    const req = httpMock.expectOne('/api/admin/products/1/stock/remove-from-lot');
+    expect(req.request.body).toEqual({ productOutputId: 5, quantity: 1 });
+
+    req.flush({ ...existingProduct, stockQuantity: 199 });
     httpMock.expectOne('/api/products').flush([]);
     await fixture.whenStable();
   });
