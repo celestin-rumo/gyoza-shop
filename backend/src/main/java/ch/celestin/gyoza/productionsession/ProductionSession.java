@@ -86,6 +86,19 @@ public class ProductionSession {
         this.otherCosts = normalizeMoney(otherCosts != null ? otherCosts : BigDecimal.ZERO);
     }
 
+    public void changeDetails(String notes, BigDecimal durationHours) {
+        if (durationHours == null || durationHours.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException(
+                    "La durée de la session doit être supérieure à 0"
+            );
+        }
+
+        this.notes = notes;
+        // Ensure at least one decimal so the field always serializes with a decimal point
+        // ("5.0" rather than "5"), regardless of the scale the client sent.
+        this.durationHours = durationHours.scale() < 1 ? durationHours.setScale(1) : durationHours;
+    }
+
     public void changeOtherCosts(BigDecimal otherCosts) {
         if (otherCosts == null || otherCosts.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException(

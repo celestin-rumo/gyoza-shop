@@ -281,14 +281,7 @@
   border-radius: var(--gz-radius-lg);
 }
 
-.admin-production-session__row {
-  display: flex;
-  align-items: center;
-  gap: var(--gz-space-3);
-}
-
 .admin-production-session__toggle-heading {
-  flex: 1;
   margin: 0;
 }
 
@@ -423,4 +416,9 @@
   gap: var(--gz-space-3);
   color: var(--gz-text-secondary);
   font-size: var(--gz-fs-sm);
+}
+
+.admin-production-session__divider {
+  border: none;
+  border-top: 1px solid var(--gz-border-soft);
 }

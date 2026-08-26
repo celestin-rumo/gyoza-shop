@@ -3,6 +3,7 @@ package ch.celestin.gyoza.productionsession;
 import ch.celestin.gyoza.productionsession.dto.CreateProductionSessionRequest;
 import ch.celestin.gyoza.productionsession.dto.ProductionSessionResponse;
 import ch.celestin.gyoza.productionsession.dto.UpdateOtherCostsRequest;
+import ch.celestin.gyoza.productionsession.dto.UpdateProductionSessionDetailsRequest;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
@@ -39,5 +40,13 @@ public class AdminProductionSessionController {
             @Valid @RequestBody UpdateOtherCostsRequest request
     ) {
         return productionSessionService.updateOtherCosts(id, request.otherCosts());
+    }
+
+    @PatchMapping("/{id}/details")
+    public ProductionSessionResponse updateDetails(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateProductionSessionDetailsRequest request
+    ) {
+        return productionSessionService.updateDetails(id, request);
     }
 }
