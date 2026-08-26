@@ -6,7 +6,7 @@
 //
 // Usage: node scripts/fake-data/seed.mjs
 // Config (env vars, all optional): API_BASE, ADMIN_EMAIL, ADMIN_PASSWORD,
-// DAYS_BACK, DAYS_FORWARD.
+// DAYS_BACK, DAYS_FORWARD, SLOT_COUNT, SESSION_COUNT.
 
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
@@ -17,6 +17,10 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@gyoza.local';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'changeme';
 const DAYS_BACK = Number(process.env.DAYS_BACK ?? 60);
 const DAYS_FORWARD = Number(process.env.DAYS_FORWARD ?? 14);
+// Total slot rows created (spread over a few distinct dates — each date gets every
+// method x content-type combination below, so this should be a multiple of 4).
+const SLOT_COUNT = Number(process.env.SLOT_COUNT ?? 8);
+const SESSION_COUNT = Number(process.env.SESSION_COUNT ?? 11);
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SCRIPT_DIR, '../..');
@@ -102,6 +106,19 @@ function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+/** `count` day-offsets spread evenly across [min, max] (inclusive), as distinct integers. */
+function evenlySpacedOffsets(count, min, max) {
+  if (count <= 1) {
+    return [max];
+  }
+
+  const offsets = new Set();
+  for (let i = 0; i < count; i++) {
+    offsets.add(Math.round(min + (i * (max - min)) / (count - 1)));
+  }
+  return [...offsets];
+}
+
 // --- seeding steps ---
 
 async function login() {
@@ -160,10 +177,14 @@ async function ensurePurchases(materials) {
 }
 
 async function seedSlots() {
+  const combosPerDate = SLOT_WINDOWS.length * CONTENT_TYPES.length;
+  const dateCount = Math.max(1, Math.round(SLOT_COUNT / combosPerDate));
+  const offsets = evenlySpacedOffsets(dateCount, -DAYS_FORWARD, DAYS_BACK);
+
   const slots = [];
   let created = 0;
 
-  for (let offset = DAYS_BACK; offset >= -DAYS_FORWARD; offset--) {
+  for (const offset of offsets) {
     const date = isoDate(daysAgo(offset));
 
     for (const window of SLOT_WINDOWS) {
@@ -179,7 +200,7 @@ async function seedSlots() {
     }
   }
 
-  console.log(`  + ${created} créneau(x) créé(s) (${slots.length} disponibles pour les commandes)`);
+  console.log(`  + ${created} créneau(x) créé(s) sur ${offsets.length} jour(s) (${slots.length} disponibles pour les commandes)`);
   return slots;
 }
 
@@ -192,9 +213,10 @@ async function getAdminUserId() {
 }
 
 async function seedProductionSessions(materials, products, participantUserId) {
+  const offsets = evenlySpacedOffsets(SESSION_COUNT, 1, DAYS_BACK);
   let created = 0;
 
-  for (let offset = DAYS_BACK; offset >= 1; offset -= 3) {
+  for (const offset of offsets) {
     const date = isoDate(daysAgo(offset));
 
     try {
