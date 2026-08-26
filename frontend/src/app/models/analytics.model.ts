@@ -44,3 +44,31 @@ export interface ProductionAnalytics {
   totalActualNetProfit: number;
   sessions: SessionCostPoint[];
 }
+
+export interface SessionPeriodPoint {
+  date: string;
+  batchNumber: string;
+  hourlyRevenue: number;
+  materialCostPerGyoza: number;
+  grossProfit: number;
+  netProfit: number;
+}
+
+export interface ParticipantHours {
+  participantName: string;
+  hours: number;
+}
+
+export interface ProductionPeriodAnalytics {
+  startDate: string;
+  endDate: string;
+  averageHourlyRevenue: number;
+  /** vs. the immediately preceding period of equal length; null when it had no sessions. */
+  averageHourlyRevenueChangePercent: number | null;
+  averageMaterialCostPerGyoza: number;
+  averageMaterialCostPerGyozaChangePercent: number | null;
+  totalGrossProfit: number;
+  totalNetProfit: number;
+  sessions: SessionPeriodPoint[];
+  participantHours: ParticipantHours[];
+}

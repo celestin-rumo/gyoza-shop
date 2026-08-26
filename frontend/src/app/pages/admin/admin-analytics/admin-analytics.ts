@@ -28,10 +28,18 @@ import {
 } from 'chart.js';
 
 import { AdminAnalyticsService } from '../../../services/admin-analytics.service';
+import { AdminProductService } from '../../../services/admin-product.service';
 import { AuthService } from '../../../services/auth.service';
 import { CurrencyService } from '../../../services/currency.service';
-import { Analytics, AnalyticsTimeSeries, ProductionAnalytics } from '../../../models/analytics.model';
+import {
+  Analytics,
+  AnalyticsTimeSeries,
+  ParticipantHours,
+  ProductionAnalytics,
+  ProductionPeriodAnalytics,
+} from '../../../models/analytics.model';
 import { OrderStatus } from '../../../models/order.model';
+import { Product } from '../../../models/product.model';
 import { DsButtonComponent } from '../../../design-system/components/ds-button/ds-button.component';
 import { DsSectionHeaderComponent } from '../../../design-system/components/ds-section-header/ds-section-header.component';
 
@@ -78,6 +86,12 @@ interface StatTile {
   value: string;
 }
 
+interface PeriodStatTile {
+  label: string;
+  value: string;
+  trend?: { direction: 'up' | 'down'; label: string };
+}
+
 interface StatusCount {
   status: OrderStatus;
   label: string;
@@ -119,6 +133,21 @@ function defaultEndDate(): string {
   return toIsoDateInputValue(new Date());
 }
 
+function startOfWeek(date: Date): Date {
+  const result = new Date(date);
+  const day = result.getDay();
+  result.setDate(result.getDate() + (day === 0 ? -6 : 1 - day));
+  return result;
+}
+
+function startOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function startOfYear(date: Date): Date {
+  return new Date(date.getFullYear(), 0, 1);
+}
+
 @Component({
   selector: 'app-admin-analytics',
   imports: [DsSectionHeaderComponent, DsButtonComponent, RouterLink],
@@ -127,6 +156,7 @@ function defaultEndDate(): string {
 })
 export class AdminAnalytics implements OnInit, OnDestroy {
   private readonly analyticsService = inject(AdminAnalyticsService);
+  private readonly productService = inject(AdminProductService);
   private readonly authService = inject(AuthService);
   private readonly currencyService = inject(CurrencyService);
   private readonly router = inject(Router);
@@ -138,6 +168,11 @@ export class AdminAnalytics implements OnInit, OnDestroy {
   private readonly gyozaCanvas = viewChild<ElementRef<HTMLCanvasElement>>('gyozaChart');
   private readonly sessionCostCanvas = viewChild<ElementRef<HTMLCanvasElement>>('sessionCostChart');
   private readonly flavorCostCanvas = viewChild<ElementRef<HTMLCanvasElement>>('flavorCostChart');
+  private readonly periodHourlyRevenueCanvas = viewChild<ElementRef<HTMLCanvasElement>>('periodHourlyRevenueChart');
+  private readonly periodMaterialCostCanvas = viewChild<ElementRef<HTMLCanvasElement>>('periodMaterialCostChart');
+  private readonly periodProfitCanvas = viewChild<ElementRef<HTMLCanvasElement>>('periodProfitChart');
+  private readonly participantHoursCanvas = viewChild<ElementRef<HTMLCanvasElement>>('participantHoursChart');
+  private readonly stockByFlavorCanvas = viewChild<ElementRef<HTMLCanvasElement>>('stockByFlavorChart');
 
   private statusChart: Chart | null = null;
   private revenueChart: Chart | null = null;
@@ -146,6 +181,11 @@ export class AdminAnalytics implements OnInit, OnDestroy {
   private gyozaChart: Chart | null = null;
   private sessionCostChart: Chart | null = null;
   private flavorCostChart: Chart | null = null;
+  private periodHourlyRevenueChart: Chart | null = null;
+  private periodMaterialCostChart: Chart | null = null;
+  private periodProfitChart: Chart | null = null;
+  private participantHoursChart: Chart | null = null;
+  private stockByFlavorChart: Chart | null = null;
 
   protected readonly statusOrder = STATUS_ORDER;
   protected readonly allProducts = ALL_PRODUCTS;
@@ -165,7 +205,18 @@ export class AdminAnalytics implements OnInit, OnDestroy {
   protected readonly productionAnalyticsLoading = signal(true);
   protected readonly productionAnalyticsLoadError = signal<string | null>(null);
 
+  protected readonly periodStartDate = signal(defaultStartDate());
+  protected readonly periodEndDate = signal(defaultEndDate());
+  protected readonly productionPeriodAnalytics = signal<ProductionPeriodAnalytics | null>(null);
+  protected readonly productionPeriodLoading = signal(true);
+  protected readonly productionPeriodLoadError = signal<string | null>(null);
+
+  protected readonly products = signal<Product[]>([]);
+  protected readonly productsLoading = signal(true);
+  protected readonly productsLoadError = signal<string | null>(null);
+
   protected readonly rangeInvalid = computed(() => this.startDate() > this.endDate());
+  protected readonly periodRangeInvalid = computed(() => this.periodStartDate() > this.periodEndDate());
 
   protected readonly statTiles = computed<StatTile[]>(() => {
     const data = this.analytics();
@@ -252,6 +303,45 @@ export class AdminAnalytics implements OnInit, OnDestroy {
     return PRODUCT_COLORS[index % PRODUCT_COLORS.length];
   }
 
+  protected readonly periodStatTiles = computed<PeriodStatTile[]>(() => {
+    const data = this.productionPeriodAnalytics();
+
+    if (!data) {
+      return [];
+    }
+
+    return [
+      {
+        label: 'Revenu horaire moyen',
+        value: `${this.currencyService.format(data.averageHourlyRevenue)}/h`,
+        trend: this.trendFor(data.averageHourlyRevenueChangePercent),
+      },
+      {
+        label: 'Coût matière / gyoza (moyen)',
+        value: this.currencyService.format(data.averageMaterialCostPerGyoza),
+        trend: this.trendFor(data.averageMaterialCostPerGyozaChangePercent),
+      },
+      { label: 'Bénéfice brut cumulé', value: this.currencyService.format(data.totalGrossProfit) },
+      { label: 'Bénéfice net cumulé', value: this.currencyService.format(data.totalNetProfit) },
+    ];
+  });
+
+  private trendFor(changePercent: number | null): PeriodStatTile['trend'] {
+    if (changePercent === null) {
+      return undefined;
+    }
+
+    const direction = changePercent >= 0 ? 'up' : 'down';
+    const arrow = direction === 'up' ? '↑' : '↓';
+    const magnitude = Math.abs(changePercent).toLocaleString('fr-CH', { maximumFractionDigits: 1 });
+
+    return { direction, label: `${arrow} ${magnitude} % vs période précédente` };
+  }
+
+  protected readonly sortedProducts = computed(() =>
+    [...this.products()].sort((a, b) => a.name.localeCompare(b.name, 'fr')),
+  );
+
   constructor() {
     effect(() => {
       const counts = this.statusCounts();
@@ -315,12 +405,59 @@ export class AdminAnalytics implements OnInit, OnDestroy {
         this.renderFlavorCostChart(canvas, this.flavorNames(), data.averageCostPerGyozaByFlavor);
       }
     });
+
+    effect(() => {
+      const sessions = this.productionPeriodAnalytics()?.sessions;
+      const canvas = this.periodHourlyRevenueCanvas()?.nativeElement;
+
+      if (canvas && sessions) {
+        this.renderPeriodHourlyRevenueChart(canvas, sessions);
+      }
+    });
+
+    effect(() => {
+      const sessions = this.productionPeriodAnalytics()?.sessions;
+      const canvas = this.periodMaterialCostCanvas()?.nativeElement;
+
+      if (canvas && sessions) {
+        this.renderPeriodMaterialCostChart(canvas, sessions);
+      }
+    });
+
+    effect(() => {
+      const sessions = this.productionPeriodAnalytics()?.sessions;
+      const canvas = this.periodProfitCanvas()?.nativeElement;
+
+      if (canvas && sessions) {
+        this.renderPeriodProfitChart(canvas, sessions);
+      }
+    });
+
+    effect(() => {
+      const participantHours = this.productionPeriodAnalytics()?.participantHours;
+      const canvas = this.participantHoursCanvas()?.nativeElement;
+
+      if (canvas && participantHours) {
+        this.renderParticipantHoursChart(canvas, participantHours);
+      }
+    });
+
+    effect(() => {
+      const products = this.sortedProducts();
+      const canvas = this.stockByFlavorCanvas()?.nativeElement;
+
+      if (canvas && products.length > 0) {
+        this.renderStockByFlavorChart(canvas, products);
+      }
+    });
   }
 
   ngOnInit(): void {
     this.loadAnalytics();
     this.loadTimeSeries();
     this.loadProductionAnalytics();
+    this.loadProductionPeriodAnalytics();
+    this.loadProducts();
   }
 
   ngOnDestroy(): void {
@@ -331,6 +468,11 @@ export class AdminAnalytics implements OnInit, OnDestroy {
     this.gyozaChart?.destroy();
     this.sessionCostChart?.destroy();
     this.flavorCostChart?.destroy();
+    this.periodHourlyRevenueChart?.destroy();
+    this.periodMaterialCostChart?.destroy();
+    this.periodProfitChart?.destroy();
+    this.participantHoursChart?.destroy();
+    this.stockByFlavorChart?.destroy();
   }
 
   protected logout(): void {
@@ -359,6 +501,32 @@ export class AdminAnalytics implements OnInit, OnDestroy {
     }
 
     this.loadTimeSeries();
+  }
+
+  protected onPeriodStartDateChange(value: string): void {
+    this.periodStartDate.set(value);
+  }
+
+  protected onPeriodEndDateChange(value: string): void {
+    this.periodEndDate.set(value);
+  }
+
+  protected applyPeriodRange(): void {
+    if (this.periodRangeInvalid()) {
+      return;
+    }
+
+    this.loadProductionPeriodAnalytics();
+  }
+
+  protected selectPeriodPreset(preset: 'week' | 'month' | 'year'): void {
+    const today = new Date();
+    const start =
+      preset === 'week' ? startOfWeek(today) : preset === 'month' ? startOfMonth(today) : startOfYear(today);
+
+    this.periodStartDate.set(toIsoDateInputValue(start));
+    this.periodEndDate.set(toIsoDateInputValue(today));
+    this.loadProductionPeriodAnalytics();
   }
 
   private async loadAnalytics(): Promise<void> {
@@ -402,6 +570,36 @@ export class AdminAnalytics implements OnInit, OnDestroy {
       this.productionAnalyticsLoadError.set('Impossible de charger la rentabilité de production.');
     } finally {
       this.productionAnalyticsLoading.set(false);
+    }
+  }
+
+  private async loadProductionPeriodAnalytics(): Promise<void> {
+    this.productionPeriodLoading.set(true);
+    this.productionPeriodLoadError.set(null);
+
+    try {
+      const data = await firstValueFrom(
+        this.analyticsService.getProductionPeriodAnalytics(this.periodStartDate(), this.periodEndDate()),
+      );
+      this.productionPeriodAnalytics.set(data);
+    } catch (error) {
+      this.productionPeriodLoadError.set(this.extractErrorMessage(error));
+    } finally {
+      this.productionPeriodLoading.set(false);
+    }
+  }
+
+  private async loadProducts(): Promise<void> {
+    this.productsLoading.set(true);
+    this.productsLoadError.set(null);
+
+    try {
+      const products = await firstValueFrom(this.productService.getAllProducts());
+      this.products.set(products);
+    } catch {
+      this.productsLoadError.set('Impossible de charger le stock actuel.');
+    } finally {
+      this.productsLoading.set(false);
     }
   }
 
@@ -829,6 +1027,294 @@ export class AdminAnalytics implements OnInit, OnDestroy {
           x: {
             beginAtZero: true,
             ticks: { color: theme.textSecondary },
+            grid: { color: theme.gridline },
+          },
+          y: {
+            ticks: { color: theme.textSecondary },
+            grid: { display: false },
+          },
+        },
+      },
+    });
+  }
+  private renderPeriodHourlyRevenueChart(
+    canvas: HTMLCanvasElement,
+    sessions: ProductionPeriodAnalytics['sessions'],
+  ): void {
+    const theme = this.chartTheme();
+    const labels = sessions.map((session) => session.batchNumber);
+    const values = sessions.map((session) => session.hourlyRevenue);
+
+    if (this.periodHourlyRevenueChart) {
+      this.periodHourlyRevenueChart.data.labels = labels;
+      this.periodHourlyRevenueChart.data.datasets[0].data = values;
+      this.periodHourlyRevenueChart.update();
+      return;
+    }
+
+    this.periodHourlyRevenueChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            data: values,
+            borderColor: theme.accent,
+            backgroundColor: withOpacity(theme.accent, 0.1),
+            borderWidth: 2,
+            fill: true,
+            tension: 0.25,
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            pointBackgroundColor: theme.accent,
+            pointBorderColor: theme.surface,
+            pointBorderWidth: 2,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            ...this.tooltipBase(theme),
+            displayColors: false,
+            callbacks: {
+              label: (context: TooltipItem<'line'>) =>
+                ` ${this.currencyService.format(context.parsed.y ?? 0)}/h`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: theme.textSecondary, autoSkip: true, maxTicksLimit: 8 },
+            grid: { display: false },
+          },
+          y: {
+            ticks: { color: theme.textSecondary },
+            grid: { color: theme.gridline },
+          },
+        },
+      },
+    });
+  }
+
+  private renderPeriodMaterialCostChart(
+    canvas: HTMLCanvasElement,
+    sessions: ProductionPeriodAnalytics['sessions'],
+  ): void {
+    const theme = this.chartTheme();
+    const labels = sessions.map((session) => session.batchNumber);
+    const values = sessions.map((session) => session.materialCostPerGyoza);
+
+    if (this.periodMaterialCostChart) {
+      this.periodMaterialCostChart.data.labels = labels;
+      this.periodMaterialCostChart.data.datasets[0].data = values;
+      this.periodMaterialCostChart.update();
+      return;
+    }
+
+    this.periodMaterialCostChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            data: values,
+            backgroundColor: theme.accent,
+            borderRadius: 4,
+            maxBarThickness: 24,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            ...this.tooltipBase(theme),
+            displayColors: false,
+            callbacks: {
+              label: (context: TooltipItem<'bar'>) =>
+                ` ${this.currencyService.format(context.parsed.y ?? 0)}/gyoza`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: theme.textSecondary, autoSkip: true, maxTicksLimit: 8 },
+            grid: { display: false },
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: theme.textSecondary },
+            grid: { color: theme.gridline },
+          },
+        },
+      },
+    });
+  }
+
+  private renderPeriodProfitChart(canvas: HTMLCanvasElement, sessions: ProductionPeriodAnalytics['sessions']): void {
+    const theme = this.chartTheme();
+    const labels = sessions.map((session) => session.batchNumber);
+    const grossValues = sessions.map((session) => session.grossProfit);
+    const netValues = sessions.map((session) => session.netProfit);
+
+    if (this.periodProfitChart) {
+      this.periodProfitChart.data.labels = labels;
+      this.periodProfitChart.data.datasets[0].data = grossValues;
+      this.periodProfitChart.data.datasets[1].data = netValues;
+      this.periodProfitChart.update();
+      return;
+    }
+
+    this.periodProfitChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Bénéfice brut', data: grossValues, backgroundColor: theme.accent, borderRadius: 4, maxBarThickness: 18 },
+          { label: 'Bénéfice net', data: netValues, backgroundColor: theme.sage, borderRadius: 4, maxBarThickness: 18 },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            align: 'end',
+            labels: { color: theme.textSecondary, boxWidth: 12, boxHeight: 12 },
+          },
+          tooltip: {
+            ...this.tooltipBase(theme),
+            callbacks: {
+              label: (context: TooltipItem<'bar'>) =>
+                ` ${context.dataset.label}: ${this.currencyService.format(context.parsed.y ?? 0)}`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: theme.textSecondary, autoSkip: true, maxTicksLimit: 8 },
+            grid: { display: false },
+          },
+          y: {
+            ticks: { color: theme.textSecondary },
+            grid: { color: theme.gridline },
+          },
+        },
+      },
+    });
+  }
+
+  private renderParticipantHoursChart(canvas: HTMLCanvasElement, participantHours: ParticipantHours[]): void {
+    const theme = this.chartTheme();
+    const labels = participantHours.map((entry) => entry.participantName);
+    const values = participantHours.map((entry) => entry.hours);
+
+    if (this.participantHoursChart) {
+      this.participantHoursChart.data.labels = labels;
+      this.participantHoursChart.data.datasets[0].data = values;
+      this.participantHoursChart.update();
+      return;
+    }
+
+    this.participantHoursChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            data: values,
+            backgroundColor: theme.sage,
+            borderRadius: 4,
+            maxBarThickness: 24,
+          },
+        ],
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            ...this.tooltipBase(theme),
+            displayColors: false,
+            callbacks: {
+              label: (context: TooltipItem<'bar'>) => ` ${context.parsed.x} h`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: { color: theme.textSecondary },
+            grid: { color: theme.gridline },
+          },
+          y: {
+            ticks: { color: theme.textSecondary },
+            grid: { display: false },
+          },
+        },
+      },
+    });
+  }
+
+  private renderStockByFlavorChart(canvas: HTMLCanvasElement, products: Product[]): void {
+    const theme = this.chartTheme();
+    const labels = products.map((product) => product.name);
+    const values = products.map((product) => product.stockQuantity);
+    const colors = products.map((_, index) => this.flavorColorFor(index));
+
+    if (this.stockByFlavorChart) {
+      this.stockByFlavorChart.data.labels = labels;
+      this.stockByFlavorChart.data.datasets[0].data = values;
+      this.stockByFlavorChart.data.datasets[0].backgroundColor = colors;
+      this.stockByFlavorChart.update();
+      return;
+    }
+
+    this.stockByFlavorChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            data: values,
+            backgroundColor: colors,
+            borderRadius: 4,
+            maxBarThickness: 32,
+          },
+        ],
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            ...this.tooltipBase(theme),
+            displayColors: false,
+            callbacks: {
+              label: (context: TooltipItem<'bar'>) =>
+                ` ${context.parsed.x} gyoza${context.parsed.x === 1 ? '' : 's'} en stock`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: { color: theme.textSecondary, precision: 0 },
             grid: { color: theme.gridline },
           },
           y: {
