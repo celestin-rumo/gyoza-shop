@@ -30,6 +30,7 @@ import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -303,33 +304,7 @@ class AdminProductionSessionControllerIT extends AbstractIntegrationTest {
     }
 
     @Test
-    void updateDetails_asAdmin_updatesNotesAndDurationAndRecomputesSessionHours() throws Exception {
-        MockHttpSession adminSession = loginAsAdmin();
-
-        Product product = saveInactiveProduct("Saumon gyoza", 5);
-        RawMaterial rawMaterial = rawMaterialRepository.save(new RawMaterial("Saumon", "kg"));
-        User admin = userRepository.findByEmail("admin@example.com").orElseThrow();
-
-        Integer sessionId = createSessionAndReturnId(adminSession, "2026-08-26", rawMaterial.getId(), admin.getId(), product.getId());
-
-        Cookie csrf = fetchCsrfCookie();
-        mockMvc.perform(patch("/api/admin/production-sessions/{id}/details", sessionId)
-                        .session(adminSession)
-                        .cookie(csrf)
-                        .header("X-XSRF-TOKEN", csrf.getValue())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"notes": "Session recomptée", "durationHours": 5}
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.notes", is("Session recomptée")))
-                .andExpect(jsonPath("$.durationHours", is(5.0)))
-                // 1 participant x 5h.
-                .andExpect(jsonPath("$.costSummary.totalSessionHours", is(5.0)));
-    }
-
-    @Test
-    void updateDetails_withZeroDuration_isRejected() throws Exception {
+    void updateSession_withZeroDuration_isRejected() throws Exception {
         MockHttpSession adminSession = loginAsAdmin();
 
         Product product = saveInactiveProduct("Boeuf gyoza rec", 5);
@@ -339,15 +314,227 @@ class AdminProductionSessionControllerIT extends AbstractIntegrationTest {
         Integer sessionId = createSessionAndReturnId(adminSession, "2026-08-27", rawMaterial.getId(), admin.getId(), product.getId());
 
         Cookie csrf = fetchCsrfCookie();
-        mockMvc.perform(patch("/api/admin/production-sessions/{id}/details", sessionId)
+        mockMvc.perform(put("/api/admin/production-sessions/{id}", sessionId)
                         .session(adminSession)
                         .cookie(csrf)
                         .header("X-XSRF-TOKEN", csrf.getValue())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"notes": null, "durationHours": 0}
-                                """))
+                                {
+                                  "durationHours": 0,
+                                  "rawMaterialUsages": [
+                                    {"rawMaterialId": %d, "quantityUsed": 1}
+                                  ],
+                                  "participants": [
+                                    {"userId": "%s"}
+                                  ],
+                                  "outputs": [
+                                    {"productId": %d, "quantityProduced": 1}
+                                  ]
+                                }
+                                """.formatted(rawMaterial.getId(), admin.getId(), product.getId())))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void updateSession_asAdmin_replacesEverythingExceptDate() throws Exception {
+        MockHttpSession adminSession = loginAsAdmin();
+
+        Product productA = saveInactiveProduct("Riz gyoza", 0);
+        Product productB = saveInactiveProduct("Nouille gyoza", 0);
+        RawMaterial rawMaterial1 = rawMaterialRepository.save(new RawMaterial("Riz", "kg"));
+        RawMaterial rawMaterial2 = rawMaterialRepository.save(new RawMaterial("Nouilles", "kg"));
+        User admin = userRepository.findByEmail("admin@example.com").orElseThrow();
+
+        Cookie createCsrf = fetchCsrfCookie();
+        var createResult = mockMvc.perform(post("/api/admin/production-sessions")
+                        .session(adminSession)
+                        .cookie(createCsrf)
+                        .header("X-XSRF-TOKEN", createCsrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "date": "2026-08-28",
+                                  "durationHours": 2,
+                                  "rawMaterialUsages": [
+                                    {"rawMaterialId": %d, "quantityUsed": 3}
+                                  ],
+                                  "participants": [
+                                    {"userId": "%s"}
+                                  ],
+                                  "outputs": [
+                                    {"productId": %d, "quantityProduced": 10}
+                                  ]
+                                }
+                                """.formatted(rawMaterial1.getId(), admin.getId(), productA.getId())))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        Integer sessionId = JsonPath.read(createResult.getResponse().getContentAsString(), "$.id");
+
+        // Swap the raw material, keep the same participant, bump productA's quantity and add
+        // productB as a brand-new output line.
+        Cookie updateCsrf = fetchCsrfCookie();
+        mockMvc.perform(put("/api/admin/production-sessions/{id}", sessionId)
+                        .session(adminSession)
+                        .cookie(updateCsrf)
+                        .header("X-XSRF-TOKEN", updateCsrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "durationHours": 5,
+                                  "notes": "Note modifiée",
+                                  "otherCosts": 4,
+                                  "rawMaterialUsages": [
+                                    {"rawMaterialId": %d, "quantityUsed": 2}
+                                  ],
+                                  "participants": [
+                                    {"userId": "%s"}
+                                  ],
+                                  "outputs": [
+                                    {"productId": %d, "quantityProduced": 15},
+                                    {"productId": %d, "quantityProduced": 8}
+                                  ]
+                                }
+                                """.formatted(rawMaterial2.getId(), admin.getId(), productA.getId(), productB.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.durationHours", is(5.0)))
+                .andExpect(jsonPath("$.notes", is("Note modifiée")))
+                .andExpect(jsonPath("$.otherCosts", is(4.0)))
+                .andExpect(jsonPath("$.rawMaterialUsages", hasSize(1)))
+                .andExpect(jsonPath("$.rawMaterialUsages[0].rawMaterialName", is("Nouilles")))
+                .andExpect(jsonPath("$.outputs", hasSize(2)));
+
+        mockMvc.perform(get("/api/admin/products").session(adminSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == %d)].stockQuantity".formatted(productA.getId()), is(List.of(15))))
+                .andExpect(jsonPath("$[?(@.id == %d)].stockQuantity".formatted(productB.getId()), is(List.of(8))));
+    }
+
+    @Test
+    void updateSession_reducingOutputQuantity_adjustsStockDownward() throws Exception {
+        MockHttpSession adminSession = loginAsAdmin();
+
+        Product product = saveInactiveProduct("Canard gyoza rec", 0);
+        RawMaterial rawMaterial = rawMaterialRepository.save(new RawMaterial("Canard rec", "kg"));
+        User admin = userRepository.findByEmail("admin@example.com").orElseThrow();
+
+        Integer sessionId = createSessionAndReturnId(adminSession, "2026-08-29", rawMaterial.getId(), admin.getId(), product.getId());
+        // createSessionAndReturnId produces quantityProduced 1 — bump it to 20 first so there's
+        // room to reduce it meaningfully.
+        Cookie bumpCsrf = fetchCsrfCookie();
+        mockMvc.perform(put("/api/admin/production-sessions/{id}", sessionId)
+                        .session(adminSession)
+                        .cookie(bumpCsrf)
+                        .header("X-XSRF-TOKEN", bumpCsrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "durationHours": 2,
+                                  "rawMaterialUsages": [
+                                    {"rawMaterialId": %d, "quantityUsed": 1}
+                                  ],
+                                  "participants": [
+                                    {"userId": "%s"}
+                                  ],
+                                  "outputs": [
+                                    {"productId": %d, "quantityProduced": 20}
+                                  ]
+                                }
+                                """.formatted(rawMaterial.getId(), admin.getId(), product.getId())))
+                .andExpect(status().isOk());
+
+        Cookie reduceCsrf = fetchCsrfCookie();
+        mockMvc.perform(put("/api/admin/production-sessions/{id}", sessionId)
+                        .session(adminSession)
+                        .cookie(reduceCsrf)
+                        .header("X-XSRF-TOKEN", reduceCsrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "durationHours": 2,
+                                  "rawMaterialUsages": [
+                                    {"rawMaterialId": %d, "quantityUsed": 1}
+                                  ],
+                                  "participants": [
+                                    {"userId": "%s"}
+                                  ],
+                                  "outputs": [
+                                    {"productId": %d, "quantityProduced": 5}
+                                  ]
+                                }
+                                """.formatted(rawMaterial.getId(), admin.getId(), product.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.outputs[0].quantityProduced", is(5)));
+
+        mockMvc.perform(get("/api/admin/products").session(adminSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == %d)].stockQuantity".formatted(product.getId()), is(List.of(5))));
+    }
+
+    @Test
+    void updateSession_removingAnOutputWithNoSales_removesItAndGivesBackStock() throws Exception {
+        MockHttpSession adminSession = loginAsAdmin();
+
+        Product keptProduct = saveInactiveProduct("Poulet gyoza rec", 0);
+        Product droppedProduct = saveInactiveProduct("Dinde gyoza rec", 0);
+        RawMaterial rawMaterial = rawMaterialRepository.save(new RawMaterial("Poulet rec", "kg"));
+        User admin = userRepository.findByEmail("admin@example.com").orElseThrow();
+
+        Cookie createCsrf = fetchCsrfCookie();
+        var createResult = mockMvc.perform(post("/api/admin/production-sessions")
+                        .session(adminSession)
+                        .cookie(createCsrf)
+                        .header("X-XSRF-TOKEN", createCsrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "date": "2026-08-30",
+                                  "durationHours": 2,
+                                  "rawMaterialUsages": [
+                                    {"rawMaterialId": %d, "quantityUsed": 1}
+                                  ],
+                                  "participants": [
+                                    {"userId": "%s"}
+                                  ],
+                                  "outputs": [
+                                    {"productId": %d, "quantityProduced": 10},
+                                    {"productId": %d, "quantityProduced": 5}
+                                  ]
+                                }
+                                """.formatted(rawMaterial.getId(), admin.getId(), keptProduct.getId(), droppedProduct.getId())))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        Integer sessionId = JsonPath.read(createResult.getResponse().getContentAsString(), "$.id");
+
+        Cookie updateCsrf = fetchCsrfCookie();
+        mockMvc.perform(put("/api/admin/production-sessions/{id}", sessionId)
+                        .session(adminSession)
+                        .cookie(updateCsrf)
+                        .header("X-XSRF-TOKEN", updateCsrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "durationHours": 2,
+                                  "rawMaterialUsages": [
+                                    {"rawMaterialId": %d, "quantityUsed": 1}
+                                  ],
+                                  "participants": [
+                                    {"userId": "%s"}
+                                  ],
+                                  "outputs": [
+                                    {"productId": %d, "quantityProduced": 10}
+                                  ]
+                                }
+                                """.formatted(rawMaterial.getId(), admin.getId(), keptProduct.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.outputs", hasSize(1)))
+                .andExpect(jsonPath("$.outputs[0].productName", is("Poulet gyoza rec")));
+
+        mockMvc.perform(get("/api/admin/products").session(adminSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == %d)].stockQuantity".formatted(droppedProduct.getId()), is(List.of(0))));
     }
 
     @Test

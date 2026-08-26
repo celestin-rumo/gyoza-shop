@@ -72,6 +72,29 @@ public class ProductOutput {
         allocations.add(allocation);
     }
 
+    /**
+     * Changes the produced quantity (session edit), keeping {@link #remainingQuantity} in sync
+     * with whatever has already been consumed by allocations — it can never drop below that
+     * already-consumed amount.
+     */
+    public void changeQuantityProduced(int newQuantityProduced) {
+        if (newQuantityProduced <= 0) {
+            throw new IllegalArgumentException(
+                    "La quantité produite doit être supérieure à 0"
+            );
+        }
+
+        int consumed = quantityProduced - remainingQuantity;
+        if (newQuantityProduced < consumed) {
+            throw new IllegalArgumentException(
+                    "La quantité produite ne peut pas être inférieure à la quantité déjà vendue (" + consumed + ")"
+            );
+        }
+
+        this.quantityProduced = newQuantityProduced;
+        this.remainingQuantity = newQuantityProduced - consumed;
+    }
+
     /** Consumes up to `quantity` units from this batch — see ProductOutputAllocationService. */
     public void consume(int quantity) {
         if (quantity <= 0 || quantity > remainingQuantity) {
