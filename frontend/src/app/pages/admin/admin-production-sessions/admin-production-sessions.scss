@@ -149,6 +149,7 @@
 .admin-production-sessions__modal-body {
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
   gap: var(--gz-space-4);
   min-height: 220px;
 }
@@ -208,9 +209,8 @@
   }
 }
 
-.admin-production-sessions__input--sm {
-  width: 140px;
-  flex: none;
+.admin-production-sessions__select {
+  padding-right: 32px;
 }
 
 .admin-production-sessions__lines {

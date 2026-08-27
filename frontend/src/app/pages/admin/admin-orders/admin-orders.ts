@@ -10,7 +10,6 @@ import { Order, OrderItem, OrderStatus } from '../../../models/order.model';
 import {
   CONTENT_TYPE_LABELS,
   FULFILLMENT_METHOD_LABELS,
-  FulfillmentMethod,
   formatTimeRange,
 } from '../../../models/fulfillment.model';
 import { DsButtonComponent } from '../../../design-system/components/ds-button/ds-button.component';
@@ -57,14 +56,6 @@ interface PrepProduct {
   productName: string;
   totalUnits: number;
   packs: PrepPack[];
-}
-
-interface PrepSlotGroup {
-  date: string;
-  fulfillmentMethod: FulfillmentMethod;
-  startTime: string;
-  endTime: string;
-  products: PrepProduct[];
 }
 
 @Component({
@@ -159,36 +150,15 @@ export class AdminOrders implements OnInit {
     return counts;
   });
 
-  /** Packs to prepare per date+créneau, by product, among FRESH reserved orders. */
-  protected readonly prepSummaryFreshBySlot = computed<PrepSlotGroup[]>(() =>
-    this.groupBySlot(this.reservedOrders().filter((order) => order.contentType === 'FRESH')),
+  /** Packs to prepare by product, among FRESH reserved orders — independent of delivery/pickup date or slot. */
+  protected readonly prepSummaryFresh = computed<PrepProduct[]>(() =>
+    this.groupByProductAndPack(this.reservedOrders().filter((order) => order.contentType === 'FRESH')),
   );
 
-  /** Packs to prepare per date+créneau, by product, among FROZEN reserved orders. */
-  protected readonly prepSummaryFrozenBySlot = computed<PrepSlotGroup[]>(() =>
-    this.groupBySlot(this.reservedOrders().filter((order) => order.contentType === 'FROZEN')),
+  /** Packs to prepare by product, among FROZEN reserved orders — independent of delivery/pickup date or slot. */
+  protected readonly prepSummaryFrozen = computed<PrepProduct[]>(() =>
+    this.groupByProductAndPack(this.reservedOrders().filter((order) => order.contentType === 'FROZEN')),
   );
-
-  private groupBySlot(orders: Order[]): PrepSlotGroup[] {
-    const buckets = new Map<string, Order[]>();
-
-    for (const order of orders) {
-      const key = this.slotKey(order);
-      const bucket = buckets.get(key);
-      if (bucket) {
-        bucket.push(order);
-      } else {
-        buckets.set(key, [order]);
-      }
-    }
-
-    return Array.from(buckets.values())
-      .map((bucketOrders) => {
-        const { date, fulfillmentMethod, startTime, endTime } = bucketOrders[0];
-        return { date, fulfillmentMethod, startTime, endTime, products: this.groupByProductAndPack(bucketOrders) };
-      })
-      .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
-  }
 
   private groupByProductAndPack(orders: Order[]): PrepProduct[] {
     const packsByProduct = new Map<string, Map<number, number>>();

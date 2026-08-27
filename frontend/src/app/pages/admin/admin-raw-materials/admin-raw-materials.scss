@@ -49,9 +49,7 @@
   font-weight: var(--gz-fw-semibold);
 }
 
-.admin-raw-materials__new,
-.admin-raw-materials__picker,
-.admin-raw-materials__purchase-new {
+.admin-raw-materials__new {
   padding: var(--gz-space-6);
   background: var(--gz-surface);
   border: 1px solid var(--gz-border-soft);
@@ -60,6 +58,13 @@
 
 .admin-raw-materials__new-form,
 .admin-raw-materials__purchase-form {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--gz-space-4);
+  flex-wrap: wrap;
+}
+
+.admin-raw-materials__picker {
   display: flex;
   align-items: flex-end;
   gap: var(--gz-space-4);
@@ -98,6 +103,10 @@
     outline: 2px solid var(--gz-accent-400);
     outline-offset: 2px;
   }
+}
+
+.admin-raw-materials__select {
+  padding-right: var(--gz-space-8);
 }
 
 .admin-raw-materials__field-error {
