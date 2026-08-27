@@ -102,4 +102,10 @@ docker compose -f docker-compose.e2e.yml down -v   # à la fin
 
 ## État du projet
 
-Voir [releases-notes/](releases-notes/) pour le détail des versions. Version actuelle : **v1.0.0** — comptes clients (inscription, vérification email, connexion par session, mot de passe oublié) et gestion des droits admin, en plus du socle CI/CD et tests automatisés déjà en place.
+Voir [releases-notes/](./releases-notes) pour le détail des versions.
+
+**Version stable (`main`) : v1.2.0**  
+La branche `main` contient la dernière version stable du projet, avec le socle e-commerce, la gestion des comptes clients et administrateurs, ainsi que la CI/CD et les tests automatisés.
+
+**Version en développement (`dev`) : v2.0.1**  
+Les prochaines fonctionnalités et évolutions du projet sont développées et validées sur la branche `dev` avant leur intégration dans `main`.
