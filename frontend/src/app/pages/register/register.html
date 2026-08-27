@@ -5,56 +5,74 @@
     </ds-form-message>
   } @else {
     <form [formRoot]="registerForm" class="register-form">
-      <ds-form-field
-        label="Prénom"
-        fieldId="firstName"
-        autocomplete="given-name"
-        [field]="registerForm.firstName"
-      ></ds-form-field>
+      <div class="register-form__section" role="group" aria-labelledby="register-section-info">
+        <p id="register-section-info" class="register-form__section-title">Tes informations</p>
 
-      <ds-form-field
-        label="Nom"
-        fieldId="lastName"
-        autocomplete="family-name"
-        [field]="registerForm.lastName"
-      ></ds-form-field>
+        <div class="register-form__section-fields">
+          <ds-form-field
+            label="Prénom"
+            fieldId="firstName"
+            autocomplete="given-name"
+            [field]="registerForm.firstName"
+          ></ds-form-field>
 
-      <ds-form-field
-        label="Rue"
-        fieldId="street"
-        autocomplete="street-address"
-        [field]="registerForm.street"
-      ></ds-form-field>
+          <ds-form-field
+            label="Nom"
+            fieldId="lastName"
+            autocomplete="family-name"
+            [field]="registerForm.lastName"
+          ></ds-form-field>
+        </div>
+      </div>
 
-      <ds-form-field
-        label="NPA"
-        fieldId="postalCode"
-        autocomplete="postal-code"
-        [field]="registerForm.postalCode"
-      ></ds-form-field>
+      <div class="register-form__section" role="group" aria-labelledby="register-section-address">
+        <p id="register-section-address" class="register-form__section-title">Ton adresse</p>
 
-      <ds-form-field
-        label="Ville"
-        fieldId="city"
-        autocomplete="address-level2"
-        [field]="registerForm.city"
-      ></ds-form-field>
+        <div class="register-form__section-fields">
+          <ds-form-field
+            label="Rue"
+            fieldId="street"
+            autocomplete="street-address"
+            [field]="registerForm.street"
+          ></ds-form-field>
 
-      <ds-form-field
-        label="Email"
-        fieldId="email"
-        type="email"
-        autocomplete="email"
-        [field]="registerForm.email"
-      ></ds-form-field>
+          <ds-form-field
+            label="NPA"
+            fieldId="postalCode"
+            autocomplete="postal-code"
+            [field]="registerForm.postalCode"
+          ></ds-form-field>
 
-      <ds-form-field
-        label="Mot de passe"
-        fieldId="password"
-        type="password"
-        autocomplete="new-password"
-        [field]="registerForm.password"
-      ></ds-form-field>
+          <ds-form-field
+            label="Ville"
+            fieldId="city"
+            autocomplete="address-level2"
+            [field]="registerForm.city"
+          ></ds-form-field>
+        </div>
+      </div>
+
+      <div class="register-form__section" role="group" aria-labelledby="register-section-login">
+        <p id="register-section-login" class="register-form__section-title">Ta connexion</p>
+
+        <div class="register-form__section-fields">
+          <ds-form-field
+            label="Email"
+            fieldId="email"
+            type="email"
+            autocomplete="email"
+            [field]="registerForm.email"
+          ></ds-form-field>
+
+          <ds-form-field
+            label="Mot de passe"
+            fieldId="password"
+            type="password"
+            autocomplete="new-password"
+            [field]="registerForm.password"
+          ></ds-form-field>
+        </div>
+      </div>
 
       @if (submitError()) {
         <ds-form-message variant="error">{{ submitError() }}</ds-form-message>

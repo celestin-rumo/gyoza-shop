@@ -1,0 +1,53 @@
+# Gyoza Maison — v2.0.0
+
+*August 26, 2026*
+
+The big one: production sessions and raw materials get full lifecycle management, checkout moves to slot-based fulfillment, and analytics gains a PDF export. Enough ground covered — and enough of the order/checkout data model reshaped — to call it v2.0.0.
+
+## Production sessions
+
+- New end-to-end production tracking: a session records raw materials consumed, participants, hours worked, other costs, and the products/quantities produced — through a step-by-step creation wizard, feeding stock and unit-cost calculations downstream.
+- **Dupliquer**: start a new session pre-filled from a past one (raw materials, participants, outputs, duration, costs, notes) — only the date resets, and it creates a fully independent session.
+- **Modifier**: the same wizard reopens pre-filled to edit an existing session in place (`PUT /api/admin/production-sessions/{id}`). Raw material lines and participants are fully replaced; outputs are reconciled — stock adjusts by the delta, and dropping a line is refused once anything's been allocated against it.
+- New `ds-number-stepper` component for the wizard's quantity inputs.
+
+## Raw materials & stock
+
+- New admin section for raw materials: create/edit/delete materials and record purchases (with provenance), later folded into a single admin-raw-materials view instead of a separate purchases page.
+- Stock adjustment now goes through lot selection with a confirmation modal — pick the specific lot being adjusted, see a production hint, and confirm before it applies, instead of a single blind quantity field.
+
+## Checkout & slots
+
+- Checkout is now a multi-step form (cart → fulfillment method → details → payment) with live slot availability instead of the old single-form flow, and disables options once the order window has closed.
+- Delivery/pickup slots (fresh and frozen) are now managed directly by admins (`AdminSlots`, full CRUD) and matched against real availability at checkout, replacing the old `FreshAvailability` concept entirely.
+- Order history now shows the fulfillment method and content type alongside each order.
+
+## Order fulfillment: batch validation
+
+- Order items must now be explicitly marked batch-validated (traced back to the production batch that will fulfill them) before an order can transition to `READY` — closes a gap where an order could be marked ready without its items actually being accounted for in a production batch.
+
+## Analytics
+
+- **PDF export**: a new "Exporter les données" dialog on the admin analytics page (date range, with week/month presets) generates a server-side PDF — overview table, daily revenue/orders/new-customers charts, and, when the period covers production sessions, a profitability table with per-session charts.
+- New production-period analytics: hourly revenue, material costs, and profit metrics for a chosen date range, surfaced both via a dedicated endpoint and in the admin analytics page.
+- New reusable `ds-modal` component backs the export dialog, matching the wizard's existing backdrop/panel pattern instead of duplicating it.
+
+## Admin UX
+
+- Admin home reorganized into grouped sections.
+- Granting admin rights now offers type-to-filter autocomplete over existing accounts (name or email) instead of requiring an exact email typed blind.
+
+## CI/CD & infra
+
+- New staging environment: dedicated `docker-compose.staging.yml`, staging deploy pipeline, and rollback docs for both the application and the database.
+- Database backup workflow, plus baseline schema migration groundwork for it.
+- Staging no longer requires HTTP basic auth in front of it (dropped from the Traefik router config).
+
+## Dev tooling
+
+- New `scripts/fake-data/` seed/clean scripts: `seed.mjs` populates raw materials, purchases, slots, production sessions, and orders through the real REST API (so business invariants like frozen unit costs and batch numbers are respected), backdating timestamps so analytics sees activity spread across a period; `clean.sh` wipes it back out.
+
+## Not in this release
+
+- No DELETE endpoint for orders or production sessions (the fake-data cleanup script works around this with direct SQL).
+- Guest orders still can't be claimed by an account after the fact.

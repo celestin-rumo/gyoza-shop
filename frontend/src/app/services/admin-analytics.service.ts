@@ -2,7 +2,12 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-import { Analytics, AnalyticsTimeSeries } from '../models/analytics.model';
+import {
+  Analytics,
+  AnalyticsTimeSeries,
+  ProductionAnalytics,
+  ProductionPeriodAnalytics,
+} from '../models/analytics.model';
 
 @Injectable({ providedIn: 'root' })
 export class AdminAnalyticsService {
@@ -10,6 +15,10 @@ export class AdminAnalyticsService {
 
   getAnalytics(): Observable<Analytics> {
     return this.http.get<Analytics>('/api/admin/analytics');
+  }
+
+  getProductionAnalytics(): Observable<ProductionAnalytics> {
+    return this.http.get<ProductionAnalytics>('/api/admin/analytics/production');
   }
 
   /** `startDate`/`endDate` en "yyyy-MM-dd" ; sans elles, l'API renvoie les 30 derniers jours. */
@@ -25,5 +34,26 @@ export class AdminAnalyticsService {
     }
 
     return this.http.get<AnalyticsTimeSeries>('/api/admin/analytics/timeseries', { params });
+  }
+
+  /** `startDate`/`endDate` en "yyyy-MM-dd" ; sans elles, l'API renvoie les 30 derniers jours. */
+  getProductionPeriodAnalytics(startDate?: string, endDate?: string): Observable<ProductionPeriodAnalytics> {
+    let params = new HttpParams();
+
+    if (startDate) {
+      params = params.set('startDate', startDate);
+    }
+
+    if (endDate) {
+      params = params.set('endDate', endDate);
+    }
+
+    return this.http.get<ProductionPeriodAnalytics>('/api/admin/analytics/production/period', { params });
+  }
+
+  exportPdf(startDate: string, endDate: string): Observable<Blob> {
+    const params = new HttpParams().set('startDate', startDate).set('endDate', endDate);
+
+    return this.http.get('/api/admin/analytics/export/pdf', { params, responseType: 'blob' });
   }
 }

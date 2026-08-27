@@ -1,0 +1,33 @@
+<div class="ds-number-stepper">
+  <button
+    type="button"
+    class="ds-number-stepper__btn"
+    [attr.aria-label]="'Diminuer ' + label()"
+    [disabled]="disabled()"
+    (click)="decrement()"
+  >
+    −
+  </button>
+
+  <input
+    type="number"
+    [min]="min()"
+    [step]="step()"
+    [placeholder]="placeholder()"
+    [attr.aria-label]="label()"
+    class="ds-number-stepper__input"
+    [value]="value()"
+    [disabled]="disabled()"
+    (input)="onInput($event)"
+  />
+
+  <button
+    type="button"
+    class="ds-number-stepper__btn"
+    [attr.aria-label]="'Augmenter ' + label()"
+    [disabled]="disabled()"
+    (click)="increment()"
+  >
+    +
+  </button>
+</div>

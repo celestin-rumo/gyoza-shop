@@ -8,9 +8,68 @@
 
     <div class="admin-analytics__header-actions">
       <a class="admin-analytics__back-link" routerLink="/admin">← Retour</a>
+      <ds-button variant="outline" size="sm" (pressed)="openExportDialog()">Exporter les données</ds-button>
       <ds-button variant="outline" size="sm" (pressed)="logout()">Se déconnecter</ds-button>
     </div>
   </header>
+
+  @if (exportDialogOpen()) {
+    <ds-modal title="Exporter les données" (closed)="closeExportDialog()">
+      <form
+        class="admin-analytics__date-range"
+        (submit)="$event.preventDefault(); confirmExport()"
+      >
+        <label class="admin-analytics__date-field">
+          Date de début
+          <input
+            type="date"
+            [value]="exportStartDate()"
+            [max]="exportEndDate()"
+            (change)="onExportStartDateChange($any($event.target).value)"
+          />
+        </label>
+
+        <label class="admin-analytics__date-field">
+          Date de fin
+          <input
+            type="date"
+            [value]="exportEndDate()"
+            [min]="exportStartDate()"
+            (change)="onExportEndDateChange($any($event.target).value)"
+          />
+        </label>
+      </form>
+
+      <div class="admin-analytics__filters" role="group" aria-label="Périodes rapides">
+        <button type="button" class="admin-analytics__filter" (click)="selectExportPeriodPreset('week')">
+          Semaine
+        </button>
+        <button type="button" class="admin-analytics__filter" (click)="selectExportPeriodPreset('month')">
+          Mois
+        </button>
+      </div>
+
+      @if (exportRangeInvalid()) {
+        <p class="admin-analytics__error" role="alert">
+          La date de début doit précéder la date de fin.
+        </p>
+      } @else if (exportError()) {
+        <p class="admin-analytics__error" role="alert">{{ exportError() }}</p>
+      }
+
+      <div modal-footer>
+        <ds-button variant="outline" size="sm" (pressed)="closeExportDialog()">Annuler</ds-button>
+        <ds-button
+          variant="primary"
+          size="sm"
+          [disabled]="exportRangeInvalid() || exporting()"
+          (pressed)="confirmExport()"
+        >
+          {{ exporting() ? 'Génération…' : 'Valider' }}
+        </ds-button>
+      </div>
+    </ds-modal>
+  }
 
   @if (loading()) {
     <p class="admin-analytics__hint">Chargement…</p>
@@ -31,7 +90,7 @@
     </section>
 
     <section class="admin-analytics__section">
-      <h2 class="admin-analytics__section-title">Évolution sur une période</h2>
+      <h2 class="admin-analytics__section-title">Évolution et rentabilité par période</h2>
 
       <form class="admin-analytics__date-range" (submit)="$event.preventDefault(); applyDateRange()">
         <label class="admin-analytics__date-field">
@@ -54,21 +113,191 @@
           />
         </label>
 
-        <ds-button type="submit" variant="outline" size="sm" [disabled]="rangeInvalid() || timeSeriesLoading()">
-          {{ timeSeriesLoading() ? 'Chargement…' : 'Afficher' }}
+        <ds-button
+          type="submit"
+          variant="outline"
+          size="sm"
+          [disabled]="rangeInvalid() || timeSeriesLoading() || productionPeriodLoading()"
+        >
+          {{ timeSeriesLoading() || productionPeriodLoading() ? 'Chargement…' : 'Afficher' }}
         </ds-button>
+
+        <div class="admin-analytics__filters" role="group" aria-label="Périodes rapides">
+          <button type="button" class="admin-analytics__filter" (click)="selectPeriodPreset('week')">Semaine</button>
+          <button type="button" class="admin-analytics__filter" (click)="selectPeriodPreset('month')">Mois</button>
+          <button type="button" class="admin-analytics__filter" (click)="selectPeriodPreset('year')">Année</button>
+        </div>
       </form>
 
       @if (rangeInvalid()) {
         <p class="admin-analytics__error" role="alert">
           La date de début doit précéder la date de fin.
         </p>
-      } @else if (timeSeriesLoadError()) {
-        <p class="admin-analytics__error" role="alert">{{ timeSeriesLoadError() }}</p>
+      } @else {
+        @if (timeSeriesLoadError()) {
+          <p class="admin-analytics__error" role="alert">{{ timeSeriesLoadError() }}</p>
+        }
+        @if (productionPeriodLoadError()) {
+          <p class="admin-analytics__error" role="alert">{{ productionPeriodLoadError() }}</p>
+        }
       }
 
-      @if (timeSeries(); as series) {
-        <div class="admin-analytics__charts-grid">
+      @if (productionPeriodLoading()) {
+        <p class="admin-analytics__hint">Chargement…</p>
+      } @else if (productionPeriodAnalytics(); as period) {
+        <div class="admin-analytics__tiles">
+          @for (tile of periodStatTiles(); track tile.label) {
+            <article class="stat-tile">
+              <span class="stat-tile__label">{{ tile.label }}</span>
+              <span class="stat-tile__value">{{ tile.value }}</span>
+              @if (tile.trend; as trend) {
+                <span class="stat-tile__trend" [class.stat-tile__trend--down]="trend.direction === 'down'">
+                  {{ trend.label }}
+                </span>
+              }
+            </article>
+          }
+        </div>
+      }
+
+      <div class="admin-analytics__charts-grid">
+        <div class="admin-analytics__chart-section">
+          <h3 class="admin-analytics__chart-title">Stock actuel par saveur</h3>
+
+          @if (productsLoading()) {
+            <p class="admin-analytics__hint">Chargement…</p>
+          } @else if (productsLoadError()) {
+            <p class="admin-analytics__error" role="alert">{{ productsLoadError() }}</p>
+          } @else {
+            <figure class="admin-analytics__chart-figure">
+              <div class="admin-analytics__chart-wrap">
+                <canvas #stockByFlavorChart role="img" aria-label="Stock actuel par saveur"></canvas>
+              </div>
+
+              <figcaption class="sr-only">
+                <table>
+                  <caption>Stock actuel par saveur</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Saveur</th>
+                      <th scope="col">Stock</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (product of sortedProducts(); track product.id) {
+                      <tr>
+                        <th scope="row">{{ product.name }}</th>
+                        <td>{{ product.stockQuantity }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </figcaption>
+            </figure>
+          }
+        </div>
+
+        @if (productionPeriodAnalytics(); as period) {
+          <div class="admin-analytics__chart-section">
+            <h3 class="admin-analytics__chart-title">Temps par participant</h3>
+
+            <figure class="admin-analytics__chart-figure">
+              <div class="admin-analytics__chart-wrap">
+                <canvas #participantHoursChart role="img" aria-label="Heures cumulées par participant"></canvas>
+              </div>
+
+              <figcaption class="sr-only">
+                <table>
+                  <caption>Heures cumulées par participant</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Participant</th>
+                      <th scope="col">Heures</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (entry of period.participantHours; track entry.participantName) {
+                      <tr>
+                        <th scope="row">{{ entry.participantName }}</th>
+                        <td>{{ entry.hours }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </figcaption>
+            </figure>
+          </div>
+
+          <div class="admin-analytics__chart-section">
+            <h3 class="admin-analytics__chart-title">Revenu horaire moyen par session</h3>
+
+            <figure class="admin-analytics__chart-figure">
+              <div class="admin-analytics__chart-wrap">
+                <canvas #periodHourlyRevenueChart role="img" aria-label="Revenu horaire par session"></canvas>
+              </div>
+
+              <figcaption class="sr-only">
+                <table>
+                  <caption>Revenu horaire par session</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Session</th>
+                      <th scope="col">Revenu horaire</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (session of period.sessions; track session.batchNumber) {
+                      <tr>
+                        <th scope="row">{{ session.batchNumber }}</th>
+                        <td>{{ session.hourlyRevenue }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </figcaption>
+            </figure>
+          </div>
+
+          <div class="admin-analytics__chart-section admin-analytics__chart-section--wide">
+            <h3 class="admin-analytics__chart-title">Bénéfice brut, net et coût matière par session</h3>
+
+            <figure class="admin-analytics__chart-figure">
+              <div class="admin-analytics__chart-wrap">
+                <canvas
+                  #periodProfitChart
+                  role="img"
+                  aria-label="Bénéfice brut, bénéfice net et coût matière par gyoza, par session"
+                ></canvas>
+              </div>
+
+              <figcaption class="sr-only">
+                <table>
+                  <caption>Bénéfice brut, bénéfice net et coût matière par gyoza, par session</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Session</th>
+                      <th scope="col">Coût matière / gyoza</th>
+                      <th scope="col">Bénéfice brut</th>
+                      <th scope="col">Bénéfice net</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (session of period.sessions; track session.batchNumber) {
+                      <tr>
+                        <th scope="row">{{ session.batchNumber }}</th>
+                        <td>{{ session.materialCostPerGyoza }}</td>
+                        <td>{{ session.grossProfit }}</td>
+                        <td>{{ session.netProfit }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </figcaption>
+            </figure>
+          </div>
+        }
+
+        @if (timeSeries(); as series) {
           <div class="admin-analytics__chart-section">
             <h3 class="admin-analytics__chart-title">Chiffre d’affaires</h3>
 
@@ -217,8 +446,8 @@
               </figcaption>
             </figure>
           </div>
-        </div>
-      }
+        }
+      </div>
     </section>
 
     <section class="admin-analytics__section">
@@ -249,6 +478,91 @@
           </table>
         </figcaption>
       </figure>
+    </section>
+
+    <section class="admin-analytics__section">
+      <h2 class="admin-analytics__section-title">Rentabilité de production</h2>
+
+      @if (productionAnalyticsLoading()) {
+        <p class="admin-analytics__hint">Chargement…</p>
+      } @else if (productionAnalyticsLoadError()) {
+        <p class="admin-analytics__error" role="alert">{{ productionAnalyticsLoadError() }}</p>
+      } @else if (productionAnalytics(); as production) {
+        <div class="admin-analytics__tiles">
+          @for (tile of productionStatTiles(); track tile.label) {
+            <article class="stat-tile">
+              <span class="stat-tile__label">{{ tile.label }}</span>
+              <span class="stat-tile__value">{{ tile.value }}</span>
+            </article>
+          }
+        </div>
+
+        <div class="admin-analytics__charts-grid">
+          <div class="admin-analytics__chart-section admin-analytics__chart-section--wide">
+            <h3 class="admin-analytics__chart-title">Coût matière par session</h3>
+
+            <figure class="admin-analytics__chart-figure">
+              <div class="admin-analytics__chart-wrap">
+                <canvas #sessionCostChart role="img" aria-label="Coût matière première par session"></canvas>
+              </div>
+
+              <figcaption class="sr-only">
+                <table>
+                  <caption>Coût matière première par session</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Session</th>
+                      <th scope="col">Coût matière première</th>
+                      <th scope="col">Bénéfice net (théorique)</th>
+                      <th scope="col">Bénéfice net réel</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (session of production.sessions; track session.batchNumber) {
+                      <tr>
+                        <th scope="row">{{ session.batchNumber }}</th>
+                        <td>{{ session.materialCost }}</td>
+                        <td>{{ session.netProfit }}</td>
+                        <td>{{ session.actualNetProfit }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </figcaption>
+            </figure>
+          </div>
+
+          <div class="admin-analytics__chart-section">
+            <h3 class="admin-analytics__chart-title">Coût moyen par gyoza et par saveur</h3>
+
+            <figure class="admin-analytics__chart-figure">
+              <div class="admin-analytics__chart-wrap">
+                <canvas #flavorCostChart role="img" aria-label="Coût moyen par gyoza, par saveur"></canvas>
+              </div>
+
+              <figcaption class="sr-only">
+                <table>
+                  <caption>Coût moyen par gyoza, par saveur</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Saveur</th>
+                      <th scope="col">Coût moyen / gyoza</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (flavor of flavorNames(); track flavor) {
+                      <tr>
+                        <th scope="row">{{ flavor }}</th>
+                        <td>{{ production.averageCostPerGyozaByFlavor[flavor] }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+      }
     </section>
   }
 </main>

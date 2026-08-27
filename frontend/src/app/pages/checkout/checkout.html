@@ -1,165 +1,250 @@
 <main class="checkout">
-  @if (orderPlaced()) {
-    <section class="checkout__success">
-      <ds-section-header
-        title="Commande envoyée"
-        subtitle="Merci {{ placedWithName() }} ! Nous revenons vers vous rapidement à l’adresse {{ placedWithEmail() }}."
-      ></ds-section-header>
-      <ds-button variant="primary" size="md" (pressed)="goHome()">Retour à l’accueil</ds-button>
-    </section>
-  } @else if (cart.lines().length === 0) {
+  @if (cart.lines().length === 0 && !orderPlaced()) {
     <section class="checkout__empty">
       <ds-section-header
         title="Votre panier est vide"
         subtitle="Ajoutez quelques gyozas avant de passer commande."
+        [level]="1"
       ></ds-section-header>
       <ds-button variant="primary" size="md" (pressed)="goHome()">Découvrir nos gyozas</ds-button>
     </section>
   } @else {
     <ds-section-header
       title="Finaliser la commande"
-      subtitle="Vérifiez votre panier puis renseignez vos informations de livraison."
+      subtitle="Suivez les étapes pour valider votre commande."
       align="left"
+      [level]="1"
     ></ds-section-header>
 
-    <div class="checkout__grid">
-      <section class="checkout__summary" aria-label="Récapitulatif de la commande">
-        <h2 class="checkout__heading">Votre commande</h2>
+    @if (!orderPlaced()) {
+      <ds-stepper [steps]="steps" [currentIndex]="currentStepIndex()"></ds-stepper>
+    }
 
-        <ul class="checkout__lines">
-          @for (line of cart.lines(); track trackLine($index, line)) {
-            <li>
-              <ds-cart-item
-                [line]="line"
-                (quantityChange)="onCartQuantityChange(line, $event)"
-                (remove)="onCartLineRemove(line)"
-              ></ds-cart-item>
-            </li>
-          }
-        </ul>
+    <form [formRoot]="checkoutForm" class="checkout-form">
+      @switch (currentStepIndex()) {
+        @case (0) {
+          <section class="checkout__summary" aria-labelledby="step-heading">
+            <div class="checkout__summary-header">
+              <h2 class="checkout__heading" id="step-heading" #stepHeading tabindex="-1">Panier</h2>
+              <ds-button type="button" variant="outline" size="sm" (pressed)="goToShop()">Modifier</ds-button>
+            </div>
 
-        <div class="checkout__subtotal">
-          <span>Sous-total</span>
-          <strong>{{ cart.subtotal() | dsPrice }}</strong>
-        </div>
-      </section>
+            <ul class="checkout__lines">
+              @for (line of cart.lines(); track trackLine($index, line)) {
+                <li>
+                  <ds-cart-item
+                    [line]="line"
+                    (quantityChange)="onCartQuantityChange(line, $event)"
+                    (remove)="onCartLineRemove(line)"
+                  ></ds-cart-item>
+                </li>
+              }
+            </ul>
 
-      <section class="checkout__form-section" aria-label="Informations de livraison">
-        <h2 class="checkout__heading">Vos informations</h2>
-
-        @if (currentUser(); as user) {
-          <div class="checkout__account-block">
-            <h3 class="checkout__subheading">Réserver avec mon compte</h3>
-            <p class="checkout__account-summary">
-              {{ user.firstName }} {{ user.lastName }}<br />
-              {{ user.street }}, {{ user.postalCode }} {{ user.city }}<br />
-              {{ user.email }}
-            </p>
-
-            @if (accountSubmitError()) {
-              <ds-form-message variant="error">{{ accountSubmitError() }}</ds-form-message>
-            }
-
-            <ds-button
-              type="button"
-              variant="primary"
-              size="md"
-              [fullWidth]="true"
-              [disabled]="accountSubmitting()"
-              (pressed)="reserveWithAccount()"
-            >
-              {{ accountSubmitting() ? 'Envoi en cours…' : 'Réserver avec mon compte' }}
-            </ds-button>
-          </div>
-
-          <hr class="checkout__divider" />
-        } @else {
-          <div class="checkout__account-block">
-            <h3 class="checkout__subheading">Tu as un compte ?</h3>
-            <p class="checkout__account-hint">Connecte-toi pour retrouver tes commandes plus tard.</p>
-
-            <ds-button
-              type="button"
-              variant="outline"
-              size="md"
-              [fullWidth]="true"
-              (pressed)="goToLogin()"
-            >
-              Se connecter
-            </ds-button>
-          </div>
-
-          <hr class="checkout__divider" />
+            <div class="checkout__subtotal">
+              <span>Sous-total</span>
+              <strong>{{ cart.subtotal() | dsPrice }}</strong>
+            </div>
+          </section>
         }
 
-        <h3 class="checkout__subheading">Continuer en tant qu’invité</h3>
+        @case (1) {
+          <section class="checkout__step" aria-labelledby="step-heading">
+            <h2 class="checkout__heading" id="step-heading" #stepHeading tabindex="-1">Récupération</h2>
 
-        <form [formRoot]="checkoutForm" class="checkout-form">
-          <div class="checkout-form__field">
-            <label class="checkout-form__label" for="firstName">Prénom</label>
-            <input
-              id="firstName"
-              class="checkout-form__input"
-              type="text"
-              autocomplete="given-name"
-              [formField]="checkoutForm.firstName"
-            />
-            @if (checkoutForm.firstName().touched() && checkoutForm.firstName().invalid()) {
-              <p class="checkout-form__error">{{ checkoutForm.firstName().errors()[0]?.message }}</p>
+            <div class="checkout-form__cart-recap">
+              <span>{{ cart.count() }} article{{ cart.count() > 1 ? 's' : '' }} · {{ cart.subtotal() | dsPrice }}</span>
+              <button type="button" class="checkout-form__cart-recap-edit" (click)="goToCartStep()">Modifier</button>
+            </div>
+
+            <fieldset class="checkout-form__fieldset">
+              <legend class="checkout-form__legend">Mode de récupération</legend>
+
+              <div class="checkout-form__options" role="radiogroup" aria-label="Choisir un mode de récupération">
+                <ds-option
+                  [selected]="checkoutModel().fulfillmentMethod === 'PICKUP'"
+                  (select)="selectFulfillmentMethod('PICKUP')"
+                >
+                  Retrait
+                </ds-option>
+                <ds-option
+                  [selected]="checkoutModel().fulfillmentMethod === 'DELIVERY'"
+                  (select)="selectFulfillmentMethod('DELIVERY')"
+                >
+                  Livraison
+                </ds-option>
+              </div>
+            </fieldset>
+            @if (checkoutForm.fulfillmentMethod().touched() && checkoutForm.fulfillmentMethod().invalid()) {
+              <p class="checkout-form__error">{{ checkoutForm.fulfillmentMethod().errors()[0]?.message }}</p>
             }
-          </div>
 
-          <div class="checkout-form__field">
-            <label class="checkout-form__label" for="lastName">Nom</label>
-            <input
-              id="lastName"
-              class="checkout-form__input"
-              type="text"
-              autocomplete="family-name"
-              [formField]="checkoutForm.lastName"
-            />
-            @if (checkoutForm.lastName().touched() && checkoutForm.lastName().invalid()) {
-              <p class="checkout-form__error">{{ checkoutForm.lastName().errors()[0]?.message }}</p>
+            @if (checkoutModel().fulfillmentMethod) {
+              <fieldset class="checkout-form__fieldset">
+                <legend class="checkout-form__legend">Contenu</legend>
+
+                <div class="checkout-form__options" role="radiogroup" aria-label="Choisir frais ou surgelé">
+                  <ds-option
+                    [selected]="checkoutModel().contentType === 'FROZEN'"
+                    [disabled]="frozenDisabled()"
+                    (select)="selectContentType('FROZEN')"
+                  >
+                    Surgelé
+                  </ds-option>
+                  <ds-option
+                    [selected]="checkoutModel().contentType === 'FRESH'"
+                    [disabled]="freshDisabled()"
+                    (select)="selectContentType('FRESH')"
+                  >
+                    Frais
+                  </ds-option>
+                </div>
+              </fieldset>
+
+              @if (freshDisabled()) {
+                <p class="checkout-form__hint">La commande de gyozas frais n’est pas ouverte actuellement.</p>
+              }
+              @if (frozenDisabled()) {
+                <p class="checkout-form__hint">La commande de gyozas surgelés n’est pas ouverte actuellement.</p>
+              }
+              @if (checkoutForm.contentType().touched() && checkoutForm.contentType().invalid()) {
+                <p class="checkout-form__error">{{ checkoutForm.contentType().errors()[0]?.message }}</p>
+              }
             }
-          </div>
 
-          <div class="checkout-form__field">
-            <label class="checkout-form__label" for="address">Adresse</label>
-            <input
-              id="address"
-              class="checkout-form__input"
-              type="text"
-              autocomplete="street-address"
-              [formField]="checkoutForm.address"
-            />
-            @if (checkoutForm.address().touched() && checkoutForm.address().invalid()) {
-              <p class="checkout-form__error">{{ checkoutForm.address().errors()[0]?.message }}</p>
+            @if (checkoutModel().fulfillmentMethod && checkoutModel().contentType) {
+              <fieldset class="checkout-form__fieldset">
+                <legend class="checkout-form__legend">Créneau</legend>
+
+                @if (slotOptions().length > 0) {
+                  <div class="checkout-form__options" role="radiogroup" aria-label="Choisir un créneau">
+                    @for (option of slotOptions(); track option.id) {
+                      <ds-option
+                        [selected]="checkoutModel().startTime === option.startTime && checkoutModel().date === option.date"
+                        (select)="selectSlot(option)"
+                      >
+                        {{ formatTimeRange(option.startTime, option.endTime) }} · {{ option.date | date: 'dd.MM.yyyy' }}
+                      </ds-option>
+                    }
+                  </div>
+                } @else {
+                  <p class="checkout-form__hint">Aucun créneau disponible pour ce choix.</p>
+                }
+              </fieldset>
+              @if (checkoutForm.startTime().touched() && checkoutForm.startTime().invalid()) {
+                <p class="checkout-form__error">{{ checkoutForm.startTime().errors()[0]?.message }}</p>
+              }
             }
-          </div>
+          </section>
+        }
 
-          <div class="checkout-form__field">
-            <label class="checkout-form__label" for="email">Email</label>
-            <input
-              id="email"
-              class="checkout-form__input"
-              type="email"
-              autocomplete="email"
-              [formField]="checkoutForm.email"
-            />
-            @if (checkoutForm.email().touched() && checkoutForm.email().invalid()) {
-              <p class="checkout-form__error">{{ checkoutForm.email().errors()[0]?.message }}</p>
+        @case (2) {
+          <section class="checkout__step" aria-labelledby="step-heading">
+            <h2 class="checkout__heading" id="step-heading" #stepHeading tabindex="-1">Coordonnées</h2>
+
+            @if (currentUser()) {
+              <ds-button type="button" variant="outline" size="sm" (pressed)="prefillFromAccount()">
+                Préremplir avec mon compte
+              </ds-button>
+            } @else {
+              <ds-button type="button" variant="outline" size="sm" (pressed)="goToLogin()">
+                Se connecter
+              </ds-button>
             }
-          </div>
 
-          @if (guestSubmitError()) {
-            <p class="checkout-form__submit-error" role="alert">{{ guestSubmitError() }}</p>
+            <div class="checkout-form__field">
+              <label class="checkout-form__label" for="firstName">Prénom</label>
+              <input
+                id="firstName"
+                class="checkout-form__input"
+                type="text"
+                autocomplete="given-name"
+                [formField]="checkoutForm.firstName"
+              />
+              @if (checkoutForm.firstName().touched() && checkoutForm.firstName().invalid()) {
+                <p class="checkout-form__error">{{ checkoutForm.firstName().errors()[0]?.message }}</p>
+              }
+            </div>
+
+            <div class="checkout-form__field">
+              <label class="checkout-form__label" for="lastName">Nom</label>
+              <input
+                id="lastName"
+                class="checkout-form__input"
+                type="text"
+                autocomplete="family-name"
+                [formField]="checkoutForm.lastName"
+              />
+              @if (checkoutForm.lastName().touched() && checkoutForm.lastName().invalid()) {
+                <p class="checkout-form__error">{{ checkoutForm.lastName().errors()[0]?.message }}</p>
+              }
+            </div>
+
+            <div class="checkout-form__field">
+              <label class="checkout-form__label" for="email">Email</label>
+              <input
+                id="email"
+                class="checkout-form__input"
+                type="email"
+                autocomplete="email"
+                [formField]="checkoutForm.email"
+              />
+              @if (checkoutForm.email().touched() && checkoutForm.email().invalid()) {
+                <p class="checkout-form__error">{{ checkoutForm.email().errors()[0]?.message }}</p>
+              }
+            </div>
+
+            @if (!checkoutForm.address().hidden()) {
+              <div class="checkout-form__field">
+                <label class="checkout-form__label" for="address">Adresse</label>
+                <input
+                  id="address"
+                  class="checkout-form__input"
+                  type="text"
+                  autocomplete="street-address"
+                  [formField]="checkoutForm.address"
+                />
+                @if (checkoutForm.address().touched() && checkoutForm.address().invalid()) {
+                  <p class="checkout-form__error">{{ checkoutForm.address().errors()[0]?.message }}</p>
+                }
+              </div>
+            }
+
+            @if (submitError()) {
+              <p class="checkout-form__submit-error" role="alert">{{ submitError() }}</p>
+            }
+          </section>
+        }
+
+        @case (3) {
+          <section class="checkout__success" aria-labelledby="step-heading">
+            <h2 id="step-heading" #stepHeading tabindex="-1" class="checkout__visually-hidden">Paiement</h2>
+
+            <ds-section-header
+              title="Commande envoyée"
+              subtitle="Merci {{ placedWithName() }} ! Nous revenons vers vous rapidement à l’adresse {{ placedWithEmail() }}."
+            ></ds-section-header>
+            <ds-button variant="primary" size="md" (pressed)="goHome()">Retour à l’accueil</ds-button>
+          </section>
+        }
+      }
+
+      @if (!orderPlaced()) {
+        <div class="checkout-form__actions">
+          @if (currentStepIndex() > 0) {
+            <ds-button type="button" variant="outline" size="md" (pressed)="onStepperBack()">Retour</ds-button>
           }
-
-          <ds-button type="submit" variant="primary" size="md" [fullWidth]="true" [disabled]="guestSubmitting()">
-            {{ guestSubmitting() ? 'Envoi en cours…' : 'Valider la commande' }}
+          <ds-button
+            type="button"
+            variant="primary"
+            size="md"
+            [disabled]="!canAdvance()"
+            (pressed)="onStepperNext()"
+          >
+            {{ currentStepIndex() === 2 ? 'Payer' : 'Continuer' }}
           </ds-button>
-        </form>
-      </section>
-    </div>
+        </div>
+      }
+    </form>
   }
 </main>

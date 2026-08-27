@@ -20,13 +20,35 @@
     <p class="admin-orders__hint">Aucune commande pour le moment.</p>
   } @else {
     <section class="admin-orders__prep">
-      <h2 class="admin-orders__prep-title">Besoins en préparation</h2>
+      <h2 class="admin-orders__prep-title">Besoins en préparation — Frais</h2>
 
-      @if (prepSummary().length === 0) {
-        <p class="admin-orders__hint">Aucune commande réservée pour le moment.</p>
+      @if (prepSummaryFresh().length === 0) {
+        <p class="admin-orders__hint">Aucune commande frais réservée pour le moment.</p>
       } @else {
         <div class="admin-orders__prep-grid">
-          @for (product of prepSummary(); track product.productName) {
+          @for (product of prepSummaryFresh(); track product.productName) {
+            <article class="prep-tile">
+              <span class="prep-tile__label">{{ product.productName }}</span>
+              <span class="prep-tile__value">{{ product.totalUnits }} gyozas</span>
+              <ul class="prep-tile__packs">
+                @for (pack of product.packs; track pack.packSize) {
+                  <li>{{ pack.packQuantity }} × pack de {{ pack.packSize }}</li>
+                }
+              </ul>
+            </article>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="admin-orders__prep">
+      <h2 class="admin-orders__prep-title">Besoins en préparation — Surgelé</h2>
+
+      @if (prepSummaryFrozen().length === 0) {
+        <p class="admin-orders__hint">Aucune commande surgelé réservée pour le moment.</p>
+      } @else {
+        <div class="admin-orders__prep-grid">
+          @for (product of prepSummaryFrozen(); track product.productName) {
             <article class="prep-tile">
               <span class="prep-tile__label">{{ product.productName }}</span>
               <span class="prep-tile__value">{{ product.totalUnits }} gyozas</span>
@@ -65,6 +87,20 @@
       }
     </div>
 
+    <div class="admin-orders__slot-filter">
+      <label for="slotFilter">Filtrer par créneau</label>
+      <select
+        id="slotFilter"
+        [value]="slotFilter()"
+        (change)="setSlotFilter($any($event.target).value)"
+      >
+        <option value="ALL">Tous les créneaux</option>
+        @for (slot of distinctSlots(); track slot.key) {
+          <option [value]="slot.key">{{ slot.label }}</option>
+        }
+      </select>
+    </div>
+
     @if (filteredOrders().length === 0) {
       <p class="admin-orders__hint">Aucune commande avec ce statut.</p>
     } @else {
@@ -79,6 +115,11 @@
               (click)="toggleExpanded(order.id)"
             >
               <span class="admin-order__summary-id">Commande #{{ order.id }}</span>
+
+              <span class="admin-order__summary-slot">
+                {{ fulfillmentMethodLabels[order.fulfillmentMethod] }} · {{ formatTimeRange(order.startTime, order.endTime) }}
+                · {{ order.date | date: 'dd.MM.yyyy' }} · {{ contentTypeLabels[order.contentType] }}
+              </span>
 
               <span class="admin-order__badge admin-order__badge--{{ order.status.toLowerCase() }}">
                 {{ statusLabels[order.status] }}
@@ -103,6 +144,15 @@
                 </section>
 
                 <section class="admin-order__section">
+                  <h4 class="admin-order__section-title">Récupération</h4>
+                  <p class="admin-order__customer">
+                    {{ fulfillmentMethodLabels[order.fulfillmentMethod] }} — {{ formatTimeRange(order.startTime, order.endTime) }}
+                    · {{ order.date | date: 'dd.MM.yyyy' }}<br />
+                    {{ order.contentType === 'FRESH' ? 'Frais' : 'Surgelé' }}
+                  </p>
+                </section>
+
+                <section class="admin-order__section">
                   <h4 class="admin-order__section-title">Client</h4>
                   <p class="admin-order__customer">
                     {{ order.customer.firstName }} {{ order.customer.lastName }}<br />
@@ -115,10 +165,40 @@
                   <h4 class="admin-order__section-title">Articles</h4>
 
                   <ul class="admin-order__items">
-                    @for (item of order.items; track item.productName + item.packSize) {
+                    @for (item of order.items; track item.id) {
                       <li class="admin-order__item">
-                        <span>{{ item.packQuantity }} × {{ item.productName }} (pack de {{ item.packSize }})</span>
-                        <span>{{ item.unitPackPrice | dsPrice }}</span>
+                        <div class="admin-order__item-row">
+                          <span>{{ item.packQuantity }} × {{ item.productName }} (pack de {{ item.packSize }})</span>
+                          <span>{{ item.unitPackPrice | dsPrice }}</span>
+                        </div>
+
+                        <div class="admin-order__item-batches">
+                          @for (batch of item.batches; track $index) {
+                            @if (batch.batchNumber) {
+                              <span class="admin-order__batch-badge">
+                                Lot {{ batch.batchNumber }} : {{ batch.quantity }}
+                              </span>
+                            } @else {
+                              <span class="admin-order__batch-badge admin-order__batch-badge--warning">
+                                Provenance non traçable : {{ batch.quantity }}
+                              </span>
+                            }
+                          }
+                        </div>
+
+                        <label class="admin-order__batch-check">
+                          <input
+                            type="checkbox"
+                            [checked]="item.batchValidated"
+                            [disabled]="validatingItemId() === item.id"
+                            (change)="toggleItemBatchValidation(order, item)"
+                          />
+                          Numéro(s) de lot vérifié(s)
+                        </label>
+
+                        @if (itemValidationErrorFor(item.id); as itemError) {
+                          <p class="admin-order__error" role="alert">{{ itemError }}</p>
+                        }
                       </li>
                     }
                   </ul>
@@ -138,13 +218,19 @@
                         <ds-button
                           [variant]="status === 'CANCELLED' ? 'ghost' : 'outline'"
                           size="sm"
-                          [disabled]="updatingOrderId() === order.id"
+                          [disabled]="updatingOrderId() === order.id || !canApplyStatus(order, status)"
                           (pressed)="setStatus(order, status)"
                         >
                           {{ statusLabels[status] }}
                         </ds-button>
                       }
                     </div>
+
+                    @if (nextStatuses(order.status).includes('READY') && !allItemsValidated(order)) {
+                      <p class="admin-order__hint">
+                        Vérifiez le(s) numéro(s) de lot de chaque article avant de passer la commande à Prête.
+                      </p>
+                    }
 
                     @if (statusErrorFor(order.id); as error) {
                       <p class="admin-order__error" role="alert">{{ error }}</p>

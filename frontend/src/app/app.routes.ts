@@ -64,6 +64,12 @@ export const routes: Routes = [
     canActivate: [adminGuard],
   },
   {
+    path: 'admin/slots',
+    loadComponent: () =>
+      import('./pages/admin/admin-slots/admin-slots').then((m) => m.AdminSlots),
+    canActivate: [adminGuard],
+  },
+  {
     path: 'admin/analytics',
     loadComponent: () =>
       import('./pages/admin/admin-analytics/admin-analytics').then((m) => m.AdminAnalytics),
@@ -73,6 +79,22 @@ export const routes: Routes = [
     path: 'admin/users',
     loadComponent: () =>
       import('./pages/admin/admin-users/admin-users').then((m) => m.AdminUsers),
+    canActivate: [adminGuard],
+  },
+  {
+    path: 'admin/raw-materials',
+    loadComponent: () =>
+      import('./pages/admin/admin-raw-materials/admin-raw-materials').then(
+        (m) => m.AdminRawMaterials,
+      ),
+    canActivate: [adminGuard],
+  },
+  {
+    path: 'admin/production-sessions',
+    loadComponent: () =>
+      import('./pages/admin/admin-production-sessions/admin-production-sessions').then(
+        (m) => m.AdminProductionSessions,
+      ),
     canActivate: [adminGuard],
   },
 ];

@@ -16,6 +16,14 @@ export interface PackPayload {
   price: number;
 }
 
+/** A production batch (ProductOutput) still holding stock for a product, oldest first. */
+export interface ProductLot {
+  productOutputId: number;
+  batchNumber: string;
+  date: string;
+  remainingQuantity: number;
+}
+
 /**
  * Admin calls (protected by session + role, see `adminGuard`/`SecurityConfig`). Each mutation
  * also refreshes `CatalogService` so the homepage and "Our gyozas" reflect the change.
@@ -41,9 +49,20 @@ export class AdminProductService {
       .pipe(tap(() => this.catalog.refresh()));
   }
 
-  removeStock(productId: number, quantity: number): Observable<Product> {
+  getLots(productId: number): Observable<ProductLot[]> {
+    return this.http.get<ProductLot[]>(`/api/admin/products/${productId}/lots`);
+  }
+
+  removeStockFromLot(
+    productId: number,
+    productOutputId: number,
+    quantity: number,
+  ): Observable<Product> {
     return this.http
-      .post<Product>(`/api/admin/products/${productId}/stock/remove`, { quantity })
+      .post<Product>(`/api/admin/products/${productId}/stock/remove-from-lot`, {
+        productOutputId,
+        quantity,
+      })
       .pipe(tap(() => this.catalog.refresh()));
   }
 

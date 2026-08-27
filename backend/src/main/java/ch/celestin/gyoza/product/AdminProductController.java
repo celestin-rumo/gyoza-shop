@@ -1,7 +1,9 @@
 package ch.celestin.gyoza.product;
 
 import ch.celestin.gyoza.product.dto.CreateProductRequest;
+import ch.celestin.gyoza.product.dto.ProductLotResponse;
 import ch.celestin.gyoza.product.dto.ProductResponse;
+import ch.celestin.gyoza.product.dto.RemoveStockFromLotRequest;
 import ch.celestin.gyoza.product.dto.StockQuantityRequest;
 import ch.celestin.gyoza.product.dto.UpdateProductStatusRequest;
 import jakarta.validation.Valid;
@@ -37,12 +39,17 @@ public class AdminProductController {
         return productService.addStock(productId, request.quantity());
     }
 
-    @PostMapping("/{productId}/stock/remove")
-    public ProductResponse removeStock(
+    @GetMapping("/{productId}/lots")
+    public List<ProductLotResponse> getLots(@PathVariable Long productId) {
+        return productService.getAvailableLots(productId);
+    }
+
+    @PostMapping("/{productId}/stock/remove-from-lot")
+    public ProductResponse removeStockFromLot(
             @PathVariable Long productId,
-            @Valid @RequestBody StockQuantityRequest request
+            @Valid @RequestBody RemoveStockFromLotRequest request
     ) {
-        return productService.removeStock(productId, request.quantity());
+        return productService.removeStockFromLot(productId, request.productOutputId(), request.quantity());
     }
 
     @PatchMapping("/{productId}/status")

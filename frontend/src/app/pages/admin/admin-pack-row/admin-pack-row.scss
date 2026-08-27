@@ -37,22 +37,6 @@
   font-size: var(--gz-fs-xs);
 }
 
-.admin-pack-row__input {
-  width: 100px;
-  padding: var(--gz-space-2) var(--gz-space-3);
-  background: var(--gz-surface);
-  border: 1px solid var(--gz-border-soft);
-  border-radius: var(--gz-radius-sm);
-  color: var(--gz-text-primary);
-  font-family: var(--gz-font-family);
-  font-size: var(--gz-fs-sm);
-
-  &:focus-visible {
-    outline: 2px solid var(--gz-accent-400);
-    outline-offset: 2px;
-  }
-}
-
 .admin-pack-row__actions {
   display: flex;
   gap: var(--gz-space-2);

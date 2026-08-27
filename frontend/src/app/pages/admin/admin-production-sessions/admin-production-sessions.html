@@ -1,0 +1,589 @@
+<main class="admin-production-sessions">
+  <header class="admin-production-sessions__header">
+    <ds-section-header
+      title="Sessions de production"
+      subtitle="Matières consommées, produits fabriqués et temps passé à chaque session."
+      align="left"
+    ></ds-section-header>
+
+    <div class="admin-production-sessions__header-actions">
+      <a class="admin-production-sessions__back-link" routerLink="/admin">← Retour</a>
+      <ds-button variant="outline" size="sm" (pressed)="logout()">Se déconnecter</ds-button>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <p class="admin-production-sessions__hint">Chargement…</p>
+  } @else if (loadError()) {
+    <p class="admin-production-sessions__submit-error" role="alert">{{ loadError() }}</p>
+  } @else {
+    <section class="admin-production-sessions__new-trigger">
+      <ds-button variant="primary" size="md" (pressed)="openWizard()">Enregistrer une nouvelle session</ds-button>
+    </section>
+
+    @if (wizardOpen()) {
+      <div class="admin-production-sessions__backdrop" (click)="closeWizard()"></div>
+
+      <section
+        class="admin-production-sessions__modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="wizard-title"
+      >
+        <header class="admin-production-sessions__modal-header">
+          <h2 id="wizard-title" class="admin-production-sessions__modal-title">
+            {{ editingSessionId() ? 'Modifier la session' : 'Nouvelle session' }}
+          </h2>
+          <button
+            type="button"
+            class="admin-production-sessions__modal-close"
+            aria-label="Fermer"
+            (click)="closeWizard()"
+          >
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
+          </button>
+        </header>
+
+        <ds-stepper [steps]="steps" [currentIndex]="currentStepIndex()"></ds-stepper>
+
+        <div class="admin-production-sessions__modal-body">
+          @switch (currentStepIndex()) {
+            @case (0) {
+              <h3 #stepHeading tabindex="-1" class="admin-production-sessions__step-heading">
+                Date et notes
+              </h3>
+
+              @if (duplicatingFromBatch()) {
+                <p class="admin-production-sessions__hint">
+                  Pré-rempli depuis la session {{ duplicatingFromBatch() }}.
+                </p>
+              } @else if (editingSessionId()) {
+                <p class="admin-production-sessions__hint">
+                  La date d’une session n’est pas modifiable après coup.
+                </p>
+              }
+
+              <div class="admin-production-sessions__top-fields">
+                <label class="admin-production-sessions__field">
+                  Date
+                  <input
+                    type="date"
+                    class="admin-production-sessions__input"
+                    [value]="date()"
+                    [disabled]="editingSessionId() !== null"
+                    (input)="date.set($any($event.target).value)"
+                  />
+                </label>
+
+                <label class="admin-production-sessions__field admin-production-sessions__field--grow">
+                  Notes (optionnel)
+                  <input
+                    type="text"
+                    placeholder="Remarques sur la session…"
+                    class="admin-production-sessions__input"
+                    [value]="notes()"
+                    (input)="notes.set($any($event.target).value)"
+                  />
+                </label>
+              </div>
+            }
+
+            @case (1) {
+              <h3 #stepHeading tabindex="-1" class="admin-production-sessions__step-heading">
+                Matières premières utilisées
+              </h3>
+
+              <div class="admin-production-sessions__lines">
+                @for (line of rawMaterialLines(); track $index) {
+                  <div class="admin-production-sessions__line">
+                    <select
+                      class="admin-production-sessions__select"
+                      (change)="
+                        updateLine(rawMaterialLines, $index, { rawMaterialId: $any($event.target).value ? +$any($event.target).value : null })
+                      "
+                    >
+                      <option value="" [selected]="line.rawMaterialId === null">— Matière première —</option>
+                      @for (rawMaterial of rawMaterials(); track rawMaterial.id) {
+                        <option [value]="rawMaterial.id" [selected]="rawMaterial.id === line.rawMaterialId">
+                          {{ rawMaterial.name }} ({{ rawMaterial.unit }})
+                        </option>
+                      }
+                    </select>
+
+                    <ds-number-stepper
+                      [value]="line.quantityUsed"
+                      (valueChange)="updateLine(rawMaterialLines, $index, { quantityUsed: $event })"
+                      [step]="0.1"
+                      [min]="0"
+                      label="la quantité"
+                    ></ds-number-stepper>
+
+                    <select
+                      class="admin-production-sessions__select"
+                      (change)="
+                        updateLine(rawMaterialLines, $index, { targetProductId: $any($event.target).value ? +$any($event.target).value : null })
+                      "
+                    >
+                      <option value="" [selected]="line.targetProductId === null">Pour : toutes les saveurs</option>
+                      @for (product of products(); track product.id) {
+                        <option [value]="product.id" [selected]="product.id === line.targetProductId">
+                          Pour : {{ product.name }}
+                        </option>
+                      }
+                    </select>
+
+                    <ds-button
+                      variant="outline"
+                      size="sm"
+                      [disabled]="line.rawMaterialId === null"
+                      (pressed)="togglePurchaseDraft($index)"
+                    >
+                      {{ purchaseDraftOpenIndex() === $index ? 'Annuler l’achat' : '+ Achat' }}
+                    </ds-button>
+
+                    <ds-button
+                      variant="ghost"
+                      size="sm"
+                      (pressed)="removeLine(rawMaterialLines, $index, true)"
+                    >
+                      Retirer
+                    </ds-button>
+                  </div>
+
+                  @if (purchaseDraftOpenIndex() === $index) {
+                    <div class="admin-production-sessions__purchase-draft">
+                      <p class="admin-production-sessions__purchase-draft-title">
+                        Enregistrer l’achat correspondant
+                      </p>
+
+                      <div class="admin-production-sessions__purchase-draft-fields">
+                        <label class="admin-production-sessions__field">
+                          Date
+                          <input
+                            type="date"
+                            class="admin-production-sessions__input"
+                            [value]="purchaseDraftDate()"
+                            (input)="purchaseDraftDate.set($any($event.target).value)"
+                          />
+                        </label>
+
+                        <div class="admin-production-sessions__field">
+                          <span>Quantité achetée</span>
+                          <ds-number-stepper
+                            [(value)]="purchaseDraftQuantity"
+                            [step]="0.1"
+                            [min]="0"
+                            label="la quantité achetée"
+                          ></ds-number-stepper>
+                        </div>
+
+                        <div class="admin-production-sessions__field">
+                          <span>Prix payé (CHF)</span>
+                          <ds-number-stepper
+                            [(value)]="purchaseDraftPrice"
+                            [step]="1"
+                            [min]="0"
+                            label="le prix payé"
+                          ></ds-number-stepper>
+                        </div>
+
+                        <label class="admin-production-sessions__field">
+                          Mode de saisie
+                          <select
+                            class="admin-production-sessions__select"
+                            [value]="purchaseDraftSource()"
+                            (change)="purchaseDraftSource.set($any($event.target).value)"
+                          >
+                            <option value="MANUAL">Saisie manuelle</option>
+                            <option value="SCANNED">Scanné</option>
+                          </select>
+                        </label>
+
+                        <label class="admin-production-sessions__field">
+                          Pays de provenance
+                          <input
+                            type="text"
+                            placeholder="Suisse"
+                            class="admin-production-sessions__input"
+                            [value]="purchaseDraftOriginCountry()"
+                            (input)="purchaseDraftOriginCountry.set($any($event.target).value)"
+                          />
+                        </label>
+
+                        <label class="admin-production-sessions__field">
+                          Magasin
+                          <input
+                            type="text"
+                            placeholder="Coop"
+                            class="admin-production-sessions__input"
+                            [value]="purchaseDraftStore()"
+                            (input)="purchaseDraftStore.set($any($event.target).value)"
+                          />
+                        </label>
+
+                        <label class="admin-production-sessions__field">
+                          N° de lot (si disponible)
+                          <input
+                            type="text"
+                            class="admin-production-sessions__input"
+                            [value]="purchaseDraftBatchNumber()"
+                            (input)="purchaseDraftBatchNumber.set($any($event.target).value)"
+                          />
+                        </label>
+                      </div>
+
+                      @if (purchaseDraftError()) {
+                        <p class="admin-production-sessions__submit-error" role="alert">
+                          {{ purchaseDraftError() }}
+                        </p>
+                      }
+
+                      <ds-button
+                        variant="primary"
+                        size="sm"
+                        [disabled]="!canSavePurchaseDraft() || savingPurchaseDraft()"
+                        (pressed)="savePurchaseDraft($index)"
+                      >
+                        {{ savingPurchaseDraft() ? 'Enregistrement…' : 'Enregistrer l’achat' }}
+                      </ds-button>
+                    </div>
+                  }
+                }
+
+                <ds-button variant="outline" size="sm" (pressed)="addLine(rawMaterialLines, emptyRawMaterialLine())">
+                  + Ajouter une matière première
+                </ds-button>
+              </div>
+            }
+
+            @case (2) {
+              <h3 #stepHeading tabindex="-1" class="admin-production-sessions__step-heading">
+                Participants
+              </h3>
+
+              <div class="admin-production-sessions__lines">
+                @for (line of participantLines(); track $index) {
+                  <div class="admin-production-sessions__line">
+                    <select
+                      class="admin-production-sessions__select"
+                      (change)="updateLine(participantLines, $index, { userId: $any($event.target).value || null })"
+                    >
+                      <option value="" [selected]="line.userId === null">— Participant —</option>
+                      @for (admin of admins(); track admin.id) {
+                        <option [value]="admin.id" [selected]="admin.id === line.userId">
+                          {{ admin.firstName }} {{ admin.lastName }}
+                        </option>
+                      }
+                    </select>
+
+                    <ds-button variant="ghost" size="sm" (pressed)="removeLine(participantLines, $index)">
+                      Retirer
+                    </ds-button>
+                  </div>
+                }
+
+                <ds-button variant="outline" size="sm" (pressed)="addLine(participantLines, emptyParticipantLine())">
+                  + Ajouter un participant
+                </ds-button>
+              </div>
+            }
+
+            @case (3) {
+              <h3 #stepHeading tabindex="-1" class="admin-production-sessions__step-heading">
+                Produits fabriqués
+              </h3>
+
+              <div class="admin-production-sessions__lines">
+                @for (line of outputLines(); track $index) {
+                  <div class="admin-production-sessions__line">
+                    <select
+                      class="admin-production-sessions__select"
+                      (change)="
+                        updateLine(outputLines, $index, { productId: $any($event.target).value ? +$any($event.target).value : null })
+                      "
+                    >
+                      <option value="" [selected]="line.productId === null">— Produit —</option>
+                      @for (product of products(); track product.id) {
+                        <option [value]="product.id" [selected]="product.id === line.productId">
+                          {{ product.name }}
+                        </option>
+                      }
+                    </select>
+
+                    <ds-number-stepper
+                      [value]="line.quantityProduced"
+                      (valueChange)="updateLine(outputLines, $index, { quantityProduced: $event })"
+                      [step]="1"
+                      [min]="0"
+                      label="la quantité produite"
+                    ></ds-number-stepper>
+
+                    <ds-button variant="ghost" size="sm" (pressed)="removeLine(outputLines, $index)">
+                      Retirer
+                    </ds-button>
+                  </div>
+                }
+
+                <ds-button variant="outline" size="sm" (pressed)="addLine(outputLines, emptyOutputLine())">
+                  + Ajouter un produit
+                </ds-button>
+              </div>
+            }
+
+            @case (4) {
+              <h3 #stepHeading tabindex="-1" class="admin-production-sessions__step-heading">
+                Durée de la session
+              </h3>
+
+              <div class="admin-production-sessions__field">
+                <span>Nombre d'heures</span>
+                <ds-number-stepper [(value)]="durationHours" [step]="0.5" [min]="0" label="la durée"></ds-number-stepper>
+              </div>
+
+              <div class="admin-production-sessions__field">
+                <span>Autres charges (CHF) — emballage, transport…</span>
+                <ds-number-stepper
+                  [(value)]="otherCosts"
+                  [step]="1"
+                  [min]="0"
+                  label="les autres charges"
+                ></ds-number-stepper>
+              </div>
+            }
+          }
+        </div>
+
+        @if (createError()) {
+          <p class="admin-production-sessions__submit-error" role="alert">{{ createError() }}</p>
+        }
+
+        <footer class="admin-production-sessions__modal-footer">
+          @if (currentStepIndex() > 0) {
+            <ds-button variant="outline" size="md" (pressed)="onWizardBack()">Retour</ds-button>
+          }
+
+          <ds-button
+            variant="primary"
+            size="md"
+            [disabled]="!canAdvance() || creating()"
+            (pressed)="onWizardNext()"
+          >
+            {{
+              currentStepIndex() === 4
+                ? creating()
+                  ? 'Enregistrement…'
+                  : editingSessionId()
+                    ? 'Enregistrer les modifications'
+                    : 'Enregistrer'
+                : 'Continuer'
+            }}
+          </ds-button>
+        </footer>
+      </section>
+    }
+
+    <section class="admin-production-sessions__history">
+      <h2 class="admin-production-sessions__section-title">Historique</h2>
+
+      @if (sessions().length === 0) {
+        <p class="admin-production-sessions__hint">Aucune session enregistrée pour le moment.</p>
+      } @else {
+        <div class="admin-production-sessions__session-list">
+          @for (session of sessions(); track session.id) {
+            <article class="admin-production-session">
+              <h3 class="admin-production-session__toggle-heading">
+                <button
+                  type="button"
+                  class="admin-production-session__toggle"
+                  [attr.aria-expanded]="isSessionExpanded(session.id)"
+                  [attr.aria-controls]="'session-details-' + session.id"
+                  (click)="toggleSessionExpanded(session.id)"
+                >
+                  <span class="admin-production-session__batch">{{ session.batchNumber }}</span>
+                  <span class="admin-production-session__date">{{ session.date }}</span>
+                  <span
+                    class="admin-production-session__chevron"
+                    [class.admin-production-session__chevron--open]="isSessionExpanded(session.id)"
+                    aria-hidden="true"
+                  >
+                    ▾
+                  </span>
+                </button>
+              </h3>
+
+              <ul class="admin-production-session__pills admin-production-session__pills--outputs">
+                @for (output of session.outputs; track output.productId) {
+                  <li class="admin-production-session__pill admin-production-session__pill--output">
+                    {{ output.productName }} <strong>+{{ output.quantityProduced }}</strong>
+                    <span class="admin-production-session__pill-sub">
+                      {{ currencyService.format(output.costPerGyoza) }}/gyoza
+                    </span>
+                  </li>
+                }
+                <li class="admin-production-session__pill admin-production-session__pill--output">
+                  Durée <strong>{{ session.durationHours }} h</strong>
+                </li>
+              </ul>
+
+              <p class="admin-production-session__hourly-revenue">
+                Revenu horaire
+                <strong>{{ currencyService.format(session.costSummary.hourlyRevenue) }}/h</strong>
+              </p>
+
+              @if (isSessionExpanded(session.id)) {
+                <div class="admin-production-session__details" [id]="'session-details-' + session.id">
+                  @if (session.notes) {
+                    <p class="admin-production-session__notes">{{ session.notes }}</p>
+                  }
+
+                  <div class="admin-production-session__section">
+                    <h4 class="admin-production-session__section-label">Rentabilité</h4>
+                    <dl class="admin-production-session__cost-grid">
+                      <div class="admin-production-session__cost-item">
+                        <dt>Coût matière première</dt>
+                        <dd>{{ currencyService.format(session.costSummary.totalMaterialCost) }}</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>Coût matière / gyoza</dt>
+                        <dd>{{ currencyService.format(session.costSummary.materialCostPerGyoza) }}</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>Gyoza produits</dt>
+                        <dd>{{ session.costSummary.totalGyozaProduced }}</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>Temps total (personne-heures)</dt>
+                        <dd>{{ session.costSummary.totalSessionHours }} h</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>Temps / gyoza</dt>
+                        <dd>{{ session.costSummary.timePerGyoza }} h</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>CA théorique</dt>
+                        <dd>{{ currencyService.format(session.costSummary.theoreticalRevenue) }}</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>Bénéfice brut</dt>
+                        <dd>{{ currencyService.format(session.costSummary.grossProfit) }}</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>Bénéfice net</dt>
+                        <dd>{{ currencyService.format(session.costSummary.netProfit) }}</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>ROI</dt>
+                        <dd>{{ session.costSummary.roi !== null ? session.costSummary.roi + ' %' : '—' }}</dd>
+                      </div>
+                    </dl>
+
+                    <div class="admin-production-session__other-costs">
+                      @if (editingOtherCostsSessionId() === session.id) {
+                        <ds-number-stepper
+                          [(value)]="otherCostsDraft"
+                          [step]="1"
+                          [min]="0"
+                          label="les autres charges"
+                        ></ds-number-stepper>
+
+                        <ds-button
+                          variant="primary"
+                          size="sm"
+                          [disabled]="savingOtherCosts()"
+                          (pressed)="saveOtherCosts(session.id)"
+                        >
+                          {{ savingOtherCosts() ? 'Enregistrement…' : 'Enregistrer' }}
+                        </ds-button>
+
+                        <ds-button variant="ghost" size="sm" (pressed)="cancelEditOtherCosts()">
+                          Annuler
+                        </ds-button>
+                      } @else {
+                        <span>Autres charges : {{ currencyService.format(session.otherCosts) }}</span>
+                        <ds-button variant="outline" size="sm" (pressed)="startEditOtherCosts(session)">
+                          Modifier
+                        </ds-button>
+                      }
+                    </div>
+
+                    @if (editingOtherCostsSessionId() === session.id && otherCostsError()) {
+                      <p class="admin-production-sessions__submit-error" role="alert">{{ otherCostsError() }}</p>
+                    }
+                  </div>
+
+                  <div class="admin-production-session__section">
+                    <h4 class="admin-production-session__section-label">
+                      Rentabilité réelle (commandes livrées)
+                    </h4>
+                    <dl class="admin-production-session__cost-grid">
+                      <div class="admin-production-session__cost-item">
+                        <dt>Gyoza vendus</dt>
+                        <dd>{{ session.actualSummary.unitsSold }} / {{ session.costSummary.totalGyozaProduced }}</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>CA réel</dt>
+                        <dd>{{ currencyService.format(session.actualSummary.actualRevenue) }}</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>Bénéfice net réel</dt>
+                        <dd>{{ currencyService.format(session.actualSummary.actualNetProfit) }}</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>Revenu horaire réel</dt>
+                        <dd>{{ currencyService.format(session.actualSummary.actualHourlyRevenue) }}/h</dd>
+                      </div>
+                      <div class="admin-production-session__cost-item">
+                        <dt>ROI réel</dt>
+                        <dd>
+                          {{ session.actualSummary.actualRoi !== null ? session.actualSummary.actualRoi + ' %' : '—' }}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+
+                  <div class="admin-production-session__section">
+                    <h4 class="admin-production-session__section-label">Matières premières utilisées</h4>
+                    <ul class="admin-production-session__pills">
+                      @for (usage of session.rawMaterialUsages; track usage.rawMaterialId) {
+                        <li class="admin-production-session__pill">
+                          {{ usage.rawMaterialName }} — {{ usage.quantityUsed }} {{ usage.unit }}
+                          ({{ currencyService.format(usage.lineCost) }})
+                          @if (usage.targetProductName) {
+                            <span class="admin-production-session__pill-sub">pour {{ usage.targetProductName }}</span>
+                          }
+                        </li>
+                      }
+                    </ul>
+                  </div>
+
+                  <div class="admin-production-session__section">
+                    <h4 class="admin-production-session__section-label">Participants</h4>
+                    <ul class="admin-production-session__pills">
+                      @for (participant of session.participants; track participant.userId) {
+                        <li class="admin-production-session__pill">{{ participant.userName }}</li>
+                      }
+                    </ul>
+                  </div>
+
+                  <hr class="admin-production-session__divider" />
+
+                  <div class="admin-production-sessions__header-actions">
+                    <ds-button variant="outline" size="sm" (pressed)="startEditSession(session)">
+                      Modifier
+                    </ds-button>
+
+                    <ds-button variant="outline" size="sm" (pressed)="duplicateSession(session)">
+                      Dupliquer
+                    </ds-button>
+                  </div>
+                </div>
+              }
+            </article>
+          }
+        </div>
+      }
+    </section>
+  }
+</main>

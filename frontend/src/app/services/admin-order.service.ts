@@ -15,4 +15,10 @@ export class AdminOrderService {
   updateStatus(orderId: number, status: OrderStatus): Observable<Order> {
     return this.http.patch<Order>(`/api/admin/orders/${orderId}/status`, { status });
   }
+
+  validateItemBatch(orderId: number, itemId: number, validated: boolean): Observable<Order> {
+    return this.http.patch<Order>(`/api/admin/orders/${orderId}/items/${itemId}/batch-validation`, {
+      validated,
+    });
+  }
 }

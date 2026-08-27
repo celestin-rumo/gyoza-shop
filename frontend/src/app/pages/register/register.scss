@@ -7,3 +7,32 @@
 .register-form {
   @include auth-form.card;
 }
+
+.register-form__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gz-space-3);
+
+  & + & {
+    padding-top: var(--gz-space-4);
+    border-top: 1px solid var(--gz-border-soft);
+  }
+}
+
+.register-form__section-title {
+  margin: 0;
+  color: var(--gz-text-secondary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-xs);
+  font-weight: var(--gz-fw-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Indented under its section title, so the label hierarchy reads at a glance. */
+.register-form__section-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gz-space-3);
+  padding-left: var(--gz-space-4);
+}

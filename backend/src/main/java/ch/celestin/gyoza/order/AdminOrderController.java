@@ -1,6 +1,7 @@
 package ch.celestin.gyoza.order;
 
 import ch.celestin.gyoza.order.dto.OrderResponse;
+import ch.celestin.gyoza.order.dto.UpdateItemBatchValidationRequest;
 import ch.celestin.gyoza.order.dto.UpdateOrderStatusRequest;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -33,6 +34,20 @@ public class AdminOrderController {
         return orderService.updateStatus(
                 id,
                 request.status()
+        );
+    }
+
+    @PatchMapping("/{orderId}/items/{itemId}/batch-validation")
+    public OrderResponse updateItemBatchValidation(
+            @PathVariable Long orderId,
+            @PathVariable Long itemId,
+            @Valid
+            @RequestBody UpdateItemBatchValidationRequest request
+    ) {
+        return orderService.validateItemBatch(
+                orderId,
+                itemId,
+                request.validated()
         );
     }
 }

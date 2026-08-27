@@ -6,7 +6,12 @@ import { firstValueFrom } from 'rxjs';
 
 import { AdminOrderService } from '../../../services/admin-order.service';
 import { AuthService } from '../../../services/auth.service';
-import { Order, OrderStatus } from '../../../models/order.model';
+import { Order, OrderItem, OrderStatus } from '../../../models/order.model';
+import {
+  CONTENT_TYPE_LABELS,
+  FULFILLMENT_METHOD_LABELS,
+  formatTimeRange,
+} from '../../../models/fulfillment.model';
 import { DsButtonComponent } from '../../../design-system/components/ds-button/ds-button.component';
 import { DsSectionHeaderComponent } from '../../../design-system/components/ds-section-header/ds-section-header.component';
 import { DsPricePipe } from '../../../design-system/pipes/ds-price.pipe';
@@ -31,8 +36,16 @@ const NEXT_STATUSES: Record<OrderStatus, OrderStatus[]> = {
 const ALL_STATUSES: OrderStatus[] = ['RESERVED', 'PREPARING', 'READY', 'DELIVERED', 'CANCELLED'];
 
 type StatusFilter = OrderStatus | 'ALL';
+type SlotFilter = string | 'ALL';
 
 const PAGE_SIZE = 8;
+
+interface DistinctSlot {
+  key: string;
+  label: string;
+  date: string;
+  startTime: string;
+}
 
 interface PrepPack {
   packSize: number;
@@ -58,6 +71,9 @@ export class AdminOrders implements OnInit {
 
   protected readonly statusLabels = STATUS_LABELS;
   protected readonly allStatuses = ALL_STATUSES;
+  protected readonly fulfillmentMethodLabels = FULFILLMENT_METHOD_LABELS;
+  protected readonly contentTypeLabels = CONTENT_TYPE_LABELS;
+  protected readonly formatTimeRange = formatTimeRange;
 
   protected readonly orders = signal<Order[]>([]);
   protected readonly loading = signal(true);
@@ -65,18 +81,50 @@ export class AdminOrders implements OnInit {
   protected readonly updatingOrderId = signal<number | null>(null);
   protected readonly statusErrors = signal<Record<number, string>>({});
 
+  protected readonly validatingItemId = signal<number | null>(null);
+  protected readonly itemValidationErrors = signal<Record<number, string>>({});
+
   protected readonly statusFilter = signal<StatusFilter>('ALL');
+  protected readonly slotFilter = signal<SlotFilter>('ALL');
   protected readonly expandedOrderIds = signal<ReadonlySet<number>>(new Set());
   protected readonly currentPage = signal(1);
 
   protected readonly filteredOrders = computed(() => {
-    const filter = this.statusFilter();
+    const statusF = this.statusFilter();
+    const slotF = this.slotFilter();
 
-    if (filter === 'ALL') {
-      return this.orders();
+    return this.orders().filter((order) => {
+      if (statusF !== 'ALL' && order.status !== statusF) {
+        return false;
+      }
+
+      if (slotF !== 'ALL' && this.slotKey(order) !== slotF) {
+        return false;
+      }
+
+      return true;
+    });
+  });
+
+  /** Distinct date+créneau combinations present among the loaded orders, for the créneau filter. */
+  protected readonly distinctSlots = computed<DistinctSlot[]>(() => {
+    const byKey = new Map<string, DistinctSlot>();
+
+    for (const order of this.orders()) {
+      const key = this.slotKey(order);
+      if (!byKey.has(key)) {
+        byKey.set(key, {
+          key,
+          label: `${this.fulfillmentMethodLabels[order.fulfillmentMethod]} · ${formatTimeRange(order.startTime, order.endTime)} · ${this.formatDateLabel(order.date)}`,
+          date: order.date,
+          startTime: order.startTime,
+        });
+      }
     }
 
-    return this.orders().filter((order) => order.status === filter);
+    return Array.from(byKey.values()).sort(
+      (a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime),
+    );
   });
 
   protected readonly reservedOrders = computed(() =>
@@ -102,11 +150,20 @@ export class AdminOrders implements OnInit {
     return counts;
   });
 
-  /** Total packs (by size) to prepare for each product, based on reserved orders. */
-  protected readonly prepSummary = computed<PrepProduct[]>(() => {
+  /** Packs to prepare by product, among FRESH reserved orders — independent of delivery/pickup date or slot. */
+  protected readonly prepSummaryFresh = computed<PrepProduct[]>(() =>
+    this.groupByProductAndPack(this.reservedOrders().filter((order) => order.contentType === 'FRESH')),
+  );
+
+  /** Packs to prepare by product, among FROZEN reserved orders — independent of delivery/pickup date or slot. */
+  protected readonly prepSummaryFrozen = computed<PrepProduct[]>(() =>
+    this.groupByProductAndPack(this.reservedOrders().filter((order) => order.contentType === 'FROZEN')),
+  );
+
+  private groupByProductAndPack(orders: Order[]): PrepProduct[] {
     const packsByProduct = new Map<string, Map<number, number>>();
 
-    for (const order of this.reservedOrders()) {
+    for (const order of orders) {
       for (const item of order.items) {
         const sizes = packsByProduct.get(item.productName) ?? new Map<number, number>();
         sizes.set(item.packSize, (sizes.get(item.packSize) ?? 0) + item.packQuantity);
@@ -125,7 +182,7 @@ export class AdminOrders implements OnInit {
         return { productName, totalUnits, packs };
       })
       .sort((a, b) => a.productName.localeCompare(b.productName, 'fr'));
-  });
+  }
 
   constructor() {
     // Safety net: if the current page becomes out of bounds (e.g. the last order
@@ -147,8 +204,21 @@ export class AdminOrders implements OnInit {
     return NEXT_STATUSES[status];
   }
 
+  /** READY specifically requires every item's production batch to have been checked off. */
+  protected canApplyStatus(order: Order, status: OrderStatus): boolean {
+    return status !== 'READY' || this.allItemsValidated(order);
+  }
+
+  protected allItemsValidated(order: Order): boolean {
+    return order.items.every((item) => item.batchValidated);
+  }
+
   protected statusErrorFor(orderId: number): string | null {
     return this.statusErrors()[orderId] ?? null;
+  }
+
+  protected itemValidationErrorFor(itemId: number): string | null {
+    return this.itemValidationErrors()[itemId] ?? null;
   }
 
   protected countFor(status: OrderStatus): number {
@@ -157,6 +227,11 @@ export class AdminOrders implements OnInit {
 
   protected setStatusFilter(filter: StatusFilter): void {
     this.statusFilter.set(filter);
+    this.currentPage.set(1);
+  }
+
+  protected setSlotFilter(filter: SlotFilter): void {
+    this.slotFilter.set(filter);
     this.currentPage.set(1);
   }
 
@@ -200,8 +275,42 @@ export class AdminOrders implements OnInit {
     }
   }
 
+  protected async toggleItemBatchValidation(order: Order, item: OrderItem): Promise<void> {
+    this.validatingItemId.set(item.id);
+    this.clearItemValidationError(item.id);
+
+    try {
+      const updated = await firstValueFrom(
+        this.adminOrderService.validateItemBatch(order.id, item.id, !item.batchValidated),
+      );
+      this.orders.update((orders) =>
+        orders.map((existing) => (existing.id === updated.id ? updated : existing)),
+      );
+    } catch (error) {
+      this.setItemValidationError(item.id, this.extractErrorMessage(error));
+    } finally {
+      this.validatingItemId.set(null);
+    }
+  }
+
   protected logout(): void {
     this.authService.logout().subscribe(() => this.router.navigateByUrl('/login'));
+  }
+
+  private setItemValidationError(itemId: number, message: string): void {
+    this.itemValidationErrors.update((errors) => ({ ...errors, [itemId]: message }));
+  }
+
+  private clearItemValidationError(itemId: number): void {
+    this.itemValidationErrors.update((errors) => {
+      if (!(itemId in errors)) {
+        return errors;
+      }
+
+      const next = { ...errors };
+      delete next[itemId];
+      return next;
+    });
   }
 
   private setStatusError(orderId: number, message: string): void {
@@ -232,6 +341,16 @@ export class AdminOrders implements OnInit {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  private slotKey(order: Order): string {
+    return `${order.date}__${order.fulfillmentMethod}__${order.startTime}__${order.endTime}`;
+  }
+
+  /** "2027-01-05" → "05.01.2027", consistent with the `dd.MM.yyyy` DatePipe format used elsewhere in this page. */
+  private formatDateLabel(date: string): string {
+    const [year, month, day] = date.split('-');
+    return `${day}.${month}.${year}`;
   }
 
   private extractErrorMessage(error: unknown): string {

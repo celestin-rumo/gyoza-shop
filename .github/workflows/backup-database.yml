@@ -1,0 +1,44 @@
+name: Backup Production Database
+
+on:
+  schedule:
+    - cron: "0 3 * * *" # 03:00 UTC daily
+  workflow_dispatch: {}
+
+env:
+  DEPLOY_PATH: /home/infra-edge/gyoza-shop
+  COMPOSE_PROD_FILE: docker-compose.prod.yml
+  DATABASE_SERVICE_NAME: database
+  RETENTION_COUNT: 14
+
+jobs:
+  backup:
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - name: Dump the database
+        shell: bash
+        run: |
+          cd "${{ env.DEPLOY_PATH }}"
+          mkdir -p backups
+
+          if ! docker compose -f "${{ env.COMPOSE_PROD_FILE }}" ps --status running --services \
+              | grep -qx "${{ env.DATABASE_SERVICE_NAME }}"; then
+            echo "Database container isn't running, nothing to back up."
+            exit 0
+          fi
+
+          TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+          FILE="backups/daily-${TIMESTAMP}.sql.gz"
+
+          docker compose -f "${{ env.COMPOSE_PROD_FILE }}" exec -T "${{ env.DATABASE_SERVICE_NAME }}" \
+            sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' | gzip > "$FILE"
+
+          echo "Backup written: $FILE ($(du -h "$FILE" | cut -f1))"
+
+      - name: Prune old daily backups
+        shell: bash
+        run: |
+          cd "${{ env.DEPLOY_PATH }}/backups"
+          ls -1t daily-*.sql.gz 2>/dev/null | tail -n +$(( ${{ env.RETENTION_COUNT }} + 1 )) | xargs -r rm --
+          echo "Daily backups on disk: $(ls -1 daily-*.sql.gz 2>/dev/null | wc -l)"

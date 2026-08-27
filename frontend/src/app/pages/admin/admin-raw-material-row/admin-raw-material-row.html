@@ -1,0 +1,70 @@
+<article class="admin-raw-material">
+  @if (editing()) {
+    <div class="admin-raw-material__edit">
+      <label class="admin-raw-material__field">
+        Nom
+        <input
+          type="text"
+          class="admin-raw-material__input"
+          [value]="name()"
+          (input)="name.set($any($event.target).value)"
+        />
+      </label>
+
+      <label class="admin-raw-material__field">
+        Unité
+        <input
+          type="text"
+          class="admin-raw-material__input admin-raw-material__input--sm"
+          [value]="unit()"
+          (input)="unit.set($any($event.target).value)"
+        />
+      </label>
+
+      <div class="admin-raw-material__edit-actions">
+        <ds-button variant="primary" size="sm" [disabled]="!canSave() || saving()" (pressed)="save()">
+          {{ saving() ? 'Enregistrement…' : 'Enregistrer' }}
+        </ds-button>
+        <ds-button variant="outline" size="sm" [disabled]="saving()" (pressed)="cancelEditing()">
+          Annuler
+        </ds-button>
+      </div>
+    </div>
+  } @else {
+    <div class="admin-raw-material__row">
+      <div class="admin-raw-material__info">
+        <h3 class="admin-raw-material__name">{{ rawMaterial().name }}</h3>
+        <span class="admin-raw-material__unit">Unité : {{ rawMaterial().unit }}</span>
+      </div>
+
+      <div class="admin-raw-material__cost">
+        @if (rawMaterial().referenceUnitPrice; as price) {
+          <span class="admin-raw-material__price">
+            {{ price | dsPrice }} / {{ rawMaterial().unit }}
+          </span>
+          <span class="admin-raw-material__date">Dernier achat : {{ rawMaterial().lastPurchaseDate }}</span>
+        } @else {
+          <span class="admin-raw-material__date">Aucun achat enregistré</span>
+        }
+      </div>
+
+      <div class="admin-raw-material__actions">
+        <button
+          type="button"
+          class="admin-raw-material__history-link"
+          (click)="viewHistory.emit(rawMaterial().id)"
+        >
+          Historique des achats
+        </button>
+        <ds-button variant="outline" size="sm" (pressed)="startEditing()">Modifier</ds-button>
+        <ds-button variant="ghost" size="sm" [disabled]="deleting()" (pressed)="delete()">
+          {{ deleting() ? 'Suppression…' : 'Supprimer' }}
+        </ds-button>
+      </div>
+    </div>
+  }
+
+  @if (error()) {
+    <p class="admin-raw-material__error" role="alert">{{ error() }}</p>
+  }
+</article>

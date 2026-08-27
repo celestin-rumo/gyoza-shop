@@ -12,6 +12,20 @@
     </div>
   </header>
 
+  <section class="admin-stocks__production-hint">
+    <div class="admin-stocks__production-hint-text">
+      <h3>Alimenter le stock</h3>
+      <p>
+        Le stock doit être alimenté par les sessions de production. Sur chaque produit,
+        l'ajustement manuel reste disponible mais réservé aux pertes, casses et corrections
+        d'inventaire.
+      </p>
+    </div>
+    <a class="admin-stocks__production-hint-cta" routerLink="/admin/production-sessions">
+      Nouvelle session de production →
+    </a>
+  </section>
+
   <section class="admin-stocks__new-product">
     <h2 class="admin-stocks__section-title">Ajouter un produit</h2>
 
@@ -30,17 +44,14 @@
       </div>
 
       <div class="admin-stocks__field">
-        <label for="productStock">Stock initial</label>
-        <input
-          id="productStock"
-          type="number"
-          [formField]="newProductForm.initialStock"
-        />
-        @if (newProductForm.initialStock().touched() && newProductForm.initialStock().invalid()) {
-          <p class="admin-stocks__field-error">
-            {{ newProductForm.initialStock().errors()[0]?.message }}
-          </p>
-        }
+        <label>Stock initial</label>
+        <ds-number-stepper
+          [value]="newProduct().initialStock"
+          (valueChange)="setInitialStock($event)"
+          [step]="1"
+          [min]="0"
+          label="le stock initial"
+        ></ds-number-stepper>
       </div>
 
       @if (createProductError()) {

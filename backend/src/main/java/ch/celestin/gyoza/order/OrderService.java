@@ -18,4 +18,10 @@ public interface OrderService {
             Long orderId,
             OrderStatus status
     );
+
+    OrderResponse validateItemBatch(
+            Long orderId,
+            Long itemId,
+            boolean validated
+    );
 }

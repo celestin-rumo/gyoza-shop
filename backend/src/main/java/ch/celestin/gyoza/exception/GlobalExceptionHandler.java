@@ -110,6 +110,22 @@ public class GlobalExceptionHandler {
                 );
     }
 
+    @ExceptionHandler(SlotNotAvailableException.class)
+    public ResponseEntity<ApiError> handleSlotNotAvailable(
+            SlotNotAvailableException ex
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(
+                        new ApiError(
+                                "SLOT_NOT_AVAILABLE",
+                                ex.getMessage(),
+                                LocalDateTime.now()
+                        )
+                );
+    }
+
     @ExceptionHandler(InvalidOrderStatusException.class)
     public ResponseEntity<ApiError> handleInvalidOrderStatus(
             InvalidOrderStatusException ex
@@ -120,6 +136,22 @@ public class GlobalExceptionHandler {
                 .body(
                         new ApiError(
                                 "INVALID_ORDER_STATUS",
+                                ex.getMessage(),
+                                LocalDateTime.now()
+                        )
+                );
+    }
+
+    @ExceptionHandler(OrderItemsNotValidatedException.class)
+    public ResponseEntity<ApiError> handleOrderItemsNotValidated(
+            OrderItemsNotValidatedException ex
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(
+                        new ApiError(
+                                "ORDER_ITEMS_NOT_VALIDATED",
                                 ex.getMessage(),
                                 LocalDateTime.now()
                         )
@@ -184,6 +216,38 @@ public class GlobalExceptionHandler {
                 .body(
                         new ApiError(
                                 "INVALID_OR_EXPIRED_TOKEN",
+                                ex.getMessage(),
+                                LocalDateTime.now()
+                        )
+                );
+    }
+
+    @ExceptionHandler(RawMaterialNotFoundException.class)
+    public ResponseEntity<ApiError> handleRawMaterialNotFound(
+            RawMaterialNotFoundException ex
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(
+                        new ApiError(
+                                "RAW_MATERIAL_NOT_FOUND",
+                                ex.getMessage(),
+                                LocalDateTime.now()
+                        )
+                );
+    }
+
+    @ExceptionHandler(ProductionSessionNotFoundException.class)
+    public ResponseEntity<ApiError> handleProductionSessionNotFound(
+            ProductionSessionNotFoundException ex
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(
+                        new ApiError(
+                                "PRODUCTION_SESSION_NOT_FOUND",
                                 ex.getMessage(),
                                 LocalDateTime.now()
                         )

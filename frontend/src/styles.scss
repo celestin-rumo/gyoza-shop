@@ -32,3 +32,15 @@ router-outlet + * {
     padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   }
 }
+
+/* Native <select> arrows render inconsistently (and rarely centered) across
+   browsers once the box has custom padding — replace it with a fixed SVG
+   chevron so it's always vertically centered. Each page still sets its own
+   padding-right to leave room for it. */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 8l5 5 5-5' stroke='%23a9a6a0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+}

@@ -38,7 +38,9 @@
                 "localhost",
                 "127.0.0.1",
                 "gyoza.celestinrumo.ch",
-                "www.gyoza.celestinrumo.ch"
+                "www.gyoza.celestinrumo.ch",
+                "staging.gyoza.celestinrumo.ch",
+                "www.staging.gyoza.celestinrumo.ch"
               ]
             },
             "ssr": {

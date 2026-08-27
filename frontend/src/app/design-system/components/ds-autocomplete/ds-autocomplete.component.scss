@@ -1,0 +1,100 @@
+:host {
+  display: block;
+}
+
+.ds-autocomplete {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gz-space-2);
+}
+
+.ds-autocomplete__label {
+  color: var(--gz-text-secondary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+  font-weight: var(--gz-fw-medium);
+}
+
+.ds-autocomplete__wrapper {
+  position: relative;
+}
+
+.ds-autocomplete__input {
+  width: 100%;
+  padding: var(--gz-space-3) var(--gz-space-4);
+  background: var(--gz-bg-elevated);
+  border: 1px solid var(--gz-border-soft);
+  border-radius: var(--gz-radius-sm);
+  color: var(--gz-text-primary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+  transition: border-color var(--gz-transition-fast);
+
+  &:hover {
+    border-color: var(--gz-border);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--gz-accent-400);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    color: var(--gz-text-muted);
+    cursor: not-allowed;
+  }
+}
+
+.ds-autocomplete__listbox {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + var(--gz-space-2));
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: var(--gz-space-2);
+  max-height: 240px;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--gz-surface);
+  border: 1px solid var(--gz-border);
+  border-radius: var(--gz-radius-sm);
+  box-shadow: var(--gz-shadow-md);
+}
+
+.ds-autocomplete__option {
+  padding: var(--gz-space-2) var(--gz-space-3);
+  border-radius: var(--gz-radius-sm);
+  color: var(--gz-text-primary);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+  cursor: pointer;
+
+  &:hover,
+  &--active {
+    background: var(--gz-surface-hover);
+  }
+}
+
+.ds-autocomplete__empty {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + var(--gz-space-2));
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: var(--gz-space-3);
+  background: var(--gz-surface);
+  border: 1px solid var(--gz-border);
+  border-radius: var(--gz-radius-sm);
+  color: var(--gz-text-muted);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-sm);
+}
+
+.ds-autocomplete__error {
+  margin: 0;
+  color: var(--gz-accent-500);
+  font-family: var(--gz-font-family);
+  font-size: var(--gz-fs-xs);
+}

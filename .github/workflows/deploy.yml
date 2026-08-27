@@ -12,17 +12,31 @@ on:
         required: true
         default: latest
         type: string
+      environment:
+        description: "Target environment"
+        required: true
+        default: production
+        type: choice
+        options:
+          - production
+          - staging
 
 env:
   DEPLOY_PATH: /home/infra-edge/gyoza-shop
+  STAGING_DEPLOY_PATH: /home/infra-edge/gyoza-shop-staging
   COMPOSE_PROD_FILE: docker-compose.prod.yml
+  COMPOSE_STAGING_FILE: docker-compose.staging.yml
   FRONT_SERVICE_NAME: frontend
   BACKEND_SERVICE_NAME: backend
   DATABASE_SERVICE_NAME: database
 
 jobs:
-  deploy:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+  deploy-production:
+    # Dev-branch builds are handled by deploy-staging below, everything else
+    # (main, version tags, manual dispatch) deploys to production.
+    if: >
+      (github.event_name == 'workflow_dispatch' && inputs.environment == 'production') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch != 'dev')
     runs-on: [self-hosted, linux]
 
     steps:
@@ -81,10 +95,139 @@ jobs:
             -f "${{ env.COMPOSE_PROD_FILE }}" \
             pull "${{ env.FRONT_SERVICE_NAME }}" "${{ env.BACKEND_SERVICE_NAME }}" "${{ env.DATABASE_SERVICE_NAME }}"
 
+      - name: Backup database before deploying
+        shell: bash
+        run: |
+          cd "${{ env.DEPLOY_PATH }}"
+          mkdir -p backups
+
+          if ! docker compose -f "${{ env.COMPOSE_PROD_FILE }}" ps --status running --services \
+              | grep -qx "${{ env.DATABASE_SERVICE_NAME }}"; then
+            echo "Database container isn't running yet (first deploy?) — nothing to back up."
+            exit 0
+          fi
+
+          TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+          FILE="backups/predeploy-${TIMESTAMP}.sql.gz"
+
+          docker compose -f "${{ env.COMPOSE_PROD_FILE }}" exec -T "${{ env.DATABASE_SERVICE_NAME }}" \
+            sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' | gzip > "$FILE"
+
+          echo "Pre-deploy backup written: $FILE ($(du -h "$FILE" | cut -f1))"
+
+          # Keep the last 10 pre-deploy snapshots — enough to undo a run of bad
+          # deploys without the folder growing unbounded.
+          ls -1t backups/predeploy-*.sql.gz | tail -n +11 | xargs -r rm --
+
       - name: Deploy frontend, backend and database containers
         shell: bash
         run: |
           cd "${{ env.DEPLOY_PATH }}"
           docker compose \
             -f "${{ env.COMPOSE_PROD_FILE }}" \
+            up -d "${{ env.FRONT_SERVICE_NAME }}" "${{ env.BACKEND_SERVICE_NAME }}" "${{ env.DATABASE_SERVICE_NAME }}"
+
+  deploy-staging:
+    # Fires for pushes to dev (built with the moving "staging" image tag), or
+    # a manual dispatch that explicitly targets staging.
+    if: >
+      (github.event_name == 'workflow_dispatch' && inputs.environment == 'staging') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'dev')
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set image tag
+        id: vars
+        shell: bash
+        run: |
+          IMAGE_TAG_TO_DEPLOY="staging"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            IMAGE_TAG_TO_DEPLOY="${{ inputs.image_tag }}"
+          fi
+
+          echo "image_tag=$IMAGE_TAG_TO_DEPLOY" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare deploy directory
+        shell: bash
+        run: mkdir -p "${{ env.STAGING_DEPLOY_PATH }}"
+
+      - name: Write .env
+        env:
+          IMAGE_TAG: ${{ steps.vars.outputs.image_tag }}
+          POSTGRES_PASSWORD: ${{ secrets.STAGING_POSTGRES_PASSWORD }}
+          ADMIN_EMAIL: ${{ secrets.STAGING_ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.STAGING_ADMIN_PASSWORD }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        shell: bash
+        run: |
+          cd "${{ env.STAGING_DEPLOY_PATH }}"
+
+          rm -f .env
+          cat > .env <<EOF
+          IMAGE_TAG=${IMAGE_TAG}
+          POSTGRES_DB=gyoza_staging
+          POSTGRES_USER=gyoza_staging
+          POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+          ADMIN_EMAIL=${ADMIN_EMAIL}
+          ADMIN_PASSWORD=${ADMIN_PASSWORD}
+          RESEND_API_KEY=${RESEND_API_KEY}
+          EOF
+          chmod 600 .env
+
+      - name: Sync deployment compose file
+        shell: bash
+        run: |
+          install -Dm644 docker-compose.staging.yml "${{ env.STAGING_DEPLOY_PATH }}/${{ env.COMPOSE_STAGING_FILE }}"
+
+      - name: Sync fake-data scripts
+        # Staging only — these seed/wipe fake orders, sessions, and slots for manual
+        # testing; keeping them alongside the compose file + .env makes them runnable
+        # in place (docker compose exec, DB creds) without cloning the repo there.
+        shell: bash
+        run: |
+          mkdir -p "${{ env.STAGING_DEPLOY_PATH }}/scripts"
+          cp -r scripts/fake-data "${{ env.STAGING_DEPLOY_PATH }}/scripts/"
+
+      - name: Pull deployment images
+        shell: bash
+        run: |
+          cd "${{ env.STAGING_DEPLOY_PATH }}"
+          docker compose \
+            -f "${{ env.COMPOSE_STAGING_FILE }}" \
+            pull "${{ env.FRONT_SERVICE_NAME }}" "${{ env.BACKEND_SERVICE_NAME }}" "${{ env.DATABASE_SERVICE_NAME }}"
+
+      - name: Backup database before deploying
+        shell: bash
+        run: |
+          cd "${{ env.STAGING_DEPLOY_PATH }}"
+          mkdir -p backups
+
+          if ! docker compose -f "${{ env.COMPOSE_STAGING_FILE }}" ps --status running --services \
+              | grep -qx "${{ env.DATABASE_SERVICE_NAME }}"; then
+            echo "Database container isn't running yet (first deploy?) — nothing to back up."
+            exit 0
+          fi
+
+          TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+          FILE="backups/predeploy-${TIMESTAMP}.sql.gz"
+
+          docker compose -f "${{ env.COMPOSE_STAGING_FILE }}" exec -T "${{ env.DATABASE_SERVICE_NAME }}" \
+            sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' | gzip > "$FILE"
+
+          echo "Pre-deploy backup written: $FILE ($(du -h "$FILE" | cut -f1))"
+
+          # Keep the last 10 pre-deploy snapshots — enough to undo a run of bad
+          # deploys without the folder growing unbounded.
+          ls -1t backups/predeploy-*.sql.gz | tail -n +11 | xargs -r rm --
+
+      - name: Deploy frontend, backend and database containers
+        shell: bash
+        run: |
+          cd "${{ env.STAGING_DEPLOY_PATH }}"
+          docker compose \
+            -f "${{ env.COMPOSE_STAGING_FILE }}" \
             up -d "${{ env.FRONT_SERVICE_NAME }}" "${{ env.BACKEND_SERVICE_NAME }}" "${{ env.DATABASE_SERVICE_NAME }}"

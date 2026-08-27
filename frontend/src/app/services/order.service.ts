@@ -4,11 +4,12 @@ import { Observable } from 'rxjs';
 
 import { DsCartAddEvent } from '../design-system';
 import { Order } from '../models/order.model';
+import { ContentType, FulfillmentMethod } from '../models/fulfillment.model';
 
 export interface OrderCustomer {
   firstName: string;
   lastName: string;
-  address: string;
+  address?: string;
   email: string;
 }
 
@@ -27,6 +28,19 @@ export interface OrderLineRequest {
 export interface OrderRequest {
   customer: OrderCustomer;
   lines: OrderLineRequest[];
+  fulfillmentMethod: FulfillmentMethod;
+  date: string;
+  startTime: string;
+  endTime: string;
+  contentType: ContentType;
+}
+
+export interface OrderFulfillment {
+  fulfillmentMethod: FulfillmentMethod;
+  date: string;
+  startTime: string;
+  endTime: string;
+  contentType: ContentType;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -36,6 +50,7 @@ export class OrderService {
   placeOrder(
     customer: OrderCustomer,
     lines: DsCartAddEvent[],
+    fulfillment: OrderFulfillment,
   ): Observable<OrderResponse> {
 
     const request: OrderRequest = {
@@ -44,6 +59,11 @@ export class OrderService {
         packId: Number(line.pack.id),
         quantity: line.quantity,
       })),
+      fulfillmentMethod: fulfillment.fulfillmentMethod,
+      date: fulfillment.date,
+      startTime: fulfillment.startTime,
+      endTime: fulfillment.endTime,
+      contentType: fulfillment.contentType,
     };
 
     return this.http.post<OrderResponse>(

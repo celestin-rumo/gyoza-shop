@@ -1,19 +1,22 @@
 import { Component, computed, inject, input, output, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
-import { AdminProductService } from '../../../services/admin-product.service';
+import { AdminProductService, ProductLot } from '../../../services/admin-product.service';
 import { Product } from '../../../models/product.model';
 import { Pack } from '../../../models/pack.model';
 import { DsButtonComponent } from '../../../design-system/components/ds-button/ds-button.component';
+import { DsNumberStepperComponent } from '../../../design-system';
 import { AdminPackRow } from '../admin-pack-row/admin-pack-row';
-
-const QUICK_STOCK_STEPS = [10, 50, 100];
 
 @Component({
   selector: 'app-admin-product-row',
-  imports: [DsButtonComponent, AdminPackRow],
+  imports: [DsButtonComponent, DsNumberStepperComponent, AdminPackRow],
   templateUrl: './admin-product-row.html',
   styleUrl: './admin-product-row.scss',
+  host: {
+    '(document:keydown.escape)': 'onEscape()',
+  },
 })
 export class AdminProductRow {
   private readonly adminProductService = inject(AdminProductService);
@@ -21,13 +24,29 @@ export class AdminProductRow {
   product = input.required<Product>();
   productUpdated = output<Product>();
 
-  protected readonly quickStockSteps = QUICK_STOCK_STEPS;
+  protected readonly stockDelta = signal(1);
 
-  protected readonly stockToAdd = signal(10);
-  protected readonly addingStock = signal(false);
-  protected readonly stockToRemove = signal(10);
-  protected readonly removingStock = signal(false);
-  protected readonly stockError = signal<string | null>(null);
+  protected readonly showStockConfirm = signal(false);
+  protected readonly confirmingStock = signal(false);
+  protected readonly stockConfirmError = signal<string | null>(null);
+
+  protected readonly lots = signal<ProductLot[]>([]);
+  protected readonly loadingLots = signal(false);
+  protected readonly selectedLotId = signal<number | null>(null);
+
+  protected readonly isAddingStock = computed(() => this.stockDelta() > 0);
+  protected readonly quantityAbs = computed(() => Math.abs(this.stockDelta()));
+  protected readonly selectedLot = computed(
+    () => this.lots().find((lot) => lot.productOutputId === this.selectedLotId()) ?? null,
+  );
+  protected readonly canConfirmStock = computed(() => {
+    if (this.isAddingStock()) {
+      return true;
+    }
+
+    const lot = this.selectedLot();
+    return lot !== null && this.quantityAbs() <= lot.remainingQuantity;
+  });
 
   protected readonly togglingActive = signal(false);
   protected readonly statusError = signal<string | null>(null);
@@ -38,44 +57,88 @@ export class AdminProductRow {
   protected readonly packError = signal<string | null>(null);
   protected readonly canAddPack = computed(() => this.newPackSize() > 0 && this.newPackPrice() > 0);
 
-  protected async addStock(quantity: number): Promise<void> {
-    if (quantity <= 0) {
+  protected openStockConfirm(): void {
+    if (this.stockDelta() === 0) {
       return;
     }
 
-    this.addingStock.set(true);
-    this.stockError.set(null);
+    this.stockConfirmError.set(null);
+    this.showStockConfirm.set(true);
 
-    try {
-      const updated = await firstValueFrom(
-        this.adminProductService.addStock(this.product().id, quantity),
-      );
-      this.productUpdated.emit(updated);
-    } catch {
-      this.stockError.set('Impossible d’ajouter le stock.');
-    } finally {
-      this.addingStock.set(false);
+    if (!this.isAddingStock()) {
+      this.loadLots();
     }
   }
 
-  protected async removeStock(quantity: number): Promise<void> {
-    if (quantity <= 0) {
+  protected closeStockConfirm(): void {
+    this.showStockConfirm.set(false);
+    this.lots.set([]);
+    this.selectedLotId.set(null);
+    this.stockConfirmError.set(null);
+  }
+
+  protected onLotChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.selectedLotId.set(value ? Number(value) : null);
+  }
+
+  protected onEscape(): void {
+    if (this.showStockConfirm()) {
+      this.closeStockConfirm();
+    }
+  }
+
+  protected async confirmStockChange(): Promise<void> {
+    if (!this.canConfirmStock()) {
       return;
     }
 
-    this.removingStock.set(true);
-    this.stockError.set(null);
+    this.confirmingStock.set(true);
+    this.stockConfirmError.set(null);
 
     try {
-      const updated = await firstValueFrom(
-        this.adminProductService.removeStock(this.product().id, quantity),
-      );
+      const updated = this.isAddingStock()
+        ? await firstValueFrom(
+            this.adminProductService.addStock(this.product().id, this.quantityAbs()),
+          )
+        : await firstValueFrom(
+            this.adminProductService.removeStockFromLot(
+              this.product().id,
+              this.selectedLot()!.productOutputId,
+              this.quantityAbs(),
+            ),
+          );
+
       this.productUpdated.emit(updated);
-    } catch {
-      this.stockError.set('Impossible de retirer ce stock (quantité insuffisante ?).');
+      this.stockDelta.set(1);
+      this.closeStockConfirm();
+    } catch (error) {
+      this.stockConfirmError.set(this.extractStockErrorMessage(error));
     } finally {
-      this.removingStock.set(false);
+      this.confirmingStock.set(false);
     }
+  }
+
+  private async loadLots(): Promise<void> {
+    this.loadingLots.set(true);
+
+    try {
+      const lots = await firstValueFrom(this.adminProductService.getLots(this.product().id));
+      this.lots.set(lots);
+      this.selectedLotId.set(lots[0]?.productOutputId ?? null);
+    } catch {
+      this.stockConfirmError.set('Impossible de charger les lots.');
+    } finally {
+      this.loadingLots.set(false);
+    }
+  }
+
+  private extractStockErrorMessage(error: unknown): string {
+    if (error instanceof HttpErrorResponse && typeof error.error?.message === 'string') {
+      return error.error.message;
+    }
+
+    return this.isAddingStock() ? 'Impossible d’ajouter le stock.' : 'Impossible de retirer ce stock.';
   }
 
   protected async toggleActive(): Promise<void> {
