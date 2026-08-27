@@ -220,7 +220,7 @@ describe('AdminRawMaterials', () => {
       expect(achatsSection.textContent).not.toContain("Ajouter l'achat");
     });
 
-    it('filters the history and reveals the purchase form when a material is selected', async () => {
+    it('filters the history without opening the purchase popup', async () => {
       await flushLoad([existingRawMaterial, secondRawMaterial], []);
 
       const filter: HTMLSelectElement = fixture.nativeElement.querySelector('#purchaseFilter');
@@ -231,11 +231,11 @@ describe('AdminRawMaterials', () => {
       await fixture.whenStable();
       fixture.detectChanges();
 
-      expect(fixture.nativeElement.textContent).toContain('Enregistrer un achat — Farine');
       expect(fixture.nativeElement.textContent).toContain('Coop');
+      expect(fixture.nativeElement.textContent).not.toContain('Enregistrer un achat');
     });
 
-    it('jumps to and filters the achats section from a catalog row’s "Historique des achats"', async () => {
+    it('jumps to and filters the achats section from a catalog row’s "Historique des achats", without opening the purchase popup', async () => {
       await flushLoad([existingRawMaterial, secondRawMaterial], []);
 
       clickButton('Historique des achats');
@@ -246,8 +246,30 @@ describe('AdminRawMaterials', () => {
       fixture.detectChanges();
 
       const achatsSection = fixture.nativeElement.querySelector('.admin-raw-materials__achats') as HTMLElement;
-      expect(achatsSection.textContent).toContain('Enregistrer un achat — Farine');
       expect(achatsSection.textContent).toContain('Coop');
+      expect(achatsSection.textContent).not.toContain('Enregistrer un achat');
+    });
+
+    it('opens the purchase popup for the filtered material via "+ Rajouter un achat"', async () => {
+      await flushLoad([existingRawMaterial, secondRawMaterial], []);
+
+      const filter: HTMLSelectElement = fixture.nativeElement.querySelector('#purchaseFilter');
+      filter.value = '1';
+      filter.dispatchEvent(new Event('change'));
+
+      httpMock.expectOne('/api/admin/raw-material-purchases?rawMaterialId=1').flush([]);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      clickButton('+ Rajouter un achat');
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).toContain('Enregistrer un achat');
+
+      clickButton('Annuler');
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).not.toContain('Enregistrer un achat');
     });
 
     it('submits a new purchase for the selected material and refreshes the history and catalog', async () => {
@@ -259,6 +281,9 @@ describe('AdminRawMaterials', () => {
 
       httpMock.expectOne('/api/admin/raw-material-purchases?rawMaterialId=1').flush([]);
       await fixture.whenStable();
+      fixture.detectChanges();
+
+      clickButton('+ Rajouter un achat');
       fixture.detectChanges();
 
       const form: HTMLElement = fixture.nativeElement.querySelector('.admin-raw-materials__purchase-form');

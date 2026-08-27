@@ -10,6 +10,7 @@ import { RawMaterial } from '../../../models/raw-material.model';
 import { PurchaseSource, RawMaterialPurchase } from '../../../models/raw-material-purchase.model';
 import { DsButtonComponent } from '../../../design-system/components/ds-button/ds-button.component';
 import { DsSectionHeaderComponent } from '../../../design-system/components/ds-section-header/ds-section-header.component';
+import { DsModalComponent } from '../../../design-system/components/ds-modal/ds-modal.component';
 import { DsPricePipe } from '../../../design-system/pipes/ds-price.pipe';
 import { DsNumberStepperComponent } from '../../../design-system';
 import { AdminRawMaterialRow } from '../admin-raw-material-row/admin-raw-material-row';
@@ -24,6 +25,7 @@ interface NewRawMaterial {
   imports: [
     DsSectionHeaderComponent,
     DsButtonComponent,
+    DsModalComponent,
     DsPricePipe,
     DsNumberStepperComponent,
     FormField,
@@ -101,6 +103,7 @@ export class AdminRawMaterials implements OnInit {
   protected readonly batchNumber = signal('');
   protected readonly creatingPurchase = signal(false);
   protected readonly createPurchaseError = signal<string | null>(null);
+  protected readonly purchaseModalOpen = signal(false);
 
   protected readonly canSubmitPurchase = computed(
     () =>
@@ -168,6 +171,15 @@ export class AdminRawMaterials implements OnInit {
     return this.rawMaterials().find((material) => material.id === rawMaterialId)?.unit ?? '';
   }
 
+  protected openPurchaseModal(): void {
+    this.createPurchaseError.set(null);
+    this.purchaseModalOpen.set(true);
+  }
+
+  protected closePurchaseModal(): void {
+    this.purchaseModalOpen.set(false);
+  }
+
   protected async createPurchase(): Promise<void> {
     const rawMaterialId = this.selectedRawMaterialId();
     if (rawMaterialId === null || !this.canSubmitPurchase()) {
@@ -197,6 +209,7 @@ export class AdminRawMaterials implements OnInit {
       this.originCountry.set('');
       this.store.set('');
       this.batchNumber.set('');
+      this.purchaseModalOpen.set(false);
 
       await Promise.all([
         this.loadPurchases(rawMaterialId),

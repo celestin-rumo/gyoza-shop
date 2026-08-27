@@ -91,12 +91,13 @@
           <select
             id="purchaseFilter"
             class="admin-raw-materials__select"
-            [value]="selectedRawMaterialId() ?? ''"
             (change)="onPurchaseFilterChanged($any($event.target).value)"
           >
-            <option value="">— Tous les achats —</option>
+            <option value="" [selected]="selectedRawMaterialId() === null">— Tous les achats —</option>
             @for (rawMaterial of rawMaterials(); track rawMaterial.id) {
-              <option [value]="rawMaterial.id">{{ rawMaterial.name }} ({{ rawMaterial.unit }})</option>
+              <option [value]="rawMaterial.id" [selected]="rawMaterial.id === selectedRawMaterialId()">
+                {{ rawMaterial.name }} ({{ rawMaterial.unit }})
+              </option>
             }
           </select>
         </label>
@@ -105,12 +106,29 @@
           <p class="admin-raw-materials__hint">
             Aucune matière première pour le moment — créez-en une ci-dessus.
           </p>
+        } @else {
+          <ds-button variant="outline" size="sm" (pressed)="openPurchaseModal()">
+            + Rajouter un achat
+          </ds-button>
         }
       </div>
 
-      @if (selectedRawMaterial(); as material) {
-        <section class="admin-raw-materials__purchase-new">
-          <h3 class="admin-raw-materials__section-title">Enregistrer un achat — {{ material.name }}</h3>
+      @if (purchaseModalOpen()) {
+        <ds-modal title="Enregistrer un achat" (closed)="closePurchaseModal()">
+          <label class="admin-raw-materials__field">
+            Matière première
+            <select
+              class="admin-raw-materials__select"
+              (change)="onPurchaseFilterChanged($any($event.target).value)"
+            >
+              <option value="" [selected]="selectedRawMaterialId() === null">— Choisir —</option>
+              @for (rawMaterial of rawMaterials(); track rawMaterial.id) {
+                <option [value]="rawMaterial.id" [selected]="rawMaterial.id === selectedRawMaterialId()">
+                  {{ rawMaterial.name }} ({{ rawMaterial.unit }})
+                </option>
+              }
+            </select>
+          </label>
 
           <div class="admin-raw-materials__purchase-form">
             <label class="admin-raw-materials__field">
@@ -124,7 +142,7 @@
             </label>
 
             <div class="admin-raw-materials__field">
-              <span>Quantité ({{ material.unit }})</span>
+              <span>Quantité{{ selectedRawMaterial() ? ' (' + selectedRawMaterial()!.unit + ')' : '' }}</span>
               <ds-number-stepper
                 [(value)]="quantityPurchased"
                 [step]="0.1"
@@ -186,7 +204,14 @@
                 (input)="batchNumber.set($any($event.target).value)"
               />
             </label>
+          </div>
 
+          @if (createPurchaseError()) {
+            <p class="admin-raw-materials__submit-error" role="alert">{{ createPurchaseError() }}</p>
+          }
+
+          <div modal-footer>
+            <ds-button variant="outline" size="md" (pressed)="closePurchaseModal()">Annuler</ds-button>
             <ds-button
               variant="primary"
               size="md"
@@ -196,11 +221,7 @@
               {{ creatingPurchase() ? 'Enregistrement…' : "Ajouter l'achat" }}
             </ds-button>
           </div>
-
-          @if (createPurchaseError()) {
-            <p class="admin-raw-materials__submit-error" role="alert">{{ createPurchaseError() }}</p>
-          }
-        </section>
+        </ds-modal>
       }
 
       @if (loadingPurchases()) {

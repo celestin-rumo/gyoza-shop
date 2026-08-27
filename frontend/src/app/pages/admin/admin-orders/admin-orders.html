@@ -22,60 +22,44 @@
     <section class="admin-orders__prep">
       <h2 class="admin-orders__prep-title">Besoins en préparation — Frais</h2>
 
-      @if (prepSummaryFreshBySlot().length === 0) {
+      @if (prepSummaryFresh().length === 0) {
         <p class="admin-orders__hint">Aucune commande frais réservée pour le moment.</p>
       } @else {
-        @for (group of prepSummaryFreshBySlot(); track group.date + group.fulfillmentMethod + group.startTime + group.endTime) {
-          <div class="admin-orders__prep-slot">
-            <h3 class="admin-orders__prep-slot-title">
-              {{ fulfillmentMethodLabels[group.fulfillmentMethod] }} — {{ formatTimeRange(group.startTime, group.endTime) }}
-              · {{ group.date | date: 'dd.MM.yyyy' }}
-            </h3>
-            <div class="admin-orders__prep-grid">
-              @for (product of group.products; track product.productName) {
-                <article class="prep-tile">
-                  <span class="prep-tile__label">{{ product.productName }}</span>
-                  <span class="prep-tile__value">{{ product.totalUnits }} gyozas</span>
-                  <ul class="prep-tile__packs">
-                    @for (pack of product.packs; track pack.packSize) {
-                      <li>{{ pack.packQuantity }} × pack de {{ pack.packSize }}</li>
-                    }
-                  </ul>
-                </article>
-              }
-            </div>
-          </div>
-        }
+        <div class="admin-orders__prep-grid">
+          @for (product of prepSummaryFresh(); track product.productName) {
+            <article class="prep-tile">
+              <span class="prep-tile__label">{{ product.productName }}</span>
+              <span class="prep-tile__value">{{ product.totalUnits }} gyozas</span>
+              <ul class="prep-tile__packs">
+                @for (pack of product.packs; track pack.packSize) {
+                  <li>{{ pack.packQuantity }} × pack de {{ pack.packSize }}</li>
+                }
+              </ul>
+            </article>
+          }
+        </div>
       }
     </section>
 
     <section class="admin-orders__prep">
       <h2 class="admin-orders__prep-title">Besoins en préparation — Surgelé</h2>
 
-      @if (prepSummaryFrozenBySlot().length === 0) {
+      @if (prepSummaryFrozen().length === 0) {
         <p class="admin-orders__hint">Aucune commande surgelé réservée pour le moment.</p>
       } @else {
-        @for (group of prepSummaryFrozenBySlot(); track group.date + group.fulfillmentMethod + group.startTime + group.endTime) {
-          <div class="admin-orders__prep-slot">
-            <h3 class="admin-orders__prep-slot-title">
-              {{ fulfillmentMethodLabels[group.fulfillmentMethod] }} — {{ formatTimeRange(group.startTime, group.endTime) }}
-              · {{ group.date | date: 'dd.MM.yyyy' }}
-            </h3>
-            <div class="admin-orders__prep-grid">
-              @for (product of group.products; track product.productName) {
-                <article class="prep-tile">
-                  <span class="prep-tile__label">{{ product.productName }}</span>
-                  <span class="prep-tile__value">{{ product.totalUnits }} gyozas</span>
-                  <ul class="prep-tile__packs">
-                    @for (pack of product.packs; track pack.packSize) {
-                      <li>{{ pack.packQuantity }} × pack de {{ pack.packSize }}</li>
-                    }
-                  </ul>
-                </article>
-              }
-            </div>
-          </div>
-        }
+        <div class="admin-orders__prep-grid">
+          @for (product of prepSummaryFrozen(); track product.productName) {
+            <article class="prep-tile">
+              <span class="prep-tile__label">{{ product.productName }}</span>
+              <span class="prep-tile__value">{{ product.totalUnits }} gyozas</span>
+              <ul class="prep-tile__packs">
+                @for (pack of product.packs; track pack.packSize) {
+                  <li>{{ pack.packQuantity }} × pack de {{ pack.packSize }}</li>
+                }
+              </ul>
+            </article>
+          }
+        </div>
       }
     </section>
 

@@ -175,6 +175,7 @@
     color: var(--gz-text-primary);
     font-family: var(--gz-font-family);
     font-size: var(--gz-fs-sm);
+    padding-right: var(--gz-space-8);
 
     &:focus-visible {
       outline: 2px solid var(--gz-accent-400);
